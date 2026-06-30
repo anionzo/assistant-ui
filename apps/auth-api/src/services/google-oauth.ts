@@ -6,10 +6,12 @@ export type GoogleProfile = {
   sub: string;
   name: string | null;
   picture: string | null;
+  frontend: string;
 };
 
 type StateEntry = {
   returnTo: string;
+  frontend: string;
   expiresAt: number;
 };
 
@@ -29,10 +31,11 @@ function getClient() {
   );
 }
 
-export function createGoogleAuthUrl(returnTo?: string) {
+export function createGoogleAuthUrl(returnTo?: string, frontend?: string) {
   const state = crypto.randomUUID();
   stateStore.set(state, {
     returnTo: returnTo && returnTo.startsWith("/") ? returnTo : "/",
+    frontend: frontend ?? process.env.FRONTEND_URL ?? "http://localhost:3001",
     expiresAt: Date.now() + 10 * 60_000,
   });
 
@@ -75,6 +78,7 @@ export async function exchangeGoogleCode(code: string, state: string): Promise<G
     sub: payload.sub,
     name: payload.name ?? null,
     picture: payload.picture ?? null,
+    frontend: stateEntry.frontend,
     returnTo: stateEntry.returnTo,
   };
 }

@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { createAuthRoutes } from "./routes/auth";
+import { createAdminRoutes } from "./routes/admin";
 import { createThreadRoutes } from "./routes/threads";
 import { type AuthStore, getAuthStore } from "./db/store";
+import { ensureAdminSeed } from "./services/rbac";
 
 export function createApp(store: AuthStore = getAuthStore()) {
   const app = new Hono();
@@ -18,7 +20,12 @@ export function createApp(store: AuthStore = getAuthStore()) {
 
   app.get("/health", (c) => c.json({ status: "ok" }));
   app.route("/auth", createAuthRoutes(store));
+  app.route("/admin", createAdminRoutes(store));
   app.route("/threads", createThreadRoutes(store));
 
   return app;
+}
+
+export async function onAppReady(store: AuthStore = getAuthStore()) {
+  await ensureAdminSeed(store);
 }

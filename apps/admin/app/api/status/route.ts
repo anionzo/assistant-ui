@@ -1,12 +1,18 @@
 import { asArray } from "@/lib/api/bff";
 import { getAdminConfig } from "@/lib/server/config";
 import { errorResponse } from "@/lib/server/errors";
+import { requireAdminSession } from "@/lib/server/require-admin-session";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const requestId = crypto.randomUUID();
   try {
+    const session = await requireAdminSession();
+    if (!session.ok) {
+      return Response.json({ error: session.error }, { status: session.status });
+    }
+
     const config = getAdminConfig();
     let gatewayOk = false;
     let message = "";
@@ -42,19 +48,27 @@ export async function GET() {
           message = `Catalog ${catalog.status}`;
         } else {
           gatewayOk = true;
-          const payload = await catalog.json();
-          collectionCount = asArray(payload, ["collections", "items", "data"]).length;
+          const payload = await catalog.json().catch(() => ({}));
+          const items = asArray<{ length: number }>(payload, ["collections", "items", "data"]);
+          collectionCount = Array.isArray(items) ? items.length : 0;
         }
       } catch (error) {
         message = error instanceof Error ? error.message : "Catalog unreachable";
       }
     }
 
+    let gatewayHost = "";
+    try {
+      gatewayHost = new URL(config.gatewayUrl).host;
+    } catch {
+      gatewayHost = config.gatewayUrl || "unknown";
+    }
+
     return Response.json({
       gateway: gatewayOk ? "ok" : "error",
       message: message || undefined,
       collectionCount,
-      gatewayHost: new URL(config.gatewayUrl).host,
+      gatewayHost,
     });
   } catch (error) {
     return errorResponse(

@@ -4,10 +4,16 @@ import {
   chatMessages,
   chatThreads,
   oauthAccounts,
+  permissions,
   refreshTokens,
+  rolePermissions,
+  roles,
+  userRoles,
   users,
   type ChatMessageRecord,
   type ChatThreadRecord,
+  type PermissionRecord,
+  type RoleRecord,
   type UserRecord,
 } from "./schema";
 
@@ -95,6 +101,15 @@ export interface AuthStore {
     threadId: string,
     input: { headMessageId?: string | null; messages: StoredThreadMessage[] },
   ): Promise<number>;
+  // RBAC
+  findUserRoles(userId: string): Promise<RoleRecord[]>;
+  findUserPermissionCodes(userId: string): Promise<string[]>;
+  ensureUserRole(userId: string, roleName: string): Promise<void>;
+  listAllUsers(): Promise<UserRecord[]>;
+  updateUser(userId: string, input: { displayName?: string }): Promise<UserRecord | null>;
+  setUserPassword(userId: string, passwordHash: string): Promise<void>;
+  listRoles(): Promise<RoleRecord[]>;
+  listPermissions(): Promise<PermissionRecord[]>;
 }
 
 class PostgresAuthStore implements AuthStore {
@@ -288,6 +303,79 @@ class PostgresAuthStore implements AuthStore {
     });
 
     return input.messages.length;
+  }
+
+  // ── RBAC ──────────────────────────────────────────────
+
+  async findUserRoles(userId: string) {
+    const db = getDb();
+    return db
+      .select({
+        id: roles.id,
+        name: roles.name,
+        description: roles.description,
+        createdAt: roles.createdAt,
+      })
+      .from(userRoles)
+      .innerJoin(roles, eq(roles.id, userRoles.roleId))
+      .where(eq(userRoles.userId, userId));
+  }
+
+  async findUserPermissionCodes(userId: string) {
+    const db = getDb();
+    const rows = await db
+      .select({ code: permissions.code })
+      .from(userRoles)
+      .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
+      .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+      .where(eq(userRoles.userId, userId));
+    return rows.map((r) => r.code);
+  }
+
+  async ensureUserRole(userId: string, roleName: string) {
+    const db = getDb();
+    const role = (await db.select().from(roles).where(eq(roles.name, roleName)).limit(1))[0];
+    if (!role) return;
+    await db
+      .insert(userRoles)
+      .values({ userId, roleId: role.id })
+      .onConflictDoNothing();
+  }
+
+  async listAllUsers() {
+    const db = getDb();
+    return db.select().from(users).orderBy(users.createdAt);
+  }
+
+  async updateUser(userId: string, input: { displayName?: string }) {
+    const db = getDb();
+    const rows = await db
+      .update(users)
+      .set({
+        ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, userId))
+      .returning();
+    return rows[0] ?? null;
+  }
+
+  async setUserPassword(userId: string, passwordHash: string) {
+    const db = getDb();
+    await db
+      .update(users)
+      .set({ passwordHash, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async listRoles() {
+    const db = getDb();
+    return db.select().from(roles).orderBy(roles.id);
+  }
+
+  async listPermissions() {
+    const db = getDb();
+    return db.select().from(permissions).orderBy(permissions.id);
   }
 }
 

@@ -7,6 +7,7 @@ export type SessionUser = {
   email: string;
   displayName: string | null;
   avatarUrl: string | null;
+  roleIds: number[];
 };
 
 export type SessionClaims = SessionUser & {
@@ -32,6 +33,7 @@ export async function signSessionToken(user: SessionUser) {
     email: user.email,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    role_ids: user.roleIds,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
@@ -53,5 +55,6 @@ export async function verifySessionToken(token: string): Promise<SessionClaims> 
     email: payload.email,
     displayName: typeof payload.displayName === "string" ? payload.displayName : null,
     avatarUrl: typeof payload.avatarUrl === "string" ? payload.avatarUrl : null,
+    roleIds: Array.isArray(payload.role_ids) ? payload.role_ids.filter((v: unknown): v is number => typeof v === "number") : [],
   };
 }

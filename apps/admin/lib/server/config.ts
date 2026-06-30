@@ -1,6 +1,8 @@
 export type AdminConfig = {
   gatewayUrl: string;
   adminApiKey: string;
+  authApiUrl: string;
+  frontendUrl: string;
 };
 
 export function getAdminConfig(
@@ -14,5 +16,10 @@ export function getAdminConfig(
   if (!adminApiKey) {
     throw new Error("ADMIN_API_KEY is required");
   }
-  return { gatewayUrl, adminApiKey };
+  return {
+    gatewayUrl,
+    adminApiKey,
+    authApiUrl: env.AUTH_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000",
+    frontendUrl: env.FRONTEND_URL ?? "http://localhost:3002",
+  };
 }

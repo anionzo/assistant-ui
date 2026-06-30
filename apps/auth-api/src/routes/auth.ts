@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { type AuthStore, getAuthStore } from "../db/store";
+import { resolveUserPermissions, resolveUserRoles } from "../services/rbac";
 import { createExchange, consumeExchange } from "../services/exchange-store";
 import { createGoogleAuthUrl, exchangeGoogleCode } from "../services/google-oauth";
 import { signSessionToken, verifySessionToken, type SessionUser } from "../services/jwt";
@@ -31,6 +32,7 @@ function toSessionUser(user: {
     email: user.email,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl,
+    roleIds: [],
   };
 }
 
@@ -38,7 +40,16 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
   const authRoutes = new Hono();
 
   async function issueSession(user: SessionUser) {
-    const accessToken = await signSessionToken(user);
+    const [roleIds, resolvedRoles] = await Promise.all([
+      resolveUserRoles(user.id, store).then((roles) => roles.map((r) => r.id)),
+      resolveUserRoles(user.id, store),
+    ]);
+    const permissionCodes = await resolveUserPermissions(user.id, store);
+
+    const accessToken = await signSessionToken({
+      ...user,
+      roleIds,
+    });
     const refreshToken = generateRefreshToken();
     await store.createRefreshToken({
       userId: user.id,
@@ -50,13 +61,21 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
       accessToken,
       refreshToken,
       expiresIn: Number(process.env.JWT_ACCESS_TTL ?? 3600),
-      user,
+      user: {
+        id: user.id,
+        email: user.email,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+      },
+      roles: resolvedRoles.map((r) => ({ id: r.id, name: r.name })),
+      permissions: permissionCodes,
     };
   }
 
   authRoutes.get("/google", (c) => {
     const returnTo = c.req.query("returnTo") ?? "/";
-    const { url } = createGoogleAuthUrl(returnTo);
+    const frontend = c.req.query("frontend") || undefined;
+    const { url } = createGoogleAuthUrl(returnTo, frontend);
     return c.redirect(url, 302);
   });
 
@@ -116,14 +135,22 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
       return c.json({ error: "Unable to create Google session" }, 500);
     }
 
+    // Auto-assign super_admin if email matches ADMIN_SEED_EMAIL
+    const seedEmail = process.env.ADMIN_SEED_EMAIL?.trim().toLowerCase();
+    if (seedEmail && normalizeEmail(user.email) === seedEmail) {
+      await store.ensureUserRole(user.id, "super_admin");
+    }
+
     const sessionUser = toSessionUser(user);
     const session = await issueSession(sessionUser);
     const exchangeCode = createExchange(
       session.accessToken,
       session.refreshToken,
       sessionUser,
+      session.roles,
+      session.permissions,
     );
-    const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3001";
+    const frontendUrl = profile.frontend;
 
     return c.redirect(`${frontendUrl}/api/auth/callback?exchange=${encodeURIComponent(exchangeCode)}&returnTo=${encodeURIComponent(profile.returnTo)}`, 302);
   });
@@ -144,6 +171,8 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
       refreshToken: exchange.refreshToken,
       expiresIn: Number(process.env.JWT_ACCESS_TTL ?? 3600),
       user: exchange.user,
+      roles: exchange.roles,
+      permissions: exchange.permissions,
     });
   });
 
@@ -186,6 +215,12 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
       displayName: body.displayName?.trim() || null,
     });
 
+    // Auto-assign super_admin if email matches ADMIN_SEED_EMAIL
+    const seedEmail = process.env.ADMIN_SEED_EMAIL?.trim().toLowerCase();
+    if (seedEmail && email === seedEmail) {
+      await store.ensureUserRole(user.id, "super_admin");
+    }
+
     return c.json(await issueSession(toSessionUser(user)), 201);
   });
 
@@ -217,6 +252,10 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
 
     try {
       const claims = await verifySessionToken(token);
+      const [roles, permissions] = await Promise.all([
+        resolveUserRoles(claims.id, store),
+        resolveUserPermissions(claims.id, store),
+      ]);
       return c.json({
         user: {
           id: claims.id,
@@ -224,6 +263,8 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
           displayName: claims.displayName,
           avatarUrl: claims.avatarUrl,
         },
+        roles: roles.map((r) => ({ id: r.id, name: r.name })),
+        permissions,
       });
     } catch {
       return c.json({ error: "invalid bearer token" }, 401);
@@ -235,6 +276,35 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     if (body?.refreshToken) {
       await store.revokeRefreshToken(hashRefreshToken(body.refreshToken));
     }
+    return c.json({ ok: true });
+  });
+
+  // POST /auth/set-password — allow OAuth users to set a password
+  authRoutes.post("/set-password", async (c) => {
+    const authorization = c.req.header("authorization");
+    const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
+    if (!token) {
+      return c.json({ error: "missing bearer token" }, 401);
+    }
+
+    let claims;
+    try {
+      claims = await verifySessionToken(token);
+    } catch {
+      return c.json({ error: "invalid or expired token" }, 401);
+    }
+
+    const body = await c.req.json<{ password?: string }>().catch(() => null);
+    if (!body?.password || body.password.length < 8) {
+      return c.json({ error: "password must be at least 8 characters" }, 400);
+    }
+
+    const user = await store.findUserById(claims.id);
+    if (!user) {
+      return c.json({ error: "user not found" }, 404);
+    }
+
+    await store.setUserPassword(claims.id, await hashPassword(body.password));
     return c.json({ ok: true });
   });
 

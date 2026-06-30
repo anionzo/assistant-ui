@@ -37,6 +37,15 @@ export async function updateCollectionSettings(id: string, parser_config: Record
   });
 }
 
+export async function uploadDocumentPipeline(collectionId: string, file: File) {
+  const body = new FormData();
+  body.append("file", file);
+  return bffJson<CorpusDocument>(
+    collectionPath(collectionId, "documents/pipeline"),
+    { method: "POST", body },
+  );
+}
+
 export async function listFiles(collectionId: string) {
   const payload = await bffJson<unknown>(collectionPath(collectionId, "files"));
   return asArray<CorpusFile>(payload, ["files", "items", "data"]);

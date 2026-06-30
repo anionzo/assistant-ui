@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { readFile } from "node:fs/promises";
+import { readFile, readdir } from "node:fs/promises";
 import { join } from "node:path";
 import postgres from "postgres";
 
@@ -11,10 +11,19 @@ async function main() {
 
   const sql = postgres(connectionString, { prepare: false });
   try {
-    const migrationPath = join(import.meta.dirname, "../../drizzle/0000_init.sql");
-    const statement = await readFile(migrationPath, "utf8");
-    await sql.unsafe(statement);
-    console.info("auth-api migrations applied");
+    const drizzleDir = join(import.meta.dirname, "../../drizzle");
+    const entries = await readdir(drizzleDir);
+    const migrations = entries
+      .filter((f) => f.endsWith(".sql"))
+      .sort();
+
+    for (const file of migrations) {
+      const content = await readFile(join(drizzleDir, file), "utf8");
+      await sql.unsafe(content);
+      console.info(`[migrate] ${file} applied`);
+    }
+
+    console.info("auth-api migrations complete");
   } finally {
     await sql.end();
   }

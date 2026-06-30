@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
-import { createApp } from "./app";
+import { createApp, onAppReady } from "./app";
 
 const port = Number(process.env.PORT ?? 4000);
 const app = createApp();
@@ -11,3 +11,5 @@ serve({
 });
 
 console.info(`auth-api listening on :${port}`);
+
+void onAppReady();

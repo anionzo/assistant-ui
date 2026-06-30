@@ -8,12 +8,12 @@ import { CollectionNav } from "@/components/collection-nav";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { bffJson } from "@/lib/api/bff";
 import {
   deleteFile,
   indexStatusForFile,
   listDocuments,
   listFiles,
+  uploadDocumentPipeline,
 } from "@/lib/api/collections";
 import type { CorpusDocument, CorpusFile } from "@/lib/types/gateway";
 import { cn } from "@/lib/utils";
@@ -73,17 +73,19 @@ export default function FilesPage() {
       return;
     }
 
+    const allowed = [".docx", ".pdf", ".xlsx", ".csv"];
+    const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
+    if (!allowed.includes(ext)) {
+      setError(`Unsupported file type "${ext}". Allowed: ${allowed.join(", ")}`);
+      return;
+    }
+
     setUploading(true);
     setError("");
     setSuccess("");
     try {
-      const body = new FormData();
-      body.append("file", file);
-      await bffJson(
-        `/api/documents/collections/${encodeURIComponent(collectionId)}/files`,
-        { method: "POST", body },
-      );
-      setSuccess(`Uploaded ${file.name} — indexing in progress.`);
+      const doc = await uploadDocumentPipeline(collectionId, file);
+      setSuccess(`Uploaded ${file.name} — status: ${String(doc.status ?? "PENDING")}, indexing in progress.`);
       form.reset();
       setAutoRefresh(true);
       await loadAll();
@@ -127,8 +129,8 @@ export default function FilesPage() {
         className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4"
       >
         <div className="min-w-[240px] flex-1">
-          <label className="mb-1 block text-sm font-medium">Upload file</label>
-          <Input name="file" type="file" required />
+          <label className="mb-1 block text-sm font-medium">Upload file <span className="text-muted-foreground font-normal">(.docx, .pdf, .xlsx, .csv)</span></label>
+          <Input name="file" type="file" required accept=".docx,.pdf,.xlsx,.csv" />
         </div>
         <Button type="submit" disabled={uploading}>
           <Upload className="size-4" />

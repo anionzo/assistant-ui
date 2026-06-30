@@ -11,7 +11,7 @@ import type {
   StoredThreadMessage,
   UpdateChatThreadInput,
 } from "../src/db/store";
-import type { ChatThreadRecord, UserRecord } from "../src/db/schema";
+import type { ChatThreadRecord, PermissionRecord, RoleRecord, UserRecord } from "../src/db/schema";
 
 class MemoryAuthStore implements AuthStore {
   private users = new Map<string, UserRecord>();
@@ -157,6 +157,69 @@ class MemoryAuthStore implements AuthStore {
       updatedAt: new Date(),
     });
     return input.messages.length;
+  }
+
+  // ── RBAC (test stubs) ──────────────────────────────
+
+  private userRolesMap = new Map<string, Set<number>>();
+  private roleStore = new Map<number, RoleRecord>();
+  private permStore = new Map<number, PermissionRecord>();
+  private rolePermMap = new Map<number, Set<number>>();
+
+  async findUserRoles(userId: string) {
+    const roleIds = this.userRolesMap.get(userId);
+    if (!roleIds) return [];
+    return [...roleIds]
+      .map((id) => this.roleStore.get(id))
+      .filter((r): r is RoleRecord => !!r);
+  }
+
+  async findUserPermissionCodes(userId: string) {
+    const roleIds = this.userRolesMap.get(userId);
+    if (!roleIds) return [];
+    const codes = new Set<string>();
+    for (const roleId of roleIds) {
+      for (const permId of this.rolePermMap.get(roleId) ?? []) {
+        const perm = this.permStore.get(permId);
+        if (perm) codes.add(perm.code);
+      }
+    }
+    return [...codes];
+  }
+
+  async ensureUserRole(userId: string, roleName: string) {
+    const role = [...this.roleStore.values()].find((r) => r.name === roleName);
+    if (!role) return;
+    const set = this.userRolesMap.get(userId) ?? new Set();
+    set.add(role.id);
+    this.userRolesMap.set(userId, set);
+  }
+
+  async listAllUsers() {
+    return [...this.users.values()];
+  }
+
+  async updateUser(userId: string, input: { displayName?: string }) {
+    const user = this.users.get(userId);
+    if (!user) return null;
+    const updated = { ...user, displayName: input.displayName ?? user.displayName, updatedAt: new Date() };
+    this.users.set(userId, updated);
+    return updated;
+  }
+
+  async setUserPassword(userId: string, passwordHash: string) {
+    const user = this.users.get(userId);
+    if (user) {
+      this.users.set(userId, { ...user, passwordHash, updatedAt: new Date() });
+    }
+  }
+
+  async listRoles() {
+    return [...this.roleStore.values()];
+  }
+
+  async listPermissions() {
+    return [...this.permStore.values()];
   }
 }
 

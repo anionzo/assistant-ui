@@ -1,4 +1,4 @@
-import { index, jsonb, pgTable, text, timestamp, uuid, uniqueIndex } from "drizzle-orm/pg-core";
+import { index, integer, jsonb, pgTable, primaryKey, text, timestamp, uuid, uniqueIndex } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -58,7 +58,42 @@ export const chatMessages = pgTable("chat_messages", {
   threadCreatedIdx: index("chat_messages_thread_created_idx").on(table.threadId, table.createdAt),
 }));
 
+// ── RBAC tables ─────────────────────────────────────────
+
+export const roles = pgTable("roles", {
+  id: integer("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const permissions = pgTable("permissions", {
+  id: integer("id").primaryKey(),
+  code: text("code").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description"),
+  resource: text("resource").notNull(),
+  action: text("action").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const rolePermissions = pgTable("role_permissions", {
+  roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+  permissionId: integer("permission_id").notNull().references(() => permissions.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.roleId, table.permissionId] }),
+}));
+
+export const userRoles = pgTable("user_roles", {
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
+}, (table) => ({
+  pk: primaryKey({ columns: [table.userId, table.roleId] }),
+}));
+
 export type UserRecord = typeof users.$inferSelect;
 export type NewUserRecord = typeof users.$inferInsert;
 export type ChatThreadRecord = typeof chatThreads.$inferSelect;
 export type ChatMessageRecord = typeof chatMessages.$inferSelect;
+export type RoleRecord = typeof roles.$inferSelect;
+export type PermissionRecord = typeof permissions.$inferSelect;
