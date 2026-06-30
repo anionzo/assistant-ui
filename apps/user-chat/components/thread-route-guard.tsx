@@ -1,6 +1,7 @@
 "use client";
 
 import { chatPath } from "@/lib/chat-routes";
+import { fetchThreadMetadata } from "@/lib/thread-api-client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -12,18 +13,11 @@ export function ThreadRouteGuard({ threadId }: { threadId?: string }) {
 
     let cancelled = false;
 
-    fetch(`/api/threads/${encodeURIComponent(threadId)}`, {
-      credentials: "include",
-      cache: "no-store",
-    })
-      .then((response) => {
-        if (!cancelled && !response.ok) {
-          router.replace(chatPath());
-        }
-      })
-      .catch(() => {
-        if (!cancelled) router.replace(chatPath());
-      });
+    void fetchThreadMetadata(threadId).then((thread) => {
+      if (!cancelled && !thread) {
+        router.replace(chatPath());
+      }
+    });
 
     return () => {
       cancelled = true;

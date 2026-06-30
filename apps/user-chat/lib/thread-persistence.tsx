@@ -10,68 +10,16 @@ import {
   type ThreadMessage,
 } from "@assistant-ui/react";
 import { useMemo, type PropsWithChildren } from "react";
-
-type ThreadDto = {
-  id: string;
-  title: string;
-  conversationId: string;
-  tenantId: string;
-  updatedAt: string;
-  archived: boolean;
-};
-
-type ThreadListResponse = {
-  threads: ThreadDto[];
-};
-
-type ThreadMessagesResponse = {
-  headId?: string | null;
-  messages: ExportedMessageRepositoryItem[];
-};
-
-function reviveMessageDates(repository: ThreadMessagesResponse): ExportedMessageRepository {
-  return {
-    headId: repository.headId,
-    messages: repository.messages.map((item) => ({
-      ...item,
-      message: {
-        ...item.message,
-        createdAt: new Date(item.message.createdAt),
-      },
-    })),
-  };
-}
-
-class ThreadApiError extends Error {
-  readonly status: number;
-  constructor(message: string, status: number) {
-    super(message);
-    this.name = "ThreadApiError";
-    this.status = status;
-  }
-}
-
-async function fetchThreadApi<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    credentials: "include",
-    cache: "no-store",
-  });
-
-  const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!response.ok) {
-    throw new ThreadApiError(
-      typeof payload.error === "string" ? payload.error : "Thread API request failed",
-      response.status,
-    );
-  }
-
-  return payload as T;
-}
+import {
+  fetchThreadList,
+  fetchThreadMetadata,
+  getCachedThreadMessages,
+  loadThreadMessages,
+  mutateThreadApi,
+  persistThreadMessages,
+  updateCachedThreadMessages,
+  type ThreadDto,
+} from "./thread-api-client";
 
 function firstUserMessageTitle(messages: readonly ThreadMessage[]) {
   const firstUser = messages.find((message) => message.role === "user");
@@ -134,14 +82,11 @@ class RemoteHistoryAdapter implements ThreadHistoryAdapter {
   private async ensureRepositoryLoaded(remoteId: string) {
     if (this.repositoryLoaded && this.repositoryRemoteId === remoteId) return;
 
-    try {
-      this.repository = reviveMessageDates(
-        await fetchThreadApi<ThreadMessagesResponse>(
-          `/api/threads/${remoteId}/messages`,
-        ),
-      );
-    } catch {
-      this.repository = { messages: [] };
+    const cached = getCachedThreadMessages(remoteId);
+    if (cached) {
+      this.repository = cached;
+    } else {
+      this.repository = await loadThreadMessages(remoteId);
     }
 
     this.repositoryRemoteId = remoteId;
@@ -177,17 +122,7 @@ class RemoteHistoryAdapter implements ThreadHistoryAdapter {
   private async flushPersist() {
     this.clearPersistTimer();
     const remoteId = await this.getRemoteThreadId();
-    await fetchThreadApi(`/api/threads/${remoteId}/messages`, {
-      method: "PUT",
-      body: JSON.stringify({
-        headId: this.repository.headId,
-        messages: this.repository.messages.map((item) => ({
-          parentId: item.parentId ?? null,
-          message: item.message,
-          ...(item.runConfig !== undefined ? { runConfig: item.runConfig } : {}),
-        })),
-      }),
-    });
+    await persistThreadMessages(remoteId, this.repository);
   }
 
   private schedulePersist(immediate: boolean) {
@@ -217,6 +152,7 @@ class RemoteHistoryAdapter implements ThreadHistoryAdapter {
       const remoteId = await this.getRemoteThreadId();
       await this.ensureRepositoryLoaded(remoteId);
       this.applyItem(item);
+      updateCachedThreadMessages(remoteId, this.repository);
       await this.schedulePersist(this.shouldFlushImmediately(item));
     });
   }
@@ -236,6 +172,7 @@ class RemoteHistoryAdapter implements ThreadHistoryAdapter {
           : this.repository.headId;
 
       this.repository = { headId, messages };
+      updateCachedThreadMessages(remoteId, this.repository);
       await this.schedulePersist(true);
     });
   }
@@ -265,7 +202,7 @@ export function useRemotePersistenceAdapter(
   return useMemo<RemoteThreadListAdapter>(() => ({
     async list() {
       try {
-        const result = await fetchThreadApi<ThreadListResponse>("/api/threads");
+        const result = await fetchThreadList();
         result.threads.forEach((thread) => {
           onConversationId(thread.id, thread.conversationId);
         });
@@ -275,31 +212,31 @@ export function useRemotePersistenceAdapter(
       }
     },
     async rename(remoteId, newTitle) {
-      await fetchThreadApi(`/api/threads/${remoteId}`, {
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
         body: JSON.stringify({ title: newTitle }),
       });
     },
     async archive(remoteId) {
-      await fetchThreadApi(`/api/threads/${remoteId}`, {
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
         body: JSON.stringify({ archived: true }),
       });
     },
     async unarchive(remoteId) {
-      await fetchThreadApi(`/api/threads/${remoteId}`, {
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
         body: JSON.stringify({ archived: false }),
       });
     },
     async delete(remoteId) {
-      await fetchThreadApi(`/api/threads/${remoteId}`, {
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "DELETE",
       });
     },
     async initialize(threadId: string) {
       try {
-        const result = await fetchThreadApi<{ thread: ThreadDto }>("/api/threads", {
+        const result = await mutateThreadApi<{ thread: ThreadDto }>("/api/threads", {
           method: "POST",
           body: JSON.stringify({}),
         });
@@ -317,11 +254,10 @@ export function useRemotePersistenceAdapter(
     },
     async generateTitle(remoteId, messages) {
       const title = firstUserMessageTitle(messages);
-      await fetchThreadApi(`/api/threads/${remoteId}`, {
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
         body: JSON.stringify({ title }),
       });
-      // Title is set synchronously; return an empty AssistantStream.
       return new ReadableStream<never>({
         start(controller) {
           controller.close();
@@ -329,19 +265,17 @@ export function useRemotePersistenceAdapter(
       });
     },
     async fetch(threadId) {
-      try {
-        const result = await fetchThreadApi<{ thread: ThreadDto }>(
-          `/api/threads/${threadId}`,
-        );
-        onConversationId(result.thread.id, result.thread.conversationId);
-        return toMetadata(result.thread);
-      } catch {
+      const thread = await fetchThreadMetadata(threadId);
+      if (!thread) {
         return {
           remoteId: threadId,
           externalId: undefined,
           status: "regular" as const,
         };
       }
+
+      onConversationId(thread.id, thread.conversationId);
+      return toMetadata(thread);
     },
     unstable_Provider: ThreadHistoryProvider,
   }), [onConversationId]);

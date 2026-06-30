@@ -1,5 +1,6 @@
 "use client";
 
+import { fetchCurrentUser } from "@/lib/auth/current-user";
 import { useAui } from "@assistant-ui/react";
 import { useEffect } from "react";
 
@@ -16,13 +17,8 @@ export function ThreadListSessionSync({
     let cancelled = false;
 
     async function syncAfterClientLogin() {
-      const response = await fetch("/api/auth/me", { credentials: "include" });
-      if (cancelled || !response.ok) return;
-
-      const data = (await response.json().catch(() => null)) as {
-        user?: unknown;
-      } | null;
-      if (!data?.user) return;
+      const currentUser = await fetchCurrentUser();
+      if (cancelled || !currentUser) return;
 
       await aui.threads().reload();
       await aui.threads().switchToNewThread();
