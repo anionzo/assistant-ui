@@ -12,6 +12,10 @@ export async function resolveUserPermissions(userId: string, store: AuthStore = 
   return store.findUserPermissionCodes(userId);
 }
 
+export async function resolveUserPermissionIds(userId: string, store: AuthStore = getAuthStore()) {
+  return store.findUserPermissionIds(userId);
+}
+
 export async function ensureAdminSeed(store: AuthStore = getAuthStore()) {
   const seedEmail = process.env.ADMIN_SEED_EMAIL?.trim().toLowerCase();
   if (!seedEmail) return;

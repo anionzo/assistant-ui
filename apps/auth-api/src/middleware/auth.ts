@@ -1,6 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { verifySessionToken, type SessionClaims } from "../services/jwt";
-import { resolveUserPermissions } from "../services/rbac";
+import { resolveUserPermissions, resolveUserRoles } from "../services/rbac";
 
 export type AuthContext = {
   session: SessionClaims;
@@ -49,7 +49,9 @@ export function requireAnyAdmin() {
       return c.json({ error: "unauthorized" }, 401);
     }
 
-    if (auth.session.roleIds.length === 0) {
+    // Query DB for real-time role check (not stale JWT)
+    const roles = await resolveUserRoles(auth.session.id);
+    if (roles.length === 0) {
       return c.json({ error: "admin access required" }, 403);
     }
 

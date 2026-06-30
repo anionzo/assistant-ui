@@ -104,6 +104,7 @@ export interface AuthStore {
   // RBAC
   findUserRoles(userId: string): Promise<RoleRecord[]>;
   findUserPermissionCodes(userId: string): Promise<string[]>;
+  findUserPermissionIds(userId: string): Promise<number[]>;
   ensureUserRole(userId: string, roleName: string): Promise<void>;
   listAllUsers(): Promise<UserRecord[]>;
   updateUser(userId: string, input: { displayName?: string }): Promise<UserRecord | null>;
@@ -330,6 +331,17 @@ class PostgresAuthStore implements AuthStore {
       .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
       .where(eq(userRoles.userId, userId));
     return rows.map((r) => r.code);
+  }
+
+  async findUserPermissionIds(userId: string) {
+    const db = getDb();
+    const rows = await db
+      .select({ id: permissions.id })
+      .from(userRoles)
+      .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
+      .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
+      .where(eq(userRoles.userId, userId));
+    return rows.map((r) => r.id);
   }
 
   async ensureUserRole(userId: string, roleName: string) {

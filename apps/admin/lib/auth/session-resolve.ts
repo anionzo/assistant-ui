@@ -11,12 +11,14 @@ export type SessionUser = {
   displayName: string | null;
   avatarUrl: string | null;
   roleIds: number[];
+  permissionIds: number[];
 };
 
 type MeResponse = {
   user: SessionUser;
   roles: Array<{ id: number; name: string }>;
   permissions: string[];
+  permission_ids: number[];
 };
 
 type RefreshResponse = {
@@ -24,6 +26,7 @@ type RefreshResponse = {
   refreshToken: string;
   expiresIn: number;
   user: SessionUser;
+  permission_ids?: number[];
 };
 
 export type ResolvedSession = {
@@ -40,6 +43,7 @@ async function verifyViaAuthApi(accessToken: string) {
   return {
     ...result.data.user,
     roleIds: result.data.roles.map((r) => r.id),
+    permissionIds: result.data.permission_ids ?? [],
   };
 }
 

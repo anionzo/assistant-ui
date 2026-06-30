@@ -187,6 +187,18 @@ class MemoryAuthStore implements AuthStore {
     return [...codes];
   }
 
+  async findUserPermissionIds(userId: string) {
+    const roleIds = this.userRolesMap.get(userId);
+    if (!roleIds) return [];
+    const ids = new Set<number>();
+    for (const roleId of roleIds) {
+      for (const permId of this.rolePermMap.get(roleId) ?? []) {
+        ids.add(permId);
+      }
+    }
+    return [...ids];
+  }
+
   async ensureUserRole(userId: string, roleName: string) {
     const role = [...this.roleStore.values()].find((r) => r.name === roleName);
     if (!role) return;

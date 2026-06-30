@@ -11,6 +11,7 @@ type ExchangeEntry = {
   };
   roles: Array<{ id: number; name: string }>;
   permissions: string[];
+  permissionIds: number[];
   expiresAt: number;
 };
 
@@ -22,6 +23,7 @@ export function createExchange(
   sessionUser: SessionUser,
   roles: Array<{ id: number; name: string }>,
   permissions: string[],
+  permissionIds: number[],
 ) {
   const code = crypto.randomUUID();
   exchangeStore.set(code, {
@@ -35,6 +37,7 @@ export function createExchange(
     },
     roles,
     permissions,
+    permissionIds,
     expiresAt: Date.now() + 60_000,
   });
   return code;

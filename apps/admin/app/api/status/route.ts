@@ -1,14 +1,15 @@
 import { asArray } from "@/lib/api/bff";
 import { getAdminConfig } from "@/lib/server/config";
 import { errorResponse } from "@/lib/server/errors";
-import { requireAdminSession } from "@/lib/server/require-admin-session";
+import { requireAdminPermission } from "@/lib/server/require-admin-session";
+import { P } from "@/lib/auth/permissions";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const requestId = crypto.randomUUID();
   try {
-    const session = await requireAdminSession();
+    const session = await requireAdminPermission(P.COLLECTIONS_READ);
     if (!session.ok) {
       return Response.json({ error: session.error }, { status: session.status });
     }

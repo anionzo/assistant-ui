@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { type AuthStore, getAuthStore } from "../db/store";
-import { resolveUserPermissions, resolveUserRoles } from "../services/rbac";
+import { resolveUserPermissionIds, resolveUserPermissions, resolveUserRoles } from "../services/rbac";
 import { createExchange, consumeExchange } from "../services/exchange-store";
 import { createGoogleAuthUrl, exchangeGoogleCode } from "../services/google-oauth";
 import { signSessionToken, verifySessionToken, type SessionUser } from "../services/jwt";
@@ -40,11 +40,12 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
   const authRoutes = new Hono();
 
   async function issueSession(user: SessionUser) {
-    const [roleIds, resolvedRoles] = await Promise.all([
+    const [roleIds, resolvedRoles, permissionCodes, permissionIds] = await Promise.all([
       resolveUserRoles(user.id, store).then((roles) => roles.map((r) => r.id)),
       resolveUserRoles(user.id, store),
+      resolveUserPermissions(user.id, store),
+      resolveUserPermissionIds(user.id, store),
     ]);
-    const permissionCodes = await resolveUserPermissions(user.id, store);
 
     const accessToken = await signSessionToken({
       ...user,
@@ -69,6 +70,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
       },
       roles: resolvedRoles.map((r) => ({ id: r.id, name: r.name })),
       permissions: permissionCodes,
+      permission_ids: permissionIds,
     };
   }
 
@@ -149,6 +151,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
       sessionUser,
       session.roles,
       session.permissions,
+      session.permission_ids,
     );
     const frontendUrl = profile.frontend;
 
@@ -173,6 +176,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
       user: exchange.user,
       roles: exchange.roles,
       permissions: exchange.permissions,
+      permission_ids: exchange.permissionIds,
     });
   });
 
@@ -252,9 +256,10 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
 
     try {
       const claims = await verifySessionToken(token);
-      const [roles, permissions] = await Promise.all([
+      const [roles, permissions, permissionIds] = await Promise.all([
         resolveUserRoles(claims.id, store),
         resolveUserPermissions(claims.id, store),
+        resolveUserPermissionIds(claims.id, store),
       ]);
       return c.json({
         user: {
@@ -265,6 +270,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
         },
         roles: roles.map((r) => ({ id: r.id, name: r.name })),
         permissions,
+        permission_ids: permissionIds,
       });
     } catch {
       return c.json({ error: "invalid bearer token" }, 401);
