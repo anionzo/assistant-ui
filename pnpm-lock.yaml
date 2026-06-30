@@ -72,6 +72,9 @@ importers:
       '@idx/modular-rag-sdk':
         specifier: workspace:*
         version: link:../../packages/modular-rag-sdk
+      '@idx/voice-input':
+        specifier: workspace:*
+        version: link:../../packages/voice-input
       class-variance-authority:
         specifier: ^0.7.1
         version: 0.7.1
@@ -163,6 +166,25 @@ importers:
       vitest:
         specifier: ^3.2.4
         version: 3.2.6(@types/debug@4.1.13)(@types/node@24.13.2)(jiti@2.7.0)(jsdom@26.1.0)(lightningcss@1.32.0)(tsx@4.22.4)
+
+  packages/voice-input:
+    dependencies:
+      react:
+        specifier: ^19.0.0
+        version: 19.2.7
+      react-dom:
+        specifier: ^19.0.0
+        version: 19.2.7(react@19.2.7)
+    devDependencies:
+      '@types/react':
+        specifier: ^19.0.0
+        version: 19.2.17
+      '@types/react-dom':
+        specifier: ^19.0.0
+        version: 19.2.3(@types/react@19.2.17)
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
 
 packages:
 
