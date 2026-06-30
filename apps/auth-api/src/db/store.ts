@@ -1,9 +1,10 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { getDb } from "./client";
 import {
   chatMessages,
   chatThreads,
   oauthAccounts,
+  passwordResetTokens,
   permissions,
   refreshTokens,
   rolePermissions,
@@ -106,11 +107,22 @@ export interface AuthStore {
   findUserPermissionCodes(userId: string): Promise<string[]>;
   findUserPermissionIds(userId: string): Promise<number[]>;
   ensureUserRole(userId: string, roleName: string): Promise<void>;
+  revokeUserRole(userId: string, roleName: string): Promise<void>;
+  getRolePermissions(roleId: number): Promise<PermissionRecord[]>;
+  assignRolePermission(roleId: number, permissionId: number): Promise<void>;
+  revokeRolePermission(roleId: number, permissionId: number): Promise<void>;
   listAllUsers(): Promise<UserRecord[]>;
   updateUser(userId: string, input: { displayName?: string }): Promise<UserRecord | null>;
   setUserPassword(userId: string, passwordHash: string): Promise<void>;
+  setUserStatus(userId: string, status: string): Promise<void>;
+  revokeAllUserTokens(userId: string): Promise<void>;
+  deleteUserAccount(userId: string): Promise<boolean>;
   listRoles(): Promise<RoleRecord[]>;
   listPermissions(): Promise<PermissionRecord[]>;
+  // Reset password
+  createResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void>;
+  findValidResetToken(tokenHash: string): Promise<{ id: string; userId: string } | null>;
+  consumeResetToken(tokenId: string): Promise<void>;
 }
 
 class PostgresAuthStore implements AuthStore {
@@ -354,6 +366,50 @@ class PostgresAuthStore implements AuthStore {
       .onConflictDoNothing();
   }
 
+  async revokeUserRole(userId: string, roleName: string) {
+    const db = getDb();
+    const role = (await db.select().from(roles).where(eq(roles.name, roleName)).limit(1))[0];
+    if (!role) return;
+    await db
+      .delete(userRoles)
+      .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, role.id)));
+  }
+
+  // ── Role permissions ──────────────────────────────────
+
+  async getRolePermissions(roleId: number) {
+    const db = getDb();
+    return db
+      .select({
+        id: permissions.id,
+        code: permissions.code,
+        name: permissions.name,
+        description: permissions.description,
+        resource: permissions.resource,
+        action: permissions.action,
+        createdAt: permissions.createdAt,
+      })
+      .from(permissions)
+      .innerJoin(rolePermissions, eq(rolePermissions.permissionId, permissions.id))
+      .where(eq(rolePermissions.roleId, roleId))
+      .orderBy(permissions.id);
+  }
+
+  async assignRolePermission(roleId: number, permissionId: number) {
+    const db = getDb();
+    await db
+      .insert(rolePermissions)
+      .values({ roleId, permissionId })
+      .onConflictDoNothing();
+  }
+
+  async revokeRolePermission(roleId: number, permissionId: number) {
+    const db = getDb();
+    await db
+      .delete(rolePermissions)
+      .where(and(eq(rolePermissions.roleId, roleId), eq(rolePermissions.permissionId, permissionId)));
+  }
+
   async listAllUsers() {
     const db = getDb();
     return db.select().from(users).orderBy(users.createdAt);
@@ -378,6 +434,61 @@ class PostgresAuthStore implements AuthStore {
       .update(users)
       .set({ passwordHash, updatedAt: new Date() })
       .where(eq(users.id, userId));
+  }
+
+  async setUserStatus(userId: string, status: string) {
+    const db = getDb();
+    await db
+      .update(users)
+      .set({ status, updatedAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async revokeAllUserTokens(userId: string) {
+    const db = getDb();
+    await db
+      .update(refreshTokens)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)));
+  }
+
+  async deleteUserAccount(userId: string) {
+    const db = getDb();
+    const rows = await db.delete(users).where(eq(users.id, userId)).returning({ id: users.id });
+    return rows.length > 0;
+  }
+
+  // ── Reset password ────────────────────────────────────
+
+  async createResetToken(userId: string, tokenHash: string, expiresAt: Date) {
+    const db = getDb();
+    await db.insert(passwordResetTokens).values({ userId, tokenHash, expiresAt });
+  }
+
+  async findValidResetToken(tokenHash: string) {
+    const db = getDb();
+    const row = (await db
+      .select({ id: passwordResetTokens.id, userId: passwordResetTokens.userId })
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.tokenHash, tokenHash))
+      .limit(1))[0] ?? null;
+    if (!row) return null;
+    // Check validity inline instead of where clause to avoid timezone issues
+    const full = (await db
+      .select()
+      .from(passwordResetTokens)
+      .where(eq(passwordResetTokens.id, row.id))
+      .limit(1))[0];
+    if (!full || full.usedAt || full.expiresAt <= new Date()) return null;
+    return row;
+  }
+
+  async consumeResetToken(tokenId: string) {
+    const db = getDb();
+    await db
+      .update(passwordResetTokens)
+      .set({ usedAt: new Date() })
+      .where(eq(passwordResetTokens.id, tokenId));
   }
 
   async listRoles() {

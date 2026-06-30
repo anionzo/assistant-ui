@@ -207,6 +207,16 @@ class MemoryAuthStore implements AuthStore {
     this.userRolesMap.set(userId, set);
   }
 
+  async revokeUserRole(userId: string, roleName: string) {
+    const role = [...this.roleStore.values()].find((r) => r.name === roleName);
+    if (!role) return;
+    const set = this.userRolesMap.get(userId);
+    if (set) {
+      set.delete(role.id);
+      if (set.size === 0) this.userRolesMap.delete(userId);
+    }
+  }
+
   async listAllUsers() {
     return [...this.users.values()];
   }
@@ -232,6 +242,25 @@ class MemoryAuthStore implements AuthStore {
 
   async listPermissions() {
     return [...this.permStore.values()];
+  }
+
+  async getRolePermissions(roleId: number) {
+    const permIds = this.rolePermMap.get(roleId);
+    if (!permIds) return [];
+    return [...permIds]
+      .map((id) => this.permStore.get(id))
+      .filter((p): p is PermissionRecord => !!p);
+  }
+
+  async assignRolePermission(roleId: number, permissionId: number) {
+    const set = this.rolePermMap.get(roleId) ?? new Set();
+    set.add(permissionId);
+    this.rolePermMap.set(roleId, set);
+  }
+
+  async revokeRolePermission(roleId: number, permissionId: number) {
+    const set = this.rolePermMap.get(roleId);
+    if (set) set.delete(permissionId);
   }
 }
 

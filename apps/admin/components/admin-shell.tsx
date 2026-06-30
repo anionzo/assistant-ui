@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { FileStack, FolderOpen, LayoutDashboard } from "lucide-react";
+import { FileStack, FolderOpen, LayoutDashboard, Shield, Users } from "lucide-react";
 import { GatewayStatus } from "@/components/gateway-status";
 
 const nav = [
   { href: "/", label: "Collections", icon: LayoutDashboard },
   { href: "/forms", label: "Forms", icon: FileStack },
+  { href: "/users", label: "Users", icon: Users },
+  { href: "/roles", label: "Roles", icon: Shield },
 ];
 
 export function AdminShell({

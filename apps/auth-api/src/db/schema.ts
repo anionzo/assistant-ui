@@ -6,6 +6,7 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash"),
   displayName: text("display_name"),
   avatarUrl: text("avatar_url"),
+  status: text("status").default("active").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
 }, (table) => ({
@@ -89,6 +90,17 @@ export const userRoles = pgTable("user_roles", {
   roleId: integer("role_id").notNull().references(() => roles.id, { onDelete: "cascade" }),
 }, (table) => ({
   pk: primaryKey({ columns: [table.userId, table.roleId] }),
+}));
+
+export const passwordResetTokens = pgTable("password_reset_tokens", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  tokenHash: text("token_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  tokenHashIdx: index("password_reset_tokens_hash_idx").on(table.tokenHash),
 }));
 
 export type UserRecord = typeof users.$inferSelect;

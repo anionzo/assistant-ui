@@ -26,11 +26,15 @@ export const PERMISSIONS = {
   FORMS_DELETE: "forms.delete",
   FORMS_SEARCH: "forms.search",
 
-  // users (50-53)
+  // users (50-57)
   USERS_LIST:         "users.list",
   USERS_READ:         "users.read",
   USERS_UPDATE:       "users.update",
   USERS_ASSIGN_ROLES: "users.assign_roles",
+  USERS_BAN:          "users.ban",
+  USERS_RESET_PASSWORD: "users.reset_password",
+  USERS_DELETE:       "users.delete",
+  USERS_FORCE_LOGOUT: "users.force_logout",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

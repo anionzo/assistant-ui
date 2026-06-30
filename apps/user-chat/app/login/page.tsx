@@ -5,9 +5,9 @@ export default function LoginPage() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
       <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
-        <h1 className="text-2xl font-semibold">Đăng nhập Idx Chat</h1>
+        <h1 className="text-2xl font-semibold">Đăng nhập</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Dùng email/mật khẩu hoặc Google. Token chỉ nằm trong cookie httpOnly.
+          Đăng nhập để lưu lịch sử trò chuyện.
         </p>
         <div className="mt-6">
           <LoginForm />

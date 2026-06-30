@@ -47,8 +47,8 @@ export function ThreadListSidebar({
         </div>
         {!initialAuth && (
           <div className="text-muted-foreground px-2 py-1 text-[10px]">
-            Guest mode — chats not saved.{" "}
-            <Link href="/login" className="underline">Log in</Link> to persist.
+            Chế độ khách — trò chuyện không được lưu.{" "}
+            <Link href="/login" className="underline">Đăng nhập</Link> để lưu lại.
           </div>
         )}
         <div className="aui-sidebar-thread-list min-h-0 flex-1 overflow-auto">

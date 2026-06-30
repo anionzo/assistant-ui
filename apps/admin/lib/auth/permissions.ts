@@ -26,9 +26,13 @@ export const P = {
   FORMS_DELETE: 42,
   FORMS_SEARCH: 43,
 
-  // users (50-53)
+  // users (50-57)
   USERS_LIST:         50,
   USERS_READ:         51,
   USERS_UPDATE:       52,
   USERS_ASSIGN_ROLES: 53,
+  USERS_BAN:          54,
+  USERS_RESET_PASSWORD: 55,
+  USERS_DELETE:        56,
+  USERS_FORCE_LOGOUT:  57,
 } as const;

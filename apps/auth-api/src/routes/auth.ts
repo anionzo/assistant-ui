@@ -10,6 +10,11 @@ import {
   hashRefreshToken,
   refreshTokenExpiresAt,
 } from "../services/refresh-token";
+import {
+  generateResetToken,
+  hashResetToken,
+  resetTokenExpiresAt,
+} from "../services/reset-password";
 
 type LoginBody = {
   email?: string;
@@ -311,6 +316,104 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     }
 
     await store.setUserPassword(claims.id, await hashPassword(body.password));
+    return c.json({ ok: true });
+  });
+
+  // POST /auth/forgot-password — send reset link (dev: return token directly)
+  authRoutes.post("/forgot-password", async (c) => {
+    const body = await c.req.json<{ email?: string }>().catch(() => null);
+    if (!body?.email) return c.json({ error: "email is required" }, 400);
+
+    const user = await store.findUserByEmail(body.email.trim().toLowerCase());
+    if (!user) {
+      // Don't reveal whether email exists — always return ok
+      return c.json({ ok: true });
+    }
+
+    const rawToken = generateResetToken();
+    const tokenHash = hashResetToken(rawToken);
+    await store.createResetToken(user.id, tokenHash, resetTokenExpiresAt());
+
+    // Dev mode: return token directly
+    const isDev = process.env.NODE_ENV !== "production";
+    console.info(`[reset-password] token for ${body.email}: ${rawToken}`);
+    return c.json({ ok: true, ...(isDev ? { token: rawToken } : {}) });
+  });
+
+  // POST /auth/reset-password — reset password with token
+  authRoutes.post("/reset-password", async (c) => {
+    const body = await c.req.json<{ token?: string; password?: string }>().catch(() => null);
+    if (!body?.token || !body?.password || body.password.length < 8) {
+      return c.json({ error: "invalid token or password (min 8 chars)" }, 400);
+    }
+
+    const tokenHash = hashResetToken(body.token);
+    const record = await store.findValidResetToken(tokenHash);
+    if (!record) return c.json({ error: "token is invalid or expired" }, 400);
+
+    await store.consumeResetToken(record.id);
+    await store.setUserPassword(record.userId, await hashPassword(body.password));
+    return c.json({ ok: true });
+  });
+
+  // PATCH /auth/profile — update own profile (requires JWT)
+  authRoutes.patch("/profile", async (c) => {
+    const authorization = c.req.header("authorization");
+    const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
+    if (!token) return c.json({ error: "missing bearer token" }, 401);
+
+    let claims;
+    try { claims = await verifySessionToken(token); }
+    catch { return c.json({ error: "invalid or expired token" }, 401); }
+
+    const body = await c.req.json<{ displayName?: string }>().catch(() => null);
+    if (!body) return c.json({ error: "invalid body" }, 400);
+
+    const user = await store.updateUser(claims.id, { displayName: body.displayName });
+    if (!user) return c.json({ error: "user not found" }, 404);
+
+    return c.json({ user: { id: user.id, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl } });
+  });
+
+  // POST /auth/change-password — change own password (old + new, requires JWT)
+  authRoutes.post("/change-password", async (c) => {
+    const authorization = c.req.header("authorization");
+    const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
+    if (!token) return c.json({ error: "missing bearer token" }, 401);
+
+    let claims;
+    try { claims = await verifySessionToken(token); }
+    catch { return c.json({ error: "invalid or expired token" }, 401); }
+
+    const body = await c.req.json<{ oldPassword?: string; newPassword?: string }>().catch(() => null);
+    if (!body?.oldPassword || !body?.newPassword || body.newPassword.length < 8) {
+      return c.json({ error: "oldPassword and newPassword (min 8 chars) are required" }, 400);
+    }
+
+    const user = await store.findUserById(claims.id);
+    if (!user) return c.json({ error: "user not found" }, 404);
+
+    if (user.passwordHash) {
+      const valid = await verifyPassword(body.oldPassword, user.passwordHash);
+      if (!valid) return c.json({ error: "current password is incorrect" }, 403);
+    }
+
+    await store.setUserPassword(claims.id, await hashPassword(body.newPassword));
+    return c.json({ ok: true });
+  });
+
+  // DELETE /auth/account — delete own account (requires JWT)
+  authRoutes.delete("/account", async (c) => {
+    const authorization = c.req.header("authorization");
+    const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
+    if (!token) return c.json({ error: "missing bearer token" }, 401);
+
+    let claims;
+    try { claims = await verifySessionToken(token); }
+    catch { return c.json({ error: "invalid or expired token" }, 401); }
+
+    await store.revokeAllUserTokens(claims.id);
+    await store.deleteUserAccount(claims.id);
     return c.json({ ok: true });
   });
 
