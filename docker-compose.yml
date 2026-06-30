@@ -9,13 +9,21 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d idx_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   auth-api:
-    image: node:22-bookworm
-    working_dir: /workspace
+    build:
+      context: .
+      dockerfile: apps/auth-api/Dockerfile
+    # For fast dev iteration, override with volume + install
+    # If you prefer pure container dev, comment the command below
     command: >
       sh -lc "corepack enable &&
-      pnpm install &&
+      pnpm install --filter @idx/auth-api &&
       pnpm --filter @idx/auth-api dev"
     environment:
       PORT: 4000
@@ -29,9 +37,42 @@ services:
     ports:
       - "4000:4000"
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
-      - ./:/workspace
+      - ./:/app
+      - /app/node_modules          # prevent host node_modules from overriding
+      - /app/apps/auth-api/node_modules
+
+  idx-chat-user:
+    build:
+      context: .
+      dockerfile: apps/user-chat/Dockerfile
+    command: >
+      sh -lc "corepack enable &&
+      pnpm install --filter @idx/user-chat... &&
+      pnpm --filter @idx/user-chat dev"
+    environment:
+      PORT: 3000
+      MODULAR_RAG_GATEWAY_URL: http://host.docker.internal:8030
+      USER_API_KEY: demo-api-key
+      TENANT_ID: huit_admission_chatbot
+      AUTH_API_URL: http://auth-api:4000
+      JWT_SECRET: replace-me-in-compose
+      AUTH_REQUIRED: "false"
+      FRONTEND_URL: http://localhost:3001
+    ports:
+      - "3001:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      auth-api:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/apps/user-chat/node_modules
+      - /app/packages
 
 volumes:
   pgdata:

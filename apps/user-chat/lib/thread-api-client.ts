@@ -88,6 +88,16 @@ export async function fetchThreadList(): Promise<ThreadListResponse> {
       threadListCache = { data, expiresAt: Date.now() + THREAD_LIST_TTL_MS };
       return data;
     })
+    .catch((err) => {
+      // Expected for unauthenticated/guest users or transient errors.
+      // Do not surface unhandled rejections; callers (e.g. list sidebar) treat empty as OK.
+      if (err instanceof ThreadApiError && (err.status === 401 || err.status === 404)) {
+        // silent for guest/local
+      } else {
+        console.warn("[thread-api] fetchThreadList failed", err);
+      }
+      return { threads: [] } as ThreadListResponse;
+    })
     .finally(() => {
       threadListInFlight = null;
     });
@@ -101,7 +111,13 @@ export async function fetchThreadMetadata(threadId: string): Promise<ThreadDto |
 
   const promise = fetchThreadApi<{ thread: ThreadDto }>(`/api/threads/${threadId}`)
     .then((result) => result.thread)
-    .catch(() => null)
+    .catch((err) => {
+      // 401/404 common for guest or unknown/local thread id — do not spam
+      if (!(err instanceof ThreadApiError && (err.status === 401 || err.status === 404))) {
+        console.warn("[thread-api] fetchThreadMetadata failed", err);
+      }
+      return null;
+    })
     .finally(() => {
       threadMetaInFlight.delete(threadId);
     });

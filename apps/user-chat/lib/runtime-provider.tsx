@@ -72,7 +72,7 @@ function ChatRuntime({
     [fallbackConversationId, getConversationId, getRuntimeOptions],
   );
 
-  const threadAdapter = useRemotePersistenceAdapter(setConversationId);
+  const threadAdapter = useRemotePersistenceAdapter(setConversationId, initialAuth);
 
   const chatAdapterRef = useRef(chatAdapter);
   chatAdapterRef.current = chatAdapter;

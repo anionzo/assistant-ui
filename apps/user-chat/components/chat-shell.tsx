@@ -33,10 +33,10 @@ export function ChatShell({ initialAuth }: { initialAuth: boolean }) {
       threadId={threadId}
       onThreadIdChange={handleThreadIdChange}
     >
-      <ThreadRouteGuard threadId={threadId} />
+      <ThreadRouteGuard threadId={threadId} enabled={initialAuth} />
       <SidebarProvider>
         <div className="flex h-dvh w-full">
-          <ThreadListSidebar />
+          <ThreadListSidebar initialAuth={initialAuth} />
           <SidebarInset className="min-w-0">
             <ChatMainHeader />
             <div className="min-h-0 flex-1">

@@ -17,8 +17,9 @@ import Link from "next/link";
 import type { ComponentProps } from "react";
 
 export function ThreadListSidebar({
+  initialAuth = true,
   ...props
-}: ComponentProps<typeof Sidebar>) {
+}: ComponentProps<typeof Sidebar> & { initialAuth?: boolean }) {
   return (
     <Sidebar {...props}>
       <SidebarHeader className="aui-sidebar-header border-sidebar-border mb-2 border-b">
@@ -44,6 +45,12 @@ export function ThreadListSidebar({
         <div className="aui-sidebar-new-thread shrink-0 pt-1">
           <ThreadListNew className="w-full" />
         </div>
+        {!initialAuth && (
+          <div className="text-muted-foreground px-2 py-1 text-[10px]">
+            Guest mode — chats not saved.{" "}
+            <Link href="/login" className="underline">Log in</Link> to persist.
+          </div>
+        )}
         <div className="aui-sidebar-thread-list min-h-0 flex-1 overflow-auto">
           <ThreadListItems />
         </div>

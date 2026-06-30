@@ -1,0 +1,95 @@
+# Idx Chat production stack (E07).
+# Replaces legacy chatbot-ui with idx-chat-user + auth-api + postgres.
+# ModularRAG gateway stays external — point MODULAR_RAG_GATEWAY_URL at it.
+#
+#   docker compose -f docker-compose.prod.yml up -d --build
+#   curl http://localhost:3001/api/health
+#   curl http://localhost:4000/health
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: idx_auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${IDX_DB_PASSWORD:-postgres}
+    volumes:
+      - idx_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d idx_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  auth-api:
+    build:
+      context: .
+      dockerfile: apps/auth-api/Dockerfile
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:${IDX_DB_PASSWORD:-postgres}@postgres:5432/idx_auth
+      JWT_SECRET: ${IDX_JWT_SECRET:?IDX_JWT_SECRET is required}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-3600}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-604800}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:4000/auth/google/callback}
+      FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+
+  idx-chat-user:
+    build:
+      context: .
+      dockerfile: apps/user-chat/Dockerfile
+    environment:
+      MODULAR_RAG_GATEWAY_URL: ${MODULAR_RAG_GATEWAY_URL:-http://host.docker.internal:8030}
+      USER_API_KEY: ${USER_API_KEY:?USER_API_KEY is required}
+      TENANT_ID: ${TENANT_ID:-huit_admission_chatbot}
+      TENANT_DISPLAY_NAME: ${TENANT_DISPLAY_NAME:-HUIT Admission Chatbot}
+      DEFAULT_CORPUS_ID: ${DEFAULT_CORPUS_ID:-admission-chatbot-corpus}
+      DEFAULT_CHAT_PIPELINE: ${DEFAULT_CHAT_PIPELINE:-huit_chat_multi_query_prod}
+      DEFAULT_VOICE_PIPELINE: ${DEFAULT_VOICE_PIPELINE:-huit_voice_multi_query_prod}
+      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
+      AUTH_API_URL: http://auth-api:4000
+      JWT_SECRET: ${IDX_JWT_SECRET:?IDX_JWT_SECRET is required}
+      AUTH_REQUIRED: "true"
+      # ALLOW_GUEST_CHAT: "true"   # override if you want guest chat even with AUTH_REQUIRED
+      FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}
+    ports:
+      - "3001:3000"  # host:3001 → container:3000 (see Dockerfile)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      auth-api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 45s
+
+volumes:
+  idx_pgdata:

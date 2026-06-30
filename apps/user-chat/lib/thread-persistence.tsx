@@ -67,7 +67,11 @@ class RemoteHistoryAdapter implements ThreadHistoryAdapter {
 
   private enqueueWrite(operation: () => Promise<void>) {
     const next = this.writeChain.then(operation).catch((error) => {
-      console.error("[thread-persistence] write failed", error);
+      // Guest/local threads intentionally not persisted to server — don't spam console
+      const msg = error instanceof Error ? error.message : String(error);
+      if (!msg.includes("401") && !msg.includes("404") && !msg.includes("Not found") && !msg.includes("Login required")) {
+        console.error("[thread-persistence] write failed", error);
+      }
     });
     this.writeChain = next;
     return next;
@@ -198,9 +202,15 @@ function ThreadHistoryProvider({ children }: PropsWithChildren) {
 
 export function useRemotePersistenceAdapter(
   onConversationId: (threadId: string, conversationId: string) => void,
+  serverThreads: boolean = true,
 ) {
+  const allowServer = serverThreads;
+
   return useMemo<RemoteThreadListAdapter>(() => ({
     async list() {
+      if (!allowServer) {
+        return { threads: [] };
+      }
       try {
         const result = await fetchThreadList();
         result.threads.forEach((thread) => {
@@ -212,29 +222,40 @@ export function useRemotePersistenceAdapter(
       }
     },
     async rename(remoteId, newTitle) {
+      if (!allowServer) return;
       await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
         body: JSON.stringify({ title: newTitle }),
       });
     },
     async archive(remoteId) {
+      if (!allowServer) return;
       await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
         body: JSON.stringify({ archived: true }),
       });
     },
     async unarchive(remoteId) {
+      if (!allowServer) return;
       await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
         body: JSON.stringify({ archived: false }),
       });
     },
     async delete(remoteId) {
+      if (!allowServer) return;
       await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "DELETE",
       });
     },
     async initialize(threadId: string) {
+      if (!allowServer) {
+        // Guest: create purely local thread (no server record, not persisted across reloads)
+        return {
+          remoteId: threadId,
+          externalId: undefined,
+        };
+      }
       try {
         const result = await mutateThreadApi<{ thread: ThreadDto }>("/api/threads", {
           method: "POST",
@@ -245,7 +266,8 @@ export function useRemotePersistenceAdapter(
           remoteId: result.thread.id,
           externalId: result.thread.conversationId,
         };
-      } catch {
+      } catch (err) {
+        // Fallback for transient issues
         return {
           remoteId: threadId,
           externalId: undefined,
@@ -253,6 +275,9 @@ export function useRemotePersistenceAdapter(
       }
     },
     async generateTitle(remoteId, messages) {
+      if (!allowServer) {
+        return new ReadableStream<never>({ start(c) { c.close(); } });
+      }
       const title = firstUserMessageTitle(messages);
       await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
@@ -265,6 +290,13 @@ export function useRemotePersistenceAdapter(
       });
     },
     async fetch(threadId) {
+      if (!allowServer) {
+        return {
+          remoteId: threadId,
+          externalId: undefined,
+          status: "regular" as const,
+        };
+      }
       const thread = await fetchThreadMetadata(threadId);
       if (!thread) {
         return {
@@ -278,5 +310,5 @@ export function useRemotePersistenceAdapter(
       return toMetadata(thread);
     },
     unstable_Provider: ThreadHistoryProvider,
-  }), [onConversationId]);
+  }), [onConversationId, allowServer]);
 }

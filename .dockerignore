@@ -1,0 +1,50 @@
+# Docker ignore for monorepo root
+# Prevents copying unnecessary files into build context
+
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+.next
+dist
+build
+out
+*.tsbuildinfo
+
+# Lock and temp files
+*.log
+tmp_*
+_tmp_*
+terminals/
+harness.db
+cookies.txt
+
+# Git and IDE
+.git
+.gitignore
+.idea
+.vscode
+*.swp
+
+# Docker (avoid recursive)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# Docs and non-runtime
+docs/
+scripts/
+README.md
+AGENTS.md
+*.md
+
+# Test and dev only (keep if needed in some builds)
+coverage/
+*.test.*
+vitest.config.*
+
+# Misc
+.env.local
+.env.*.local
+pnpm-debug.log

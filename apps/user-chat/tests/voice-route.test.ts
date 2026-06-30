@@ -52,6 +52,17 @@ describe("POST /api/voice/stream", () => {
     });
   });
 
+  it("rejects requests without a session when AUTH_REQUIRED=true", async () => {
+    vi.stubEnv("AUTH_REQUIRED", "true");
+    vi.stubEnv("JWT_SECRET", "test-secret");
+    vi.stubGlobal("fetch", vi.fn());
+
+    const response = await POST(request());
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({ code: "missing_session" });
+  });
+
   it("returns gateway_error when upstream rejects the payload", async () => {
     vi.stubGlobal(
       "fetch",

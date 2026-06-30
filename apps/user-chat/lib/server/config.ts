@@ -9,6 +9,7 @@ export type ServerConfig = {
   defaultTopK: number;
   authApiUrl: string;
   authRequired: boolean;
+  allowGuestChat: boolean;
   jwtSecret?: string;
   frontendUrl: string;
 };
@@ -32,6 +33,13 @@ export function getServerConfig(
     throw new Error("JWT_SECRET is required when AUTH_REQUIRED=true");
   }
 
+  // ALLOW_GUEST_CHAT controls whether users can chat without being logged in.
+  // Default: follow !authRequired (backward compatible).
+  // Explicit override: ALLOW_GUEST_CHAT=true/false
+  const allowGuestChat =
+    env.ALLOW_GUEST_CHAT === "true" ||
+    (env.ALLOW_GUEST_CHAT !== "false" && !authRequired);
+
   return {
     gatewayUrl,
     userApiKey,
@@ -43,6 +51,7 @@ export function getServerConfig(
     defaultTopK,
     authApiUrl: env.AUTH_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000",
     authRequired,
+    allowGuestChat,
     jwtSecret,
     frontendUrl: env.FRONTEND_URL ?? "http://localhost:3001",
   };
@@ -60,6 +69,7 @@ export function publicConfig(
     defaultVoicePipeline: config.defaultVoicePipeline,
     defaultTopK: config.defaultTopK,
     authRequired: config.authRequired,
+    allowGuestChat: config.allowGuestChat,
     showRuntimeToolbar: env.SHOW_RUNTIME_TOOLBAR === "true",
   };
 }
