@@ -40,8 +40,25 @@ export function createModularRagAdapter(
   getConversationId: (threadId: string) => string | undefined = () => undefined,
   getRuntimeOptions: () => RuntimeChatOptions = () => ({}),
 ): ChatModelAdapter {
+  let activeThreadId: string | undefined;
+  let activeAbortController: AbortController | null = null;
+
   return {
     async *run({ messages, abortSignal, unstable_threadId }) {
+      // Abort previous thread's SSE when switching threads
+      if (activeThreadId && activeThreadId !== unstable_threadId && activeAbortController) {
+        activeAbortController.abort();
+      }
+
+      activeThreadId = unstable_threadId;
+      const ourController = new AbortController();
+      activeAbortController = ourController;
+
+      // Combine library signal (Stop button) with our signal (thread switch)
+      const combinedSignal = abortSignal
+        ? combineSignals(abortSignal, ourController.signal)
+        : ourController.signal;
+
       const conversationId = resolveConversationId(
         unstable_threadId,
         fallbackConversationId,
@@ -58,7 +75,7 @@ export function createModularRagAdapter(
           ...(runtimeOptions.pipeline ? { pipeline: runtimeOptions.pipeline } : {}),
           ...(runtimeOptions.topK != null ? { topK: runtimeOptions.topK } : {}),
         }),
-        signal: abortSignal,
+        signal: combinedSignal,
       });
 
       if (!response.ok) throw new Error(await readError(response));
@@ -67,25 +84,40 @@ export function createModularRagAdapter(
       let text = "";
       let metadata: StreamMetadata | null = null;
 
-      for await (const event of parseModularRagSse(response.body)) {
-        if (event.type === "token") {
-          text += event.token;
-          yield { content: [{ type: "text", text }] };
-        } else if (event.type === "metadata") {
-          metadata = event.metadata;
-        } else if (event.type === "error") {
-          throw new Error(event.message);
-        } else if (event.type === "done") {
-          const custom = buildRagMessageCustom(metadata);
-          if (custom) {
-            yield {
-              content: [{ type: "text", text }],
-              metadata: { custom },
-            };
+      try {
+        for await (const event of parseModularRagSse(response.body)) {
+          if (event.type === "token") {
+            text += event.token;
+            yield { content: [{ type: "text", text }] };
+          } else if (event.type === "metadata") {
+            metadata = event.metadata;
+          } else if (event.type === "error") {
+            throw new Error(event.message);
+          } else if (event.type === "done") {
+            const custom = buildRagMessageCustom(metadata);
+            if (custom) {
+              yield {
+                content: [{ type: "text", text }],
+                metadata: { custom },
+              };
+            }
+            break;
           }
-          break;
+        }
+      } finally {
+        if (activeAbortController === ourController) {
+          activeAbortController = null;
         }
       }
     },
   };
+}
+
+function combineSignals(a: AbortSignal, b: AbortSignal): AbortSignal {
+  if (a.aborted || b.aborted) return AbortSignal.abort();
+  const controller = new AbortController();
+  const onAbort = () => controller.abort();
+  a.addEventListener("abort", onAbort, { once: true });
+  b.addEventListener("abort", onAbort, { once: true });
+  return controller.signal;
 }
