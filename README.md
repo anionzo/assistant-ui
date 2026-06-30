@@ -1,8 +1,10 @@
 # Idx Chat
 
-> AI-powered admission assistant for HUIT — Đại học Công nghiệp Thực phẩm TP.HCM.
+> AI-powered document Q&A chatbot — upload tài liệu, chat, có dẫn nguồn.
 
-**Idx Chat** là chatbot GPT-style trả lời câu hỏi tuyển sinh bằng RAG (Retrieval-Augmented Generation). Sinh viên hỏi về ngành học, học phí, phương thức xét tuyển, chỉ tiêu... và nhận câu trả lời có trích dẫn từ tài liệu chính thống của HUIT — không cần lục PDF.
+**Idx Chat** là chatbot GPT-style trả lời câu hỏi dựa trên tài liệu được upload bằng RAG (Retrieval-Augmented Generation). Admin upload file (.docx, .pdf, .xlsx, .csv) → index → publish, người dùng chat và nhận câu trả lời có trích dẫn chính xác từ tài liệu gốc.
+
+Ví dụ: tuyển sinh, pháp luật, nội quy, hướng dẫn sử dụng, FAQ doanh nghiệp... cứ có tài liệu là chat được.
 
 Xây dựng trên [assistant-ui.com](https://www.assistant-ui.com/) UI primitives + Next.js 15, backend [ModularRAG](https://github.com/) (document indexing + retrieval gateway), PostgreSQL (user auth + chat history).
 
