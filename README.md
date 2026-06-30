@@ -201,34 +201,64 @@ full model, the degrade ladder, and how to wire a tool into a flow step.
 
 ## Current State
 
-**Idx Chat** — GPT-like FE for ModularRAG. **UI gốc: [assistant-ui.com](https://www.assistant-ui.com/)** + Next.js. Harness v0 + complete product docs (E01) + user-chat MVP implementation (E02).
+**Idx Chat** — GPT-like FE for ModularRAG. **UI gốc: [assistant-ui.com](https://www.assistant-ui.com/)** + Next.js. Harness v0 + complete product docs (E01) + user-chat MVP (E02–E05, E07–E08) + admin RBAC (E06).
 
-- Docs gate: **PASS** — see `docs/stories/epics/E01-docs-bootstrap/validation.md`
-- E02 code proof: TypeScript, 8 unit/integration tests, production build, and local BFF-to-mock-gateway SSE smoke pass
-- Backend: [ModularRAG-platform](https://github.com/) gateway `:8030` (unchanged)
-- Auth: `apps/auth-api` + PostgreSQL — email/password + Google (E08, cả hai), not portal SSO
+### Epics implemented
+
+| Epic | Description | Proof |
+|------|-------------|-------|
+| E01 | Product docs | docs/product/* (15 files) |
+| E02 | Chat MVP | vitest, SSE stream, BFF→gateway |
+| E03 | Thread persistence | Server-side thread/message CRUD via auth-api |
+| E04 | Voice input | Shared package, hidden in prod |
+| E05 | RAG toolbar | Citations, pipeline selector, hidden in prod |
+| E06 | Admin app + RBAC | Roles (ID 1-5), permissions (ID 10-53), JWT session, Google OAuth |
+| E07 | Compose prod | docker-compose.prod.yml |
+| E08 | Auth API | Email/password + Google OAuth, JWT, refresh rotation |
+
+- Backend: ModularRAG gateway `:8030` (unchanged)
+- Auth: `apps/auth-api` + PostgreSQL — email/password + Google + RBAC
 - Explicit: does **not** use legacy ChatBotUI
 
-### Run the user-chat MVP
+### Run user-chat
 
 ```powershell
 Copy-Item .env.example apps/user-chat/.env.local
 pnpm install
 pnpm --filter @idx/user-chat dev
 ```
+User app at `http://localhost:3001`. Requires ModularRAG at `MODULAR_RAG_GATEWAY_URL`.
 
-The user app runs at `http://localhost:3001` and expects ModularRAG at
-`MODULAR_RAG_GATEWAY_URL` (default example: `http://localhost:8030`). For a
-local contract smoke without the real gateway, run
-`node scripts/dev/mock-modular-rag.mjs` in a second terminal.
+### Run admin
 
-Validation:
+```powershell
+Copy-Item .env.example apps/admin/.env.local
+# Set ADMIN_SEED_EMAIL in auth-api/.env to auto-assign super_admin
+pnpm --filter @idx/auth-api db:migrate
+pnpm --filter @idx/auth-api dev
+pnpm --filter @idx/admin dev
+```
+Admin at `http://localhost:3002/login`. Login via email/password or Google OAuth. First admin: register with `ADMIN_SEED_EMAIL` → auto-assigned super_admin role.
+
+### Auth API
+
+```powershell
+Copy-Item .env.example apps/auth-api/.env
+pnpm --filter @idx/auth-api db:migrate
+pnpm --filter @idx/auth-api dev
+```
+Auth API at `http://localhost:4000`. JWT signed with HS256. Secret lives only in auth-api — BFFs verify via `/auth/me` API call, no local JWT verification needed.
+
+### Validation
 
 ```powershell
 pnpm --filter @idx/modular-rag-sdk typecheck
 pnpm --filter @idx/user-chat typecheck
+pnpm --filter @idx/admin typecheck
+pnpm --filter @idx/auth-api typecheck
 pnpm --filter @idx/modular-rag-sdk test
 pnpm --filter @idx/user-chat test
+pnpm --filter @idx/auth-api test
 pnpm --filter @idx/user-chat build
 ```
 
@@ -240,7 +270,7 @@ pnpm --filter @idx/user-chat build
 - [docs/product/](docs/product/) — product contract (15 files)
 - [docs/stories/backlog.md](docs/stories/backlog.md) — epics E01–E08
 - [docs/TEST_MATRIX.md](docs/TEST_MATRIX.md) — proof map
-- [docs/decisions/0008](docs/decisions/0008-monorepo-stack.md)–[0019](docs/decisions/0019-idx-chat-product-name.md) — architecture, security, auth
+- [docs/decisions/0008](docs/decisions/0008-monorepo-stack.md)–[0021](docs/decisions/0021-cross-device-thread-storage.md) — architecture, security, auth
 
 ## Repository Structure
 
