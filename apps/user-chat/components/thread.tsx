@@ -22,6 +22,11 @@ import {
   ToolGroupTrigger,
 } from "@/components/tool-group";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import {
+  VoiceComposerProvider,
+  VoiceComposerSendControls,
+  VoiceMicControl,
+} from "@/components/voice-composer-action";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -41,17 +46,14 @@ import {
 } from "@assistant-ui/react";
 import {
   ArrowDownIcon,
-  ArrowUpIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   CopyIcon,
   DownloadIcon,
-  MicIcon,
   MoreHorizontalIcon,
   PencilIcon,
   RefreshCwIcon,
-  SquareIcon,
 } from "lucide-react";
 import {
   createContext,
@@ -226,51 +228,15 @@ const Composer: FC = () => {
 
 const ComposerAction: FC = () => {
   return (
-    <div className="aui-composer-action-wrapper relative flex items-center justify-between">
-      <ComposerAddAttachment />
-      <div className="flex items-center gap-1.5">
-        <AuiIf condition={(s) => s.composer.dictation == null}>
-          <ComposerPrimitive.Dictate
-            render={
-              <TooltipIconButton
-                tooltip="Nhấn để nói"
-                side="bottom"
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="aui-composer-dictate size-7 rounded-full"
-                aria-label="Nhấn để nói"
-              />
-            }
-          >
-            <MicIcon className="size-4" />
-          </ComposerPrimitive.Dictate>
-        </AuiIf>
-        <AuiIf condition={(s) => s.composer.dictation != null}>
-          <ComposerPrimitive.StopDictation
-            render={
-              <TooltipIconButton
-                tooltip="Dừng ghi âm"
-                side="bottom"
-                type="button"
-                variant="default"
-                size="icon"
-                className="aui-composer-stop-dictation bg-destructive hover:bg-destructive/90 size-7 animate-pulse rounded-full"
-                aria-label="Dừng ghi âm"
-              />
-            }
-          >
-            <SquareIcon className="size-3.5 fill-current" />
-          </ComposerPrimitive.StopDictation>
-        </AuiIf>
-        <AuiIf condition={(s) => !s.thread.isRunning}>
-          <ComposerPrimitive.Send render={<TooltipIconButton tooltip="Send message" side="bottom" type="button" variant="default" size="icon" className="aui-composer-send size-7 rounded-full" aria-label="Send message" />}><ArrowUpIcon className="aui-composer-send-icon size-4.5" /></ComposerPrimitive.Send>
-        </AuiIf>
-        <AuiIf condition={(s) => s.thread.isRunning}>
-          <ComposerPrimitive.Cancel render={<Button type="button" variant="default" size="icon" className="aui-composer-cancel size-7 rounded-full" aria-label="Stop generating" />}><SquareIcon className="aui-composer-cancel-icon size-3.5 fill-current" /></ComposerPrimitive.Cancel>
-        </AuiIf>
+    <VoiceComposerProvider>
+      <div className="aui-composer-action-wrapper relative flex items-center justify-between">
+        <ComposerAddAttachment />
+        <div className="flex items-center gap-1.5">
+          <VoiceMicControl />
+          <VoiceComposerSendControls />
+        </div>
       </div>
-    </div>
+    </VoiceComposerProvider>
   );
 };
 
