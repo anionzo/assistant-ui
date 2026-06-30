@@ -1,9 +1,5 @@
-import { Thread } from "@/components/thread";
+import { redirect } from "next/navigation";
 
 export default function HomePage() {
-  return (
-    <main className="app-shell">
-      <Thread />
-    </main>
-  );
+  redirect("/chat");
 }

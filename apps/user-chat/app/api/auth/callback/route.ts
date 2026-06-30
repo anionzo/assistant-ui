@@ -18,7 +18,7 @@ export const runtime = "nodejs";
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const exchange = url.searchParams.get("exchange");
-  const returnTo = url.searchParams.get("returnTo") ?? "/";
+  const returnTo = url.searchParams.get("returnTo") ?? "/chat";
   if (!exchange) {
     return NextResponse.json({ error: "Missing exchange code" }, { status: 400 });
   }

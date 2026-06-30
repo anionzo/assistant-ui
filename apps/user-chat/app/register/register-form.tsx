@@ -33,7 +33,7 @@ export function RegisterForm() {
       return;
     }
 
-    router.push("/");
+    router.push("/chat");
     router.refresh();
   }
 
