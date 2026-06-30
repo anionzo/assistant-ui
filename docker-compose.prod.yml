@@ -5,10 +5,14 @@
 #   docker compose -f docker-compose.prod.yml up -d --build
 #   curl http://localhost:3001/api/health
 #   curl http://localhost:4000/health
+#
+# NOTE: For real production, put a reverse proxy (nginx/traefik) in front.
+# `extra_hosts` is only needed if the ModularRAG gateway runs on the host.
 
 services:
   postgres:
-    image: postgres:16-alpine
+    image: postgres:16
+    restart: unless-stopped
     environment:
       POSTGRES_DB: idx_auth
       POSTGRES_USER: postgres
@@ -25,6 +29,7 @@ services:
     build:
       context: .
       dockerfile: apps/auth-api/Dockerfile
+    restart: unless-stopped
     environment:
       PORT: 4000
       DATABASE_URL: postgresql://postgres:${IDX_DB_PASSWORD:-postgres}@postgres:5432/idx_auth
@@ -57,6 +62,7 @@ services:
     build:
       context: .
       dockerfile: apps/user-chat/Dockerfile
+    restart: unless-stopped
     environment:
       MODULAR_RAG_GATEWAY_URL: ${MODULAR_RAG_GATEWAY_URL:-http://host.docker.internal:8030}
       USER_API_KEY: ${USER_API_KEY:?USER_API_KEY is required}
@@ -89,7 +95,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 6
-      start_period: 45s
+      start_period: 60s
 
 volumes:
   idx_pgdata:

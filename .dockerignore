@@ -12,6 +12,21 @@ build
 out
 *.tsbuildinfo
 
+# Env files (all levels)
+.env
+**/.env
+.env.*.local
+
+# Test files
+**/tests/
+**/coverage/
+**/*.test.*
+**/vitest.config.*
+
+# Lint config
+**/eslint.config.*
+**/next-env.d.ts
+
 # Lock and temp files
 *.log
 tmp_*
@@ -39,12 +54,5 @@ README.md
 AGENTS.md
 *.md
 
-# Test and dev only (keep if needed in some builds)
-coverage/
-*.test.*
-vitest.config.*
-
 # Misc
-.env.local
-.env.*.local
-pnpm-debug.log
+pnpm-debug.log*
