@@ -1,12 +1,26 @@
+# Idx Chat
+
+> AI-powered admission assistant for HUIT — Đại học Công nghiệp Thực phẩm TP.HCM.
+
+**Idx Chat** is a GPT-style chatbot that answers admission questions using RAG (Retrieval-Augmented Generation). Students ask about ngành học, học phí, phương thức xét tuyển, chỉ tiêu... and get instant, cited answers sourced from official HUIT documents — no more digging through PDFs.
+
+Built on [assistant-ui.com](https://www.assistant-ui.com/) UI primitives + Next.js 15, backed by [ModularRAG](https://github.com/) (document indexing + retrieval gateway) and PostgreSQL (user auth + chat history).
+
+### Who uses what
+
+| Surface | User | Tech |
+|---------|------|------|
+| `localhost:3001` | Students / public | Chat UI + Google login + voice input |
+| `localhost:3002` | Admin / operators | Upload tài liệu → index → publish corpus → chat instantly updated |
+| `localhost:4000` | Internal | Auth API (JWT, Google OAuth, RBAC roles) |
+
+---
+
 # repository-harness
 
-Turn any software repo into an agent-ready workspace.
+> Underlying agent-ready workspace — turn any repo into a coding-agent-friendly environment.
 
-`repository-harness` is a repository-level operating harness for Claude Code,
-Codex, Cursor, and other coding agents. It gives agents the missing project
-context they need before they change code: where to start, what the product
-contract says, how risky the work is, what proof is required, and which
-decisions future agents should inherit.
+`repository-harness` is a repository-level operating harness for Claude Code, Codex, Cursor, and other coding agents. It gives agents the missing project context they need before they change code: where to start, what the product contract says, how risky the work is, what proof is required, and which decisions future agents should inherit.
 
 The app is what users touch. The harness is what agents touch.
 
@@ -275,22 +289,21 @@ pnpm --filter @idx/user-chat build
 ## Repository Structure
 
 ```text
-project/
-  AGENTS.md
-  README.md
+assistant-ui/
+  apps/
+    user-chat/         # Next.js 15 — student-facing chat (:3001)
+    admin/             # Next.js 15 — operator console (:3002)
+    auth-api/          # Hono + PostgreSQL — auth + RBAC (:4000)
+  packages/
+    modular-rag-sdk/   # Gateway client + SSE stream parser
+    voice-input/       # Shared voice recording UI
   docs/
-    HARNESS.md
-    FEATURE_INTAKE.md
-    ARCHITECTURE.md
-    TEST_MATRIX.md
-    HARNESS_BACKLOG.md
-    product/
-    stories/
-    decisions/
-    demo/
-    templates/
+    product/           # Product contract (15 files)
+    stories/           # Epic packets E01–E08
+    decisions/         # Architecture decisions (0008–0021)
   scripts/
-    README.md
+    bin/               # Harness CLI
+    dev/               # Mock gateway for local dev
 ```
 
 ## Contributing
