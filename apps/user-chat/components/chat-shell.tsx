@@ -2,7 +2,12 @@
 
 import { Thread } from "@/components/thread";
 import { ThreadRouteGuard } from "@/components/thread-route-guard";
-import { ThreadSidebar } from "@/components/thread-sidebar";
+import { ThreadListSidebar } from "@/components/threadlist-sidebar";
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { chatPath } from "@/lib/chat-routes";
 import { RuntimeProvider } from "@/lib/runtime-provider";
 import { useParams, useRouter } from "next/navigation";
@@ -32,12 +37,20 @@ export function ChatShell({ initialAuth }: { initialAuth: boolean }) {
       onThreadIdChange={handleThreadIdChange}
     >
       <ThreadRouteGuard threadId={threadId} />
-      <main className="app-shell flex h-screen">
-        <ThreadSidebar />
-        <div className="min-w-0 flex-1">
-          <Thread />
+      <SidebarProvider>
+        <div className="flex h-dvh w-full">
+          <ThreadListSidebar />
+          <SidebarInset className="min-w-0">
+            <header className="border-border flex h-12 shrink-0 items-center gap-2 border-b px-3 md:hidden">
+              <SidebarTrigger className="size-8" />
+              <span className="text-sm font-semibold">Idx Chat</span>
+            </header>
+            <div className="min-h-0 flex-1">
+              <Thread />
+            </div>
+          </SidebarInset>
         </div>
-      </main>
+      </SidebarProvider>
     </RuntimeProvider>
   );
 }

@@ -25,6 +25,14 @@ import {
   type FC,
 } from "react";
 
+async function initializeNewThread(aui: ReturnType<typeof useAui>) {
+  const { mainThreadId } = aui.threads().getState();
+  const item = aui.threads().item({ id: mainThreadId });
+  if (item.getState().status === "new") {
+    await item.initialize();
+  }
+}
+
 export const ThreadList: FC = () => {
   return (
     <ThreadListRoot>
@@ -60,7 +68,6 @@ export const ThreadListItems: FC<ComponentPropsWithoutRef<"div">> = ({
         <ThreadListSkeleton />
       </AuiIf>
       <AuiIf condition={(s) => !s.threads.isLoading}>
-        <ThreadListPendingNew />
         <ThreadListItemGroups />
       </AuiIf>
     </div>
@@ -80,29 +87,6 @@ const dateGroupLabel = (
 
 type ThreadListGroup = { label: string; indices: number[] };
 
-const ThreadListPendingNew: FC = () => {
-  const mainThread = useAuiState((s) =>
-    s.threads.threadItems.find((item) => item.id === s.threads.mainThreadId),
-  );
-  const listedRemoteIds = useAuiState((s) => s.threads.threadIds);
-
-  if (!mainThread || mainThread.status !== "new") return null;
-  if (mainThread.remoteId && listedRemoteIds.includes(mainThread.remoteId)) {
-    return null;
-  }
-
-  return (
-    <button
-      type="button"
-      data-slot="aui_thread-list-pending-new"
-      className="bg-muted text-foreground h-8 w-full truncate rounded-md px-2.5 text-start text-sm"
-      aria-current="page"
-    >
-      Cuộc trò chuyện mới
-    </button>
-  );
-};
-
 const ThreadListItemGroups: FC = () => {
   const threadIds = useAuiState((s) => s.threads.threadIds);
   const threadItems = useAuiState((s) => s.threads.threadItems);
@@ -118,17 +102,11 @@ const ThreadListItemGroups: FC = () => {
       now.getMonth(),
       now.getDate(),
     ).getTime();
+    const time = (index: number) =>
+      dates[index]?.getTime() ?? Number.MAX_SAFE_INTEGER;
     const indices = threadIds
       .map((_, index) => index)
-      .sort((a, b) => {
-        const timeA = dates[a]?.getTime();
-        const timeB = dates[b]?.getTime();
-
-        if (timeA != null && timeB != null) return timeB - timeA;
-        if (timeA == null && timeB == null) return a - b;
-        if (timeA == null) return -1;
-        return 1;
-      });
+      .sort((a, b) => time(b) - time(a));
 
     const result: ThreadListGroup[] = [];
     for (const index of indices) {
@@ -173,17 +151,16 @@ const ThreadListItemGroups: FC = () => {
 export const ThreadListNew = forwardRef<
   HTMLButtonElement,
   ComponentPropsWithoutRef<typeof Button> & { labelClassName?: string }
->(({ className, labelClassName, children, ...props }, ref) => {
+>(({ className, labelClassName, children, onClick, ...props }, ref) => {
   const aui = useAui();
+  const isMain = useAuiState(
+    (s) => s.threads.newThreadId === s.threads.mainThreadId,
+  );
 
   const handleNewThread = () => {
     void (async () => {
       await aui.threads().switchToNewThread();
-      const { mainThreadId } = aui.threads().getState();
-      const item = aui.threads().item({ id: mainThreadId });
-      if (item.getState().status === "new") {
-        await item.initialize();
-      }
+      await initializeNewThread(aui);
     })();
   };
 
@@ -197,7 +174,11 @@ export const ThreadListNew = forwardRef<
         "hover:bg-muted data-active:bg-muted h-8 justify-start gap-2 rounded-md px-2.5 text-sm font-normal",
         className,
       )}
-      onClick={handleNewThread}
+      {...(isMain ? { "data-active": "true", "aria-current": "page" } : null)}
+      onClick={(event) => {
+        onClick?.(event);
+        handleNewThread();
+      }}
       {...props}
     >
       {children ?? (
