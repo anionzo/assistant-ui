@@ -48,7 +48,10 @@ export function getServerConfig(
   };
 }
 
-export function publicConfig(config: ServerConfig) {
+export function publicConfig(
+  config: ServerConfig,
+  env: Record<string, string | undefined> = process.env,
+) {
   return {
     tenantId: config.tenantId,
     tenantDisplayName: config.tenantDisplayName,
@@ -57,5 +60,6 @@ export function publicConfig(config: ServerConfig) {
     defaultVoicePipeline: config.defaultVoicePipeline,
     defaultTopK: config.defaultTopK,
     authRequired: config.authRequired,
+    showRuntimeToolbar: env.SHOW_RUNTIME_TOOLBAR === "true",
   };
 }

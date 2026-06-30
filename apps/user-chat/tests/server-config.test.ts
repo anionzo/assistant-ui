@@ -10,6 +10,10 @@ describe("server config", () => {
 
     expect(config.gatewayUrl).toBe("http://localhost:8030");
     expect(publicConfig(config)).not.toHaveProperty("userApiKey");
+    expect(publicConfig(config, {})).toMatchObject({ showRuntimeToolbar: false });
+    expect(
+      publicConfig(config, { SHOW_RUNTIME_TOOLBAR: "true" }),
+    ).toMatchObject({ showRuntimeToolbar: true });
   });
 
   it("fails closed when the API key is missing", () => {
