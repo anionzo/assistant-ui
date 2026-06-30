@@ -1,3 +1,4 @@
+import { errorResponse } from "@/lib/server/errors";
 import { NextResponse } from "next/server";
 import { getServerConfig } from "@/lib/server/config";
 
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
         "X-Request-ID": requestId,
       },
       body: JSON.stringify({
-        audio: audioBase64,
+        audio_b64: audioBase64,
         conversation_id: conversationId,
         corpus_id: corpusId,
         pipeline,
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     });
 
     if (!upstream.ok || !upstream.body) {
-      await upstream.text().catch(() => undefined);
+      const details = await upstream.text().catch(() => undefined);
       console.error(
         JSON.stringify({
           level: "error",
@@ -65,9 +66,12 @@ export async function POST(request: Request) {
           status_code: upstream.status,
         }),
       );
-      return NextResponse.json(
-        { error: "Voice gateway rejected the request" },
-        { status: 502 },
+      return errorResponse(
+        "Voice gateway rejected the request",
+        "gateway_error",
+        502,
+        requestId,
+        details,
       );
     }
 
@@ -104,9 +108,6 @@ export async function POST(request: Request) {
         error: error instanceof Error ? error.name : "UnknownError",
       }),
     );
-    return NextResponse.json(
-      { error: "Voice gateway is unavailable" },
-      { status: 502 },
-    );
+    return errorResponse("Voice gateway is unavailable", "gateway_error", 502, requestId);
   }
 }
