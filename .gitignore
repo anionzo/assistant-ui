@@ -23,6 +23,9 @@ coverage/
 tmp_auth_api.out.log
 tmp_auth_api.err.log
 
+# Local terminal session snapshots
+terminals/
+
 # Docs
 docs/
 
