@@ -1,6 +1,5 @@
 import { errorResponse } from "@/lib/server/errors";
-import { getSessionCookie } from "@/lib/auth/cookies";
-import { verifySessionToken } from "@/lib/auth/session";
+import { resolveSession } from "@/lib/auth/session-resolve";
 import { getServerConfig } from "@/lib/server/config";
 
 export const dynamic = "force-dynamic";
@@ -36,13 +35,12 @@ export async function POST(request: Request) {
     const config = getServerConfig();
     let conversationId = body.conversationId.trim();
     if (config.authRequired) {
-      const token = await getSessionCookie();
-      if (!token) {
+      const session = await resolveSession();
+      if (!session) {
         return errorResponse("Missing session cookie", "missing_session", 401, requestId);
       }
-      const user = await verifySessionToken(token, config.jwtSecret);
-      if (!conversationId.startsWith(`${user.id}:`)) {
-        conversationId = `${user.id}:${conversationId}`;
+      if (!conversationId.startsWith(`${session.user.id}:`)) {
+        conversationId = `${session.user.id}:${conversationId}`;
       }
     }
 

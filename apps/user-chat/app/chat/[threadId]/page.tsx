@@ -1,12 +1,12 @@
 import { ChatShell } from "@/components/chat-shell";
-import { getSessionCookie } from "@/lib/auth/cookies";
+import { resolveSession } from "@/lib/auth/session-resolve";
 
 type Params = {
   params: Promise<{ threadId: string }>;
 };
 
 export default async function ThreadChatPage({ params }: Params) {
-  const token = await getSessionCookie();
+  const session = await resolveSession();
   await params;
-  return <ChatShell initialAuth={!!token} />;
+  return <ChatShell initialAuth={!!session} />;
 }

@@ -2,16 +2,22 @@ import type { SessionUser } from "./jwt";
 
 type ExchangeEntry = {
   accessToken: string;
+  refreshToken: string;
   user: SessionUser;
   expiresAt: number;
 };
 
 const exchangeStore = new Map<string, ExchangeEntry>();
 
-export function createExchange(accessToken: string, user: SessionUser) {
+export function createExchange(
+  accessToken: string,
+  refreshToken: string,
+  user: SessionUser,
+) {
   const code = crypto.randomUUID();
   exchangeStore.set(code, {
     accessToken,
+    refreshToken,
     user,
     expiresAt: Date.now() + 60_000,
   });

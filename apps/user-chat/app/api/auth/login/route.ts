@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { authApiFetch } from "@/lib/auth/auth-api-client";
-import { setSessionCookie } from "@/lib/auth/cookies";
+import { setAuthCookies } from "@/lib/auth/cookies";
 
 type AuthApiResponse = {
   accessToken: string;
+  refreshToken: string;
   expiresIn: number;
   user: {
     id: string;
@@ -26,6 +27,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  await setSessionCookie(result.data.accessToken);
+  await setAuthCookies(result.data.accessToken, result.data.refreshToken);
   return NextResponse.json({ user: result.data.user });
 }

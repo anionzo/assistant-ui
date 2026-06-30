@@ -4,6 +4,11 @@ import { createExchange, consumeExchange } from "../services/exchange-store";
 import { createGoogleAuthUrl, exchangeGoogleCode } from "../services/google-oauth";
 import { signSessionToken, verifySessionToken, type SessionUser } from "../services/jwt";
 import { hashPassword, verifyPassword } from "../services/password";
+import {
+  generateRefreshToken,
+  hashRefreshToken,
+  refreshTokenExpiresAt,
+} from "../services/refresh-token";
 
 type LoginBody = {
   email?: string;
@@ -29,17 +34,25 @@ function toSessionUser(user: {
   };
 }
 
-async function issueSession(user: SessionUser) {
-  const accessToken = await signSessionToken(user);
-  return {
-    accessToken,
-    expiresIn: Number(process.env.JWT_ACCESS_TTL ?? 3600),
-    user,
-  };
-}
-
 export function createAuthRoutes(store: AuthStore = getAuthStore()) {
   const authRoutes = new Hono();
+
+  async function issueSession(user: SessionUser) {
+    const accessToken = await signSessionToken(user);
+    const refreshToken = generateRefreshToken();
+    await store.createRefreshToken({
+      userId: user.id,
+      tokenHash: hashRefreshToken(refreshToken),
+      expiresAt: refreshTokenExpiresAt(),
+    });
+
+    return {
+      accessToken,
+      refreshToken,
+      expiresIn: Number(process.env.JWT_ACCESS_TTL ?? 3600),
+      user,
+    };
+  }
 
   authRoutes.get("/google", (c) => {
     const returnTo = c.req.query("returnTo") ?? "/";
@@ -104,8 +117,12 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     }
 
     const sessionUser = toSessionUser(user);
-    const accessToken = await signSessionToken(sessionUser);
-    const exchangeCode = createExchange(accessToken, sessionUser);
+    const session = await issueSession(sessionUser);
+    const exchangeCode = createExchange(
+      session.accessToken,
+      session.refreshToken,
+      sessionUser,
+    );
     const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3001";
 
     return c.redirect(`${frontendUrl}/api/auth/callback?exchange=${encodeURIComponent(exchangeCode)}&returnTo=${encodeURIComponent(profile.returnTo)}`, 302);
@@ -124,9 +141,31 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
 
     return c.json({
       accessToken: exchange.accessToken,
+      refreshToken: exchange.refreshToken,
       expiresIn: Number(process.env.JWT_ACCESS_TTL ?? 3600),
       user: exchange.user,
     });
+  });
+
+  authRoutes.post("/refresh", async (c) => {
+    const body = await c.req.json<{ refreshToken?: string }>().catch(() => null);
+    if (!body?.refreshToken) {
+      return c.json({ error: "refreshToken is required" }, 400);
+    }
+
+    const tokenHash = hashRefreshToken(body.refreshToken);
+    const record = await store.findValidRefreshToken(tokenHash);
+    if (!record) {
+      return c.json({ error: "refresh token is invalid or expired" }, 401);
+    }
+
+    const user = await store.findUserById(record.userId);
+    if (!user) {
+      return c.json({ error: "refresh token is invalid or expired" }, 401);
+    }
+
+    await store.revokeRefreshToken(tokenHash);
+    return c.json(await issueSession(toSessionUser(user)));
   });
 
   authRoutes.post("/register", async (c) => {
@@ -191,7 +230,11 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     }
   });
 
-  authRoutes.post("/logout", (c) => {
+  authRoutes.post("/logout", async (c) => {
+    const body = await c.req.json<{ refreshToken?: string }>().catch(() => null);
+    if (body?.refreshToken) {
+      await store.revokeRefreshToken(hashRefreshToken(body.refreshToken));
+    }
     return c.json({ ok: true });
   });
 

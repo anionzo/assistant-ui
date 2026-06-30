@@ -4,6 +4,7 @@ import {
   chatMessages,
   chatThreads,
   oauthAccounts,
+  refreshTokens,
   users,
   type ChatMessageRecord,
   type ChatThreadRecord,
@@ -29,6 +30,20 @@ export type CreateOAuthAccountInput = {
   userId: string;
   provider: string;
   providerAccountId: string;
+};
+
+export type CreateRefreshTokenInput = {
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+};
+
+export type RefreshTokenRecord = {
+  id: string;
+  userId: string;
+  tokenHash: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
 };
 
 export type CreateChatThreadInput = {
@@ -66,6 +81,9 @@ export interface AuthStore {
   createUser(input: CreateUserInput): Promise<UserRecord>;
   findOAuthAccount(provider: string, providerAccountId: string): Promise<OAuthAccountRecord | null>;
   createOAuthAccount(input: CreateOAuthAccountInput): Promise<void>;
+  createRefreshToken(input: CreateRefreshTokenInput): Promise<void>;
+  findValidRefreshToken(tokenHash: string): Promise<RefreshTokenRecord | null>;
+  revokeRefreshToken(tokenHash: string): Promise<void>;
   listThreads(userId: string, tenantId?: string): Promise<ChatThreadRecord[]>;
   findThreadById(userId: string, threadId: string): Promise<ChatThreadRecord | null>;
   createThread(input: CreateChatThreadInput): Promise<ChatThreadRecord>;
@@ -123,6 +141,34 @@ class PostgresAuthStore implements AuthStore {
   async createOAuthAccount(input: CreateOAuthAccountInput) {
     const db = getDb();
     await db.insert(oauthAccounts).values(input);
+  }
+
+  async createRefreshToken(input: CreateRefreshTokenInput) {
+    const db = getDb();
+    await db.insert(refreshTokens).values(input);
+  }
+
+  async findValidRefreshToken(tokenHash: string) {
+    const db = getDb();
+    const row =
+      (
+        await db
+          .select()
+          .from(refreshTokens)
+          .where(eq(refreshTokens.tokenHash, tokenHash))
+          .limit(1)
+      )[0] ?? null;
+
+    if (!row || row.revokedAt || row.expiresAt <= new Date()) return null;
+    return row;
+  }
+
+  async revokeRefreshToken(tokenHash: string) {
+    const db = getDb();
+    await db
+      .update(refreshTokens)
+      .set({ revokedAt: new Date() })
+      .where(eq(refreshTokens.tokenHash, tokenHash));
   }
 
   async listThreads(userId: string, tenantId?: string) {

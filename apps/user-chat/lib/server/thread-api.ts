@@ -1,5 +1,5 @@
-import { getSessionCookie } from "@/lib/auth/cookies";
-import { verifySessionToken, type SessionUser } from "@/lib/auth/session";
+import { resolveSession } from "@/lib/auth/session-resolve";
+import type { SessionUser } from "@/lib/auth/session";
 import { getServerConfig } from "@/lib/server/config";
 
 export type ThreadDto = {
@@ -15,16 +15,9 @@ export async function requireSessionUser(): Promise<
   | { ok: true; token: string; user: SessionUser }
   | { ok: false; error: string; status: number }
 > {
-  const token = await getSessionCookie();
-  if (!token) return { ok: false, error: "Missing session cookie", status: 401 };
-
-  try {
-    const config = getServerConfig();
-    const user = await verifySessionToken(token, config.jwtSecret);
-    return { ok: true, token, user };
-  } catch {
-    return { ok: false, error: "Invalid session cookie", status: 401 };
-  }
+  const session = await resolveSession();
+  if (!session) return { ok: false, error: "Missing session cookie", status: 401 };
+  return { ok: true, token: session.accessToken, user: session.user };
 }
 
 export async function authThreadFetch<T>(path: string, init: RequestInit, token: string) {

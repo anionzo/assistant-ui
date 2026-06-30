@@ -1,7 +1,7 @@
 import { ChatShell } from "@/components/chat-shell";
-import { getSessionCookie } from "@/lib/auth/cookies";
+import { resolveSession } from "@/lib/auth/session-resolve";
 
 export default async function NewChatPage() {
-  const token = await getSessionCookie();
-  return <ChatShell initialAuth={!!token} />;
+  const session = await resolveSession();
+  return <ChatShell initialAuth={!!session} />;
 }

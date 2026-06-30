@@ -4,8 +4,10 @@ import type {
   AuthStore,
   CreateChatThreadInput,
   CreateOAuthAccountInput,
+  CreateRefreshTokenInput,
   CreateUserInput,
   OAuthAccountRecord,
+  RefreshTokenRecord,
   StoredThreadMessage,
   UpdateChatThreadInput,
 } from "../src/db/store";
@@ -14,6 +16,7 @@ import type { ChatThreadRecord, UserRecord } from "../src/db/schema";
 class MemoryAuthStore implements AuthStore {
   private users = new Map<string, UserRecord>();
   private oauthAccounts = new Map<string, OAuthAccountRecord>();
+  private refreshTokenRecords = new Map<string, RefreshTokenRecord>();
   private threads = new Map<string, ChatThreadRecord>();
   private messages = new Map<string, StoredThreadMessage[]>();
 
@@ -54,6 +57,28 @@ class MemoryAuthStore implements AuthStore {
       providerAccountId: input.providerAccountId,
       createdAt: new Date(),
     });
+  }
+
+  async createRefreshToken(input: CreateRefreshTokenInput) {
+    this.refreshTokenRecords.set(input.tokenHash, {
+      id: crypto.randomUUID(),
+      userId: input.userId,
+      tokenHash: input.tokenHash,
+      expiresAt: input.expiresAt,
+      revokedAt: null,
+    });
+  }
+
+  async findValidRefreshToken(tokenHash: string) {
+    const record = this.refreshTokenRecords.get(tokenHash);
+    if (!record || record.revokedAt || record.expiresAt <= new Date()) return null;
+    return record;
+  }
+
+  async revokeRefreshToken(tokenHash: string) {
+    const record = this.refreshTokenRecords.get(tokenHash);
+    if (!record) return;
+    this.refreshTokenRecords.set(tokenHash, { ...record, revokedAt: new Date() });
   }
 
   async listThreads(userId: string, tenantId?: string) {
@@ -139,6 +164,7 @@ describe("auth routes", () => {
   beforeEach(() => {
     vi.stubEnv("JWT_SECRET", "test-secret");
     vi.stubEnv("JWT_ACCESS_TTL", "3600");
+    vi.stubEnv("JWT_REFRESH_TTL", "604800");
   });
 
   it("supports register -> login -> me", async () => {
@@ -161,6 +187,7 @@ describe("auth routes", () => {
       displayName: "Idx User",
     });
     expect(registerPayload.accessToken).toEqual(expect.any(String));
+    expect(registerPayload.refreshToken).toEqual(expect.any(String));
 
     const loginResponse = await app.request("/auth/login", {
       method: "POST",
@@ -174,10 +201,22 @@ describe("auth routes", () => {
     expect(loginResponse.status).toBe(200);
     const loginPayload = await loginResponse.json();
     expect(loginPayload.accessToken).toEqual(expect.any(String));
+    expect(loginPayload.refreshToken).toEqual(expect.any(String));
+
+    const refreshResponse = await app.request("/auth/refresh", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ refreshToken: loginPayload.refreshToken }),
+    });
+
+    expect(refreshResponse.status).toBe(200);
+    const refreshPayload = await refreshResponse.json();
+    expect(refreshPayload.accessToken).toEqual(expect.any(String));
+    expect(refreshPayload.refreshToken).toEqual(expect.any(String));
 
     const meResponse = await app.request("/auth/me", {
       headers: {
-        authorization: `Bearer ${loginPayload.accessToken}`,
+        authorization: `Bearer ${refreshPayload.accessToken}`,
       },
     });
 

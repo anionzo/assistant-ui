@@ -1,21 +1,13 @@
 import { NextResponse } from "next/server";
-import { getSessionCookie } from "@/lib/auth/cookies";
-import { verifySessionToken } from "@/lib/auth/session";
-import { getServerConfig } from "@/lib/server/config";
+import { resolveSession } from "@/lib/auth/session-resolve";
 
 export const runtime = "nodejs";
 
 export async function GET() {
-  const token = await getSessionCookie();
-  if (!token) {
+  const session = await resolveSession();
+  if (!session) {
     return NextResponse.json({ error: "Missing session cookie" }, { status: 401 });
   }
 
-  try {
-    const config = getServerConfig();
-    const user = await verifySessionToken(token, config.jwtSecret);
-    return NextResponse.json({ user });
-  } catch {
-    return NextResponse.json({ error: "Invalid session cookie" }, { status: 401 });
-  }
+  return NextResponse.json({ user: session.user });
 }
