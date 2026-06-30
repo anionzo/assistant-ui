@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { createAuthRoutes } from "./routes/auth";
+import { createThreadRoutes } from "./routes/threads";
 import { type AuthStore, getAuthStore } from "./db/store";
 
 export function createApp(store: AuthStore = getAuthStore()) {
@@ -17,6 +18,7 @@ export function createApp(store: AuthStore = getAuthStore()) {
 
   app.get("/health", (c) => c.json({ status: "ok" }));
   app.route("/auth", createAuthRoutes(store));
+  app.route("/threads", createThreadRoutes(store));
 
   return app;
 }
