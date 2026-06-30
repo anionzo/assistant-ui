@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: idx_auth
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  auth-api:
+    image: node:22-bookworm
+    working_dir: /workspace
+    command: >
+      sh -lc "corepack enable &&
+      pnpm install &&
+      pnpm --filter @idx/auth-api dev"
+    environment:
+      PORT: 4000
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/idx_auth
+      JWT_SECRET: replace-me-in-compose
+      JWT_ACCESS_TTL: 3600
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      GOOGLE_CALLBACK_URL: http://localhost:4000/auth/google/callback
+      FRONTEND_URL: http://localhost:3001
+    ports:
+      - "4000:4000"
+    depends_on:
+      - postgres
+    volumes:
+      - ./:/workspace
+
+volumes:
+  pgdata:

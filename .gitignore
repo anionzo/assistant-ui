@@ -1,0 +1,36 @@
+# Harness durable layer — each project instance generates its own data.
+harness.db
+harness.db-wal
+harness.db-shm
+
+# Rust build output for harness tooling.
+target/
+dist/
+
+# Downloaded Harness CLI binary for installed project instances.
+scripts/bin/harness-cli
+scripts/bin/harness-cli.exe
+node_modules/
+.next/
+dist/
+coverage/
+.turbo/
+.env
+.env.local
+*.tsbuildinfo
+
+# Docs
+docs/
+
+# Agent system files
+.codex/
+.agents/
+.opencode/
+history/
+AGENTS.md
+_tmp_46320_63004078d830955450a5ee370e49d2c0
+_tmp_46320_027dc4978fbb530f8f3101ec439a7479
+_tmp_42936_1267ba2eac64627ebf8bccd4de2c1030
+_tmp_42936_04161d15d8026a4df42fc95b3de3ccfd
+/docs
+/scripts
