@@ -8,6 +8,7 @@ import {
 import { MarkdownText } from "@/components/markdown-text";
 import { RagSourcesPanel } from "@/components/rag-sources-panel";
 import { RuntimeToolbar } from "@/components/runtime-toolbar";
+import { ThreadLoadingOverlay } from "@/components/thread-loading-overlay";
 import {
   Reasoning,
   ReasoningContent,
@@ -93,11 +94,14 @@ const EMPTY_COMPONENTS: ThreadComponents = {};
 const ThreadComponentsContext =
   createContext<ThreadComponents>(EMPTY_COMPONENTS);
 
-// Startup exposes a loading placeholder thread; treat it as a new chat so
-// the composer mounts centered. Loads after startup keep the docked layout.
+const isThreadHydrating = (s: AssistantState) =>
+  s.thread.isLoading && s.thread.messages.length === 0;
+
+// Centered welcome only for a settled empty thread — not while history loads.
 const isNewChatView = (s: AssistantState) =>
   s.thread.messages.length === 0 &&
-  (!s.thread.isLoading || s.threads.isLoading);
+  !s.thread.isLoading &&
+  !s.threads.isLoading;
 
 export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS }) => {
   const isEmpty = useAuiState(isNewChatView);
@@ -111,6 +115,8 @@ export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS }) => {
 
 const ThreadRoot: FC<{ isEmpty: boolean }> = ({ isEmpty }) => {
   const { Welcome = ThreadWelcome } = useContext(ThreadComponentsContext);
+  const isHydrating = useAuiState(isThreadHydrating);
+  const dockComposer = !isEmpty || isHydrating;
 
   return (
     <ThreadPrimitive.Root
@@ -140,17 +146,26 @@ const ThreadRoot: FC<{ isEmpty: boolean }> = ({ isEmpty }) => {
 
           <div
             data-slot="aui_message-group"
-            className="mb-14 flex flex-col gap-y-6 empty:hidden"
+            className="relative mb-14 flex min-h-[min(28vh,240px)] flex-col gap-y-6 empty:min-h-0"
           >
-            <ThreadPrimitive.Messages>
-              {() => <ThreadMessage />}
-            </ThreadPrimitive.Messages>
+            <ThreadLoadingOverlay />
+            <div
+              className={cn(
+                "flex flex-col gap-y-6",
+                isHydrating && "pointer-events-none opacity-0",
+                !isHydrating && "animate-in fade-in duration-200",
+              )}
+            >
+              <ThreadPrimitive.Messages>
+                {() => <ThreadMessage />}
+              </ThreadPrimitive.Messages>
+            </div>
           </div>
 
           <ThreadPrimitive.ViewportFooter
             className={cn(
               "aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6",
-              !isEmpty &&
+              dockComposer &&
                 "sticky bottom-0 mt-auto rounded-t-(--composer-radius)",
             )}
           >

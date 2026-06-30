@@ -17,6 +17,7 @@ import {
   PlusIcon,
   TrashIcon,
 } from "lucide-react";
+import { useMinimumLoading } from "@/lib/use-minimum-loading";
 import {
   forwardRef,
   Fragment,
@@ -54,6 +55,19 @@ export const ThreadListRoot: FC<
   );
 };
 
+function ThreadListItemsBody() {
+  const loading = useAuiState((s) => s.threads.isLoading);
+  const showSkeleton = useMinimumLoading(loading, 280);
+
+  if (showSkeleton) return <ThreadListSkeleton />;
+
+  return (
+    <div className="animate-in fade-in flex flex-col gap-0.5 duration-200">
+      <ThreadListItemGroups />
+    </div>
+  );
+}
+
 export const ThreadListItems: FC<ComponentPropsWithoutRef<"div">> = ({
   className,
   ...props
@@ -64,12 +78,7 @@ export const ThreadListItems: FC<ComponentPropsWithoutRef<"div">> = ({
       className={cn("flex flex-col gap-0.5", className)}
       {...props}
     >
-      <AuiIf condition={(s) => s.threads.isLoading}>
-        <ThreadListSkeleton />
-      </AuiIf>
-      <AuiIf condition={(s) => !s.threads.isLoading}>
-        <ThreadListItemGroups />
-      </AuiIf>
+      <ThreadListItemsBody />
     </div>
   );
 };
