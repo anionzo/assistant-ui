@@ -1,5 +1,6 @@
 "use client";
 
+import { ThreadListNew } from "@/components/thread-list";
 import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import {
   Tooltip,
@@ -7,10 +8,12 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { PlusIcon } from "lucide-react";
 
 export function ChatMainHeader() {
   const { state, isMobile } = useSidebar();
   const sidebarCollapsed = state === "collapsed" && !isMobile;
+  const showNewThread = isMobile || sidebarCollapsed;
 
   return (
     <header
@@ -39,6 +42,24 @@ export function ChatMainHeader() {
         <span className="text-muted-foreground hidden text-sm font-semibold tracking-wide uppercase md:inline">
           IDX CHAT
         </span>
+      ) : null}
+      {showNewThread ? (
+        <div className="ms-auto flex items-center">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <ThreadListNew
+                  size="icon-sm"
+                  className="size-8 shrink-0 px-0"
+                  aria-label="Cuộc trò chuyện mới"
+                >
+                  <PlusIcon className="size-4" />
+                </ThreadListNew>
+              }
+            />
+            <TooltipContent side="bottom">Cuộc trò chuyện mới</TooltipContent>
+          </Tooltip>
+        </div>
       ) : null}
     </header>
   );

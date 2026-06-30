@@ -186,4 +186,18 @@ export async function persistThreadMessages(
   updateCachedThreadMessages(remoteId, repository);
 }
 
+export async function unarchiveThread(remoteId: string): Promise<ThreadDto> {
+  const result = await mutateThreadApi<{ thread: ThreadDto }>(`/api/threads/${remoteId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ archived: false }),
+  });
+  return result.thread;
+}
+
+export async function deleteThread(remoteId: string): Promise<void> {
+  await mutateThreadApi(`/api/threads/${remoteId}`, {
+    method: "DELETE",
+  });
+}
+
 export type { ThreadDto };

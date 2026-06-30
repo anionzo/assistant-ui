@@ -1,7 +1,7 @@
 "use client";
 
 import { SidebarUserFooter } from "@/components/sidebar-user-footer";
-import { ThreadList } from "@/components/thread-list";
+import { ThreadListItems, ThreadListNew } from "@/components/thread-list";
 import {
   Sidebar,
   SidebarContent,
@@ -40,8 +40,13 @@ export function ThreadListSidebar({
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="aui-sidebar-content px-2">
-        <ThreadList />
+      <SidebarContent className="aui-sidebar-content flex min-h-0 flex-col gap-1 px-2">
+        <div className="aui-sidebar-new-thread shrink-0 pt-1">
+          <ThreadListNew className="w-full" />
+        </div>
+        <div className="aui-sidebar-thread-list min-h-0 flex-1 overflow-auto">
+          <ThreadListItems />
+        </div>
       </SidebarContent>
 
       <SidebarRail />

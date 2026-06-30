@@ -1,5 +1,6 @@
 "use client";
 
+import { ArchivedThreadsSection } from "@/app/settings/archived-threads-section";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button, buttonVariants } from "@/components/ui/button";
 import {
@@ -87,6 +88,8 @@ export function SettingsView() {
               <p className="text-muted-foreground truncate text-sm">{user.email}</p>
             </div>
           </div>
+
+          <ArchivedThreadsSection />
 
           <div className="rounded-xl border p-5">
             <h2 className="text-sm font-medium">Phiên đăng nhập</h2>
