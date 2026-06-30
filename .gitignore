@@ -19,6 +19,10 @@ coverage/
 .env.local
 *.tsbuildinfo
 
+# Auth-api dev process logs
+tmp_auth_api.out.log
+tmp_auth_api.err.log
+
 # Docs
 docs/
 
