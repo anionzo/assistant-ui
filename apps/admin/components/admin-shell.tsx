@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { FileStack, FolderOpen, LayoutDashboard } from "lucide-react";
+import { GatewayStatus } from "@/components/gateway-status";
 
 const nav = [
   { href: "/", label: "Collections", icon: LayoutDashboard },
@@ -31,6 +32,8 @@ export function AdminShell({
               <p className="text-xs text-muted-foreground">Document &amp; forms operator</p>
             </div>
           </div>
+          <div className="flex items-center gap-3">
+            <GatewayStatus />
           <nav className="flex items-center gap-1">
             {nav.map((item) => (
               <Link
@@ -43,6 +46,7 @@ export function AdminShell({
               </Link>
             ))}
           </nav>
+          </div>
         </div>
       </header>
 
