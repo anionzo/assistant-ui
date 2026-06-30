@@ -5,9 +5,19 @@ export type AudioChunk = {
   format?: string;
 };
 
+export type VoiceContextItem = {
+  id?: string;
+  text: string;
+  score?: number;
+  metadata?: Record<string, unknown>;
+};
+
 export type VoiceMetadata = {
   conversation_id: string;
   transcript?: string;
+  answer?: string;
+  contexts?: VoiceContextItem[];
+  citations?: unknown[];
   audio_refs?: string[];
 };
 
