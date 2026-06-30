@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 const tabs = [
   { slug: "files", label: "Files" },
   { slug: "documents", label: "Documents" },
+  { slug: "settings", label: "Settings" },
   { slug: "search", label: "Chunk search" },
 ] as const;
 

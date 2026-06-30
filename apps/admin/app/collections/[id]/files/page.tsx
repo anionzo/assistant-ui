@@ -2,43 +2,66 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { Upload } from "lucide-react";
+import { RefreshCw, Trash2, Upload } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
 import { CollectionNav } from "@/components/collection-nav";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { asArray, bffJson } from "@/lib/api/bff";
-import type { CorpusFile } from "@/lib/types/gateway";
+import { bffJson } from "@/lib/api/bff";
+import {
+  deleteFile,
+  indexStatusForFile,
+  listDocuments,
+  listFiles,
+} from "@/lib/api/collections";
+import type { CorpusDocument, CorpusFile } from "@/lib/types/gateway";
+import { cn } from "@/lib/utils";
 
 export default function FilesPage() {
   const params = useParams<{ id: string }>();
   const collectionId = decodeURIComponent(params.id);
   const [files, setFiles] = useState<CorpusFile[]>([]);
+  const [documents, setDocuments] = useState<CorpusDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [autoRefresh, setAutoRefresh] = useState(false);
 
-  const loadFiles = useCallback(async () => {
-    setLoading(true);
+  const loadAll = useCallback(async () => {
     setError("");
     try {
-      const payload = await bffJson<unknown>(
-        `/api/documents/collections/${encodeURIComponent(collectionId)}/files`,
-      );
-      setFiles(asArray<CorpusFile>(payload, ["files", "items", "data"]));
+      const [fileList, docList] = await Promise.all([
+        listFiles(collectionId),
+        listDocuments(collectionId),
+      ]);
+      setFiles(fileList);
+      setDocuments(docList);
+      const pending = fileList.some((f) => {
+        const s = indexStatusForFile(String(f.id), docList);
+        return s.tone === "pending" || s.tone === "indexing";
+      });
+      setAutoRefresh(pending);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load files");
       setFiles([]);
+      setDocuments([]);
     } finally {
       setLoading(false);
     }
   }, [collectionId]);
 
   useEffect(() => {
-    void loadFiles();
-  }, [loadFiles]);
+    void loadAll();
+  }, [loadAll]);
+
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const timer = setInterval(() => void loadAll(), 5000);
+    return () => clearInterval(timer);
+  }, [autoRefresh, loadAll]);
 
   async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,9 +83,10 @@ export default function FilesPage() {
         `/api/documents/collections/${encodeURIComponent(collectionId)}/files`,
         { method: "POST", body },
       );
-      setSuccess(`Uploaded ${file.name}`);
+      setSuccess(`Uploaded ${file.name} — indexing in progress.`);
       form.reset();
-      await loadFiles();
+      setAutoRefresh(true);
+      await loadAll();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -70,10 +94,31 @@ export default function FilesPage() {
     }
   }
 
+  async function handleDelete(fileId: string, filename: string) {
+    if (!confirm(`Delete file "${filename}"?`)) return;
+    setDeletingId(fileId);
+    setError("");
+    try {
+      await deleteFile(collectionId, fileId);
+      setSuccess(`Deleted ${filename}`);
+      await loadAll();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Delete failed");
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   return (
     <AdminShell
       title={`Collection ${collectionId}`}
-      description="Upload source files for indexing."
+      description="Upload source files. Status refreshes every 5s while indexing."
+      actions={
+        <Button variant="outline" size="sm" onClick={() => void loadAll()} disabled={loading}>
+          <RefreshCw className={cn("size-4", loading && "animate-spin")} />
+          Refresh
+        </Button>
+      }
     >
       <CollectionNav collectionId={collectionId} active="files" />
 
@@ -91,6 +136,7 @@ export default function FilesPage() {
         </Button>
       </form>
 
+      {autoRefresh ? <StatusBanner tone="info">Auto-refreshing while files are indexing…</StatusBanner> : null}
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {success ? <StatusBanner tone="success">{success}</StatusBanner> : null}
 
@@ -99,31 +145,49 @@ export default function FilesPage() {
           <thead className="border-b border-border bg-muted/50 text-muted-foreground">
             <tr>
               <th className="px-4 py-3 font-medium">Filename</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">ID</th>
+              <th className="px-4 py-3 font-medium">Index status</th>
+              <th className="px-4 py-3 font-medium">Size</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td className="px-4 py-6 text-muted-foreground" colSpan={3}>
-                  Loading files…
-                </td>
-              </tr>
+              <tr><td className="px-4 py-6 text-muted-foreground" colSpan={4}>Loading files…</td></tr>
             ) : files.length === 0 ? (
-              <tr>
-                <td className="px-4 py-6 text-muted-foreground" colSpan={3}>
-                  No files in this collection yet.
-                </td>
-              </tr>
+              <tr><td className="px-4 py-6 text-muted-foreground" colSpan={4}>No files yet — upload above.</td></tr>
             ) : (
-              files.map((file, index) => (
-                <tr key={String(file.id ?? index)} className="border-b border-border/70 last:border-0">
-                  <td className="px-4 py-3">{String(file.filename ?? file.name ?? "—")}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{String(file.status ?? "—")}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{String(file.id ?? "—")}</td>
-                </tr>
-              ))
+              files.map((file, index) => {
+                const fileId = String(file.id ?? index);
+                const status = indexStatusForFile(fileId, documents);
+                return (
+                  <tr key={fileId} className="border-b border-border/70 last:border-0">
+                    <td className="px-4 py-3">{String(file.filename ?? file.name ?? "—")}</td>
+                    <td className={cn(
+                      "px-4 py-3",
+                      status.tone === "ready" && "text-emerald-700",
+                      status.tone === "error" && "text-destructive",
+                      status.tone === "indexing" && "text-amber-700",
+                      status.tone === "pending" && "text-muted-foreground",
+                    )}>
+                      {status.label}
+                    </td>
+                    <td className="px-4 py-3 text-muted-foreground">
+                      {file.size_bytes ? `${Math.round(Number(file.size_bytes) / 1024)} KB` : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => void handleDelete(fileId, String(file.filename ?? "file"))}
+                        disabled={deletingId === fileId}
+                      >
+                        <Trash2 className="size-3.5" />
+                        {deletingId === fileId ? "…" : "Delete"}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

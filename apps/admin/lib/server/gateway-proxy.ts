@@ -85,21 +85,28 @@ export async function proxyGatewayRequest(
   const payload = await upstream.text();
 
   if (!upstream.ok) {
+    const hint =
+      upstream.status === 404
+        ? " — check MODULAR_RAG_GATEWAY_URL (gateway not on localhost?)"
+        : upstream.status === 403
+          ? " — check ADMIN_API_KEY"
+          : "";
     try {
-      const parsed = JSON.parse(payload) as { error?: string; message?: string };
+      const parsed = JSON.parse(payload) as { error?: string; message?: string; detail?: string };
       return errorResponse(
-        parsed.error ?? parsed.message ?? `Gateway error (${upstream.status})`,
+        (parsed.error ?? parsed.message ?? parsed.detail ?? `Gateway error (${upstream.status})`) + hint,
         "gateway_error",
         upstream.status,
         requestId,
-        parsed,
+        { upstream: url.replace(config.adminApiKey, "***"), ...parsed },
       );
     } catch {
       return errorResponse(
-        payload || `Gateway error (${upstream.status})`,
+        (payload || `Gateway error (${upstream.status})`) + hint,
         "gateway_error",
         upstream.status,
         requestId,
+        { upstream: url.replace(config.adminApiKey, "***") },
       );
     }
   }

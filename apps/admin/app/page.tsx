@@ -4,9 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
+import { CreateCollectionForm } from "@/components/create-collection-form";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
-import { asArray, bffJson } from "@/lib/api/bff";
+import { listCollections } from "@/lib/api/collections";
 import type { Collection } from "@/lib/types/gateway";
 
 export default function AdminHome() {
@@ -18,13 +19,7 @@ export default function AdminHome() {
     setLoading(true);
     setError("");
     try {
-      const config = await bffJson<{ collections?: Collection[] }>("/api/config");
-      if (config.collections?.length) {
-        setCollections(config.collections);
-        return;
-      }
-      const payload = await bffJson<unknown>("/api/documents/collections");
-      setCollections(asArray<Collection>(payload, ["collections", "items", "data"]));
+      setCollections(await listCollections());
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load collections");
       setCollections([]);
@@ -40,7 +35,7 @@ export default function AdminHome() {
   return (
     <AdminShell
       title="Collections"
-      description="Manage RAG corpora via document-processing compat APIs."
+      description="Create corpus, upload files, verify chunks, then publish to chat."
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadCollections()} disabled={loading}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
@@ -48,6 +43,10 @@ export default function AdminHome() {
         </Button>
       }
     >
+      <div className="mb-6">
+        <CreateCollectionForm onCreated={() => void loadCollections()} />
+      </div>
+
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
       <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
@@ -56,53 +55,36 @@ export default function AdminHome() {
             <tr>
               <th className="px-4 py-3 font-medium">ID</th>
               <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Corpus</th>
+              <th className="px-4 py-3 font-medium">Chunk size</th>
               <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
               <tr>
-                <td className="px-4 py-6 text-muted-foreground" colSpan={4}>
-                  Loading collections…
-                </td>
+                <td className="px-4 py-6 text-muted-foreground" colSpan={4}>Loading collections…</td>
               </tr>
             ) : collections.length === 0 ? (
               <tr>
                 <td className="px-4 py-6 text-muted-foreground" colSpan={4}>
-                  No collections returned. Check gateway connectivity and ADMIN_API_KEY.
+                  No collections yet — create one above.
                 </td>
               </tr>
             ) : (
               collections.map((collection, index) => {
-                const id = String(collection.id ?? collection.corpus_id ?? index);
+                const id = String(collection.id ?? index);
                 return (
                   <tr key={id} className="border-b border-border/70 last:border-0">
                     <td className="px-4 py-3 font-mono text-xs">{id}</td>
                     <td className="px-4 py-3">{String(collection.name ?? "—")}</td>
                     <td className="px-4 py-3 text-muted-foreground">
-                      {String(collection.corpus_id ?? "—")}
+                      {String(collection.parser_config?.chunk_size ?? "—")}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-2">
-                        <Link
-                          href={`/collections/${encodeURIComponent(id)}/files`}
-                          className="text-primary hover:underline"
-                        >
-                          Files
-                        </Link>
-                        <Link
-                          href={`/collections/${encodeURIComponent(id)}/documents`}
-                          className="text-primary hover:underline"
-                        >
-                          Documents
-                        </Link>
-                        <Link
-                          href={`/collections/${encodeURIComponent(id)}/search`}
-                          className="text-primary hover:underline"
-                        >
-                          Search
-                        </Link>
+                        <Link href={`/collections/${encodeURIComponent(id)}/files`} className="text-primary hover:underline">Files</Link>
+                        <Link href={`/collections/${encodeURIComponent(id)}/documents`} className="text-primary hover:underline">Documents</Link>
+                        <Link href={`/collections/${encodeURIComponent(id)}/settings`} className="text-primary hover:underline">Settings</Link>
                       </div>
                     </td>
                   </tr>

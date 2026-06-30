@@ -52,6 +52,10 @@ export default function SearchPage() {
     >
       <CollectionNav collectionId={collectionId} active="search" />
 
+      <StatusBanner tone="info">
+        If search returns 404, use <strong>Documents → View chunks</strong> for preview on this gateway.
+      </StatusBanner>
+
       <form
         onSubmit={(e) => void runSearch(e)}
         className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4"
