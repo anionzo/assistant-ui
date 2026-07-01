@@ -82,8 +82,8 @@ export default function DocumentDetailPage() {
           </Button>
         </>
       }
+      sidebarContent={<CollectionNav collectionId={collectionId} active="documents" />}
     >
-      <CollectionNav collectionId={collectionId} active="documents" />
 
       <Link
         href={`/collections/${encodeURIComponent(collectionId)}/documents`}

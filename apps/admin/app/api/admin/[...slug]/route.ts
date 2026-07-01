@@ -62,6 +62,23 @@ async function handle(req: Request, context: RouteContext) {
   });
 
   const payload = await response.text();
+
+  let bodyJson: unknown;
+  try { bodyJson = JSON.parse(payload); } catch { bodyJson = null; }
+
+  if (
+    bodyJson &&
+    typeof bodyJson === "object" &&
+    "success" in (bodyJson as Record<string, unknown>) &&
+    "data" in (bodyJson as Record<string, unknown>)
+  ) {
+    const stripped = JSON.stringify((bodyJson as Record<string, unknown>).data);
+    return new Response(stripped, {
+      status: response.status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   return new Response(payload, {
     status: response.status,
     headers: { "Content-Type": "application/json" },

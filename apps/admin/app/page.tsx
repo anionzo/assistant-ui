@@ -7,6 +7,7 @@ import { AdminShell } from "@/components/admin-shell";
 import { CreateCollectionForm } from "@/components/create-collection-form";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
+import { Table, TableRow, TableCell, TableEmpty, TableLoading } from "@/components/ui/table";
 import { listCollections } from "@/lib/api/collections";
 import type { Collection } from "@/lib/types/gateway";
 
@@ -49,51 +50,33 @@ export default function AdminHome() {
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-border bg-muted/50 text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">ID</th>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Chunk size</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td className="px-4 py-6 text-muted-foreground" colSpan={4}>Loading collections…</td>
-              </tr>
-            ) : collections.length === 0 ? (
-              <tr>
-                <td className="px-4 py-6 text-muted-foreground" colSpan={4}>
-                  No collections yet — create one above.
-                </td>
-              </tr>
-            ) : (
-              collections.map((collection, index) => {
-                const id = String(collection.id ?? index);
-                return (
-                  <tr key={id} className="border-b border-border/70 last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs">{id}</td>
-                    <td className="px-4 py-3">{String(collection.name ?? "—")}</td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {String(collection.parser_config?.chunk_size ?? "—")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-2">
-                        <Link href={`/collections/${encodeURIComponent(id)}/files`} className="text-primary hover:underline">Files</Link>
-                        <Link href={`/collections/${encodeURIComponent(id)}/documents`} className="text-primary hover:underline">Documents</Link>
-                        <Link href={`/collections/${encodeURIComponent(id)}/settings`} className="text-primary hover:underline">Settings</Link>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table headers={["ID", "Name", "Chunk size", "Actions"]}>
+        {loading ? (
+          <TableLoading colSpan={4} message="Loading collections…" />
+        ) : collections.length === 0 ? (
+          <TableEmpty colSpan={4} message="No collections yet — create one above." />
+        ) : (
+          collections.map((collection, index) => {
+            const id = String(collection.id ?? index);
+            return (
+              <TableRow key={id}>
+                <TableCell className="font-mono text-xs">{id}</TableCell>
+                <TableCell>{String(collection.name ?? "—")}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {String(collection.parser_config?.chunk_size ?? "—")}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-2">
+                    <Link href={`/collections/${encodeURIComponent(id)}/files`} className="text-primary hover:underline">Upload</Link>
+                    <Link href={`/collections/${encodeURIComponent(id)}/documents`} className="text-primary hover:underline">Review</Link>
+                    <Link href={`/collections/${encodeURIComponent(id)}/settings`} className="text-primary hover:underline">Settings</Link>
+                  </div>
+                </TableCell>
+              </TableRow>
+            );
+          })
+        )}
+      </Table>
     </AdminShell>
   );
 }

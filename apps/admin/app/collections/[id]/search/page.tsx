@@ -49,8 +49,8 @@ export default function SearchPage() {
     <AdminShell
       title={`Collection ${collectionId}`}
       description="Test chunk retrieval against this collection."
+      sidebarContent={<CollectionNav collectionId={collectionId} active="search" />}
     >
-      <CollectionNav collectionId={collectionId} active="search" />
 
       <StatusBanner tone="info">
         If search returns 404, use <strong>Documents → View chunks</strong> for preview on this gateway.

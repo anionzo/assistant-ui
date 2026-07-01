@@ -53,7 +53,7 @@ export default function AdminUserDetailPage() {
         throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
       const body = await res.json() as any;
-      setDetail((body as any)?.data ?? null);
+      setDetail(body ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load user");
       setDetail(null);
@@ -69,7 +69,7 @@ export default function AdminUserDetailPage() {
       const res = await fetch("/api/admin/roles");
       if (res.ok) {
         const body = await res.json() as any;
-        setAllRoles(body?.data?.roles ?? []);
+        setAllRoles(body?.roles ?? []);
       }
     } catch { /* ignore */ }
   }

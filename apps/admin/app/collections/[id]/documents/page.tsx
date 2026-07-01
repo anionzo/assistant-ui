@@ -64,8 +64,8 @@ export default function DocumentsPage() {
           Refresh
         </Button>
       }
+      sidebarContent={<CollectionNav collectionId={collectionId} active="documents" />}
     >
-      <CollectionNav collectionId={collectionId} active="documents" />
 
       <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
         <div className="min-w-[220px] flex-1">

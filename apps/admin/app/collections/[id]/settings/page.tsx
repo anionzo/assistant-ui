@@ -66,8 +66,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <AdminShell title={`Collection ${collectionId}`} description="Parser and chunking defaults for new uploads.">
-      <CollectionNav collectionId={collectionId} active="settings" />
+    <AdminShell title={`Collection ${collectionId}`} description="Parser and chunking defaults for new uploads." sidebarContent={<CollectionNav collectionId={collectionId} active="settings" />}>
 
       {loading ? (
         <StatusBanner tone="info">Loading settings…</StatusBanner>

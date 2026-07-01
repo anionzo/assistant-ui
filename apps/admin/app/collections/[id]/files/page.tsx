@@ -121,8 +121,8 @@ export default function FilesPage() {
           Refresh
         </Button>
       }
+      sidebarContent={<CollectionNav collectionId={collectionId} active="files" />}
     >
-      <CollectionNav collectionId={collectionId} active="files" />
 
       <form
         onSubmit={(e) => void handleUpload(e)}
