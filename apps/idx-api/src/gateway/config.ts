@@ -12,6 +12,7 @@ const SAFE_HEADER_NAMES = [
   "x-corpus-id",
   "x-chat-pipeline",
   "x-conversation-id",
+  "x-voice-form-session",
 ] as const;
 
 export function pickForwardHeaders(incoming: Headers): Headers {

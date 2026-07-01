@@ -7,7 +7,9 @@ import {
   isSafeAudioRef,
   resolveAdminDocumentsRoute,
   resolveAdminFormsRoute,
+  resolveUserFormsRoute,
   resolveUserRagRoute,
+  resolveUserVoiceOutputRoute,
   validatePathSegments,
 } from "../gateway/policy";
 import { requireAuth, type AuthContext } from "../middleware/auth";
@@ -26,6 +28,15 @@ function adminRouteSuffix(path: string, family: "documents" | "forms"): string {
   const index = path.indexOf(marker);
   if (index === -1) {
     return path.endsWith(`/admin/${family}`) ? "" : "";
+  }
+  return path.slice(index + marker.length);
+}
+
+function userFormsRouteSuffix(path: string): string {
+  const marker = "/forms/";
+  const index = path.indexOf(marker);
+  if (index === -1) {
+    return path.endsWith("/forms") ? "" : "";
   }
   return path.slice(index + marker.length);
 }
@@ -215,6 +226,63 @@ export function createRagRoutes(store: AuthStore) {
       requestId: c.get("requestId"),
     });
   }
+
+  async function handleUserForms(c: Context<{ Variables: RagVariables }>) {
+    const suffix = userFormsRouteSuffix(c.req.path);
+    const segments = suffix.split("/").filter(Boolean);
+    const pathError = validatePathSegments(segments);
+    if (pathError) {
+      return c.json(
+        {
+          success: false,
+          requestId: c.get("requestId"),
+          error: { code: "VALIDATION_ERROR", message: pathError },
+        },
+        400,
+      );
+    }
+
+    const resolved = resolveUserFormsRoute(segments, c.req.method);
+    if (!resolved) return notFound(c);
+
+    const hasBody = !["GET", "HEAD"].includes(c.req.method.toUpperCase());
+    return proxyToGateway({
+      upstreamPath: resolved.upstreamPath,
+      method: c.req.method,
+      incomingHeaders: c.req.raw.headers,
+      body: hasBody ? c.req.raw.body : undefined,
+      signal: c.req.raw.signal,
+      credential: resolved.credential,
+      requestId: c.get("requestId"),
+    });
+  }
+
+  app.get("/voice/output/:file", async (c) => {
+    const file = c.req.param("file");
+    const resolved = resolveUserVoiceOutputRoute(file, c.req.method);
+    if (!resolved) {
+      return c.json(
+        {
+          success: false,
+          requestId: c.get("requestId"),
+          error: { code: "VALIDATION_ERROR", message: "invalid output file" },
+        },
+        400,
+      );
+    }
+
+    return proxyToGateway({
+      upstreamPath: resolved.upstreamPath,
+      method: "GET",
+      incomingHeaders: c.req.raw.headers,
+      signal: c.req.raw.signal,
+      credential: resolved.credential,
+      requestId: c.get("requestId"),
+    });
+  });
+
+  app.all("/forms", handleUserForms);
+  app.all("/forms/*", handleUserForms);
 
   app.use("/admin/documents/*", requireAuth);
   app.all("/admin/documents/*", handleAdminDocuments);

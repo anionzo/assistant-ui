@@ -7,7 +7,9 @@ import {
   permissionForFormsRoute,
   resolveAdminDocumentsRoute,
   resolveAdminFormsRoute,
+  resolveUserFormsRoute,
   resolveUserRagRoute,
+  resolveUserVoiceOutputRoute,
   validatePathSegments,
 } from "../src/gateway/policy";
 
@@ -47,5 +49,17 @@ describe("gateway policy", () => {
     expect(permissionForFormsRoute([], "POST")).toBe(PERMISSIONS.FORMS_CREATE);
     expect(resolveAdminFormsRoute([], "POST")?.upstreamPath).toBe("/forms/ingest");
     expect(resolveAdminFormsRoute(["search"], "POST")?.upstreamPath).toBe("/forms/search");
+  });
+
+  it("maps user forms routes to the user credential without admin permissions", () => {
+    expect(resolveUserFormsRoute([], "GET")?.credential).toBe("user");
+    expect(resolveUserFormsRoute(["search"], "POST")?.upstreamPath).toBe("/forms/search");
+    expect(resolveUserFormsRoute(["tam-tru"], "GET")?.upstreamPath).toBe("/forms/tam-tru");
+    expect(resolveUserFormsRoute(["voice", "fill"], "POST")?.upstreamPath).toBe("/forms/voice/fill");
+    expect(resolveUserFormsRoute(["render_preview"], "POST")?.upstreamPath).toBe("/forms/render_preview");
+    expect(resolveUserFormsRoute(["output", "doc.docx"], "GET")?.upstreamPath).toBe("/forms/output/doc.docx");
+    expect(resolveUserFormsRoute([], "POST")).toBeNull();
+    expect(resolveUserFormsRoute(["ingest"], "POST")).toBeNull();
+    expect(resolveUserVoiceOutputRoute("tts.wav", "GET")?.upstreamPath).toBe("/voice/output/tts.wav");
   });
 });

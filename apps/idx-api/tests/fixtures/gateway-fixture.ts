@@ -8,6 +8,8 @@ export type GatewayFixtureState = {
   multipartTotalBytes: number;
   requestIds: string[];
   apiKeysUsed: string[];
+  voiceFormSessions: string[];
+  lastFormsFillBody: string | null;
 };
 
 function delay(ms: number) {
@@ -22,6 +24,8 @@ export function createGatewayFixture() {
     multipartTotalBytes: 0,
     requestIds: [],
     apiKeysUsed: [],
+    voiceFormSessions: [],
+    lastFormsFillBody: null,
   };
 
   const server = http.createServer((req, res) => {
@@ -83,6 +87,33 @@ export function createGatewayFixture() {
     if (req.method === "GET" && req.url === "/pipelines") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ pipelines: [] }));
+      return;
+    }
+
+    if (req.method === "GET" && req.url === "/forms") {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ forms: [{ form_code: "demo", form_name: "Demo form" }] }));
+      return;
+    }
+
+    if (req.method === "POST" && req.url === "/forms/voice/fill") {
+      const session = req.headers["x-voice-form-session"];
+      if (typeof session === "string") state.voiceFormSessions.push(session);
+      let body = "";
+      req.on("data", (chunk: Buffer) => {
+        body += chunk.toString("utf8");
+      });
+      req.on("end", () => {
+        state.lastFormsFillBody = body;
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ mode: "chat", voice_prompt: "ok", session_id: session || "new" }));
+      });
+      return;
+    }
+
+    if (req.method === "GET" && req.url?.startsWith("/voice/output/")) {
+      res.writeHead(200, { "Content-Type": "audio/wav" });
+      res.end(Buffer.from([0x52, 0x49, 0x46, 0x46]));
       return;
     }
 

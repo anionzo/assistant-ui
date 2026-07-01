@@ -106,6 +106,23 @@ export async function proxyToGateway(input: ProxyGatewayInput): Promise<Response
     });
   }
 
+  const isBinaryBody =
+    contentType.includes("application/octet-stream") ||
+    contentType.includes("application/vnd.openxmlformats") ||
+    contentType.startsWith("audio/") ||
+    contentType.startsWith("image/");
+
+  if (upstream.ok && isBinaryBody && upstream.body) {
+    const responseHeaders = new Headers();
+    if (contentType) responseHeaders.set("Content-Type", contentType);
+    for (const name of ["content-length", "content-disposition", "cache-control"] as const) {
+      const value = upstream.headers.get(name);
+      if (value) responseHeaders.set(name, value);
+    }
+    responseHeaders.set("X-Request-ID", input.requestId);
+    return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
+  }
+
   const payload = await upstream.text();
   if (!upstream.ok) {
     let message = `Gateway error (${upstream.status})`;

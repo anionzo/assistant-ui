@@ -162,4 +162,37 @@ describe("E09-S2 gateway security", () => {
     expect(response.status).toBe(401);
     expect(fixture.state.apiKeysUsed).toEqual([]);
   });
+
+  it("uses the user credential and forwards voice-form session for user forms routes", async () => {
+    const app = createApp(store);
+    const list = await app.request("/rag/forms", { headers: serviceHeaders() });
+    expect(list.status).toBe(200);
+    expect(fixture.state.apiKeysUsed).toEqual([USER_KEY]);
+
+    const fill = await app.request("/rag/forms/voice/fill", {
+      method: "POST",
+      headers: serviceHeaders({
+        "Content-Type": "application/json",
+        "X-Voice-Form-Session": "vf-session-42",
+        "X-Tenant-ID": "tenant-a",
+      }),
+      body: JSON.stringify({ text: "tôi muốn đăng ký tạm trú", session_id: "vf-session-42" }),
+    });
+    expect(fill.status).toBe(200);
+    expect(fixture.state.apiKeysUsed).toEqual([USER_KEY, USER_KEY]);
+    expect(fixture.state.voiceFormSessions).toEqual(["vf-session-42"]);
+    expect(JSON.parse(fixture.state.lastFormsFillBody || "{}")).toMatchObject({
+      text: "tôi muốn đăng ký tạm trú",
+    });
+  });
+
+  it("streams binary voice output without corrupting the body", async () => {
+    const app = createApp(store);
+    const response = await app.request("/rag/voice/output/tts.wav", { headers: serviceHeaders() });
+    expect(response.status).toBe(200);
+    expect(fixture.state.apiKeysUsed).toEqual([USER_KEY]);
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    expect(bytes[0]).toBe(0x52);
+    expect(bytes[1]).toBe(0x49);
+  });
 });

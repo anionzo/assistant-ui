@@ -15,6 +15,20 @@ export type ResolvedUserRoute = {
   credential: GatewayCredential;
 };
 
+export type ResolvedUserFormsRoute = {
+  upstreamPath: string;
+  credential: GatewayCredential;
+};
+
+const USER_FORMS_RESERVED_SEGMENTS = new Set([
+  "search",
+  "voice",
+  "render",
+  "render_preview",
+  "output",
+  "ingest",
+]);
+
 export type ResolvedAdminRoute = {
   family: AdminRagFamily;
   upstreamPath: string;
@@ -46,6 +60,52 @@ export function isSafeAudioRef(ref: string): boolean {
   if (!ref || ref.length > 512) return false;
   if (ref.includes("://") || ref.includes("..")) return false;
   return /^[A-Za-z0-9._:/-]+$/.test(ref);
+}
+
+export function resolveUserFormsRoute(
+  segments: string[],
+  method: string,
+): ResolvedUserFormsRoute | null {
+  const pathError = validatePathSegments(segments);
+  if (pathError) return null;
+
+  const verb = method.toUpperCase();
+
+  if (segments.length === 0 && verb === "GET") {
+    return { upstreamPath: "/forms", credential: "user" };
+  }
+  if (segments.length === 1 && segments[0] === "search" && verb === "POST") {
+    return { upstreamPath: "/forms/search", credential: "user" };
+  }
+  if (segments.length === 1 && verb === "GET" && !USER_FORMS_RESERVED_SEGMENTS.has(segments[0])) {
+    return { upstreamPath: `/forms/${segments[0]}`, credential: "user" };
+  }
+  if (segments.length === 2 && segments[0] === "voice" && segments[1] === "fill" && verb === "POST") {
+    return { upstreamPath: "/forms/voice/fill", credential: "user" };
+  }
+  if (segments.length === 2 && segments[0] === "voice" && segments[1] === "draft" && verb === "POST") {
+    return { upstreamPath: "/forms/voice/draft", credential: "user" };
+  }
+  if (segments.length === 3 && segments[0] === "voice" && segments[1] === "draft" && verb === "GET") {
+    return { upstreamPath: `/forms/voice/draft/${segments[2]}`, credential: "user" };
+  }
+  if (segments.length === 1 && segments[0] === "render" && verb === "POST") {
+    return { upstreamPath: "/forms/render", credential: "user" };
+  }
+  if (segments.length === 1 && segments[0] === "render_preview" && verb === "POST") {
+    return { upstreamPath: "/forms/render_preview", credential: "user" };
+  }
+  if (segments.length === 2 && segments[0] === "output" && verb === "GET") {
+    return { upstreamPath: `/forms/output/${segments[1]}`, credential: "user" };
+  }
+
+  return null;
+}
+
+export function resolveUserVoiceOutputRoute(file: string, method: string): ResolvedUserFormsRoute | null {
+  if (method.toUpperCase() !== "GET") return null;
+  if (!isSafePathSegment(file)) return null;
+  return { upstreamPath: `/voice/output/${file}`, credential: "user" };
 }
 
 export function resolveUserRagRoute(route: UserRagRoute, method: string): ResolvedUserRoute | null {
