@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, RefreshCw, Search, X } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
 import { StatusBanner } from "@/components/status-banner";
@@ -12,8 +13,11 @@ import { Table, TableRow, TableCell, TableEmpty, TableLoading } from "@/componen
 import { useClientPagination } from "@/hooks/use-client-pagination";
 import { asArray, bffJson } from "@/lib/api/bff";
 import type { FormSummary } from "@/lib/types/gateway";
+import { readUploadFeedback } from "@/lib/forms/upload-feedback";
 
 export default function FormsListPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [forms, setForms] = useState<FormSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -21,6 +25,14 @@ export default function FormsListPage() {
   const [searchResults, setSearchResults] = useState<FormSummary[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+  const [showUploadedBanner, setShowUploadedBanner] = useState(false);
+
+  useEffect(() => {
+    const feedback = readUploadFeedback(searchParams);
+    if (!feedback.uploaded) return;
+    setShowUploadedBanner(true);
+    router.replace("/forms", { scroll: false });
+  }, [searchParams, router]);
 
   const displayed = searchResults ?? forms;
   const {
@@ -128,6 +140,12 @@ export default function FormsListPage() {
         </Button>
       </form>
 
+      {showUploadedBanner ? (
+        <StatusBanner tone="success">
+          New form uploaded successfully. It should appear in the list below — use Refresh if needed.
+        </StatusBanner>
+      ) : null}
+
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {searchError ? <StatusBanner tone="error">{searchError}</StatusBanner> : null}
       {isSearchActive && !searching && !searchError ? (
@@ -157,7 +175,7 @@ export default function FormsListPage() {
               <TableRow key={code}>
                 <TableCell className="w-12 text-muted-foreground">{rowOffset + index + 1}</TableCell>
                 <TableCell className="font-mono text-xs">{code}</TableCell>
-                <TableCell>{String(form.title ?? form.name ?? "—")}</TableCell>
+                <TableCell>{String(form.form_name ?? form.title ?? form.name ?? "—")}</TableCell>
                 <TableCell>
                   <Link href={`/forms/${encodeURIComponent(code)}`} className="text-primary hover:underline">
                     View

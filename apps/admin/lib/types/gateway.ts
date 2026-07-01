@@ -65,6 +65,7 @@ export type ChunkHit = DocumentChunk & {
 export type FormSummary = {
   form_code?: string;
   code?: string;
+  form_name?: string;
   title?: string;
   name?: string;
   [key: string]: unknown;
