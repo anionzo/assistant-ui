@@ -43,7 +43,7 @@ export async function PUT(request: Request, context: Params) {
   }
 
   const { id } = await context.params;
-  const result = await authThreadFetch<{ ok: true; count: number }>(
+  const result = await authThreadFetch<{ count: number }>(
     `/threads/${encodeURIComponent(id)}/messages`,
     {
       method: "PUT",

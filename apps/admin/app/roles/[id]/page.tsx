@@ -31,10 +31,10 @@ export default function RoleDetailPage() {
         fetch("/api/admin/permissions"),
         fetch(`/api/admin/roles/${roleId}/permissions`),
       ]);
-      const roles = ((await rRes.json() as { roles: RoleInfo[] }).roles ?? []);
+      const roles = ((await rRes.json() as any)?.data?.roles ?? []);
       setRole(roles.find((r: RoleInfo) => r.id === roleId) ?? null);
-      setAllPermissions((await pRes.json() as { permissions: PermissionInfo[] }).permissions ?? []);
-      setRolePerms((await rpRes.json() as { permissions: PermissionInfo[] }).permissions ?? []);
+      setAllPermissions((await pRes.json() as any)?.data?.permissions ?? []);
+      setRolePerms((await rpRes.json() as any)?.data?.permissions ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
     } finally { setLoading(false); }
@@ -51,7 +51,7 @@ export default function RoleDetailPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ permissionId: permId }),
       });
-      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(typeof d.error === "string" ? d.error : `HTTP ${res.status}`); }
+      if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d?.error?.message ?? `HTTP ${res.status}`); }
       setRolePerms((prev) => has ? prev.filter((p) => p.id !== permId) : [...prev, allPermissions.find((p) => p.id === permId)!]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Toggle failed");

@@ -5,6 +5,16 @@ import {
   type StoredThreadMessage,
   getAuthStore,
 } from "../db/store";
+import { ErrorCode } from "../utils/errors";
+import {
+  badRequest,
+  created,
+  invalidToken,
+  notFound,
+  ok,
+  okPlain,
+  unauthorized,
+} from "../utils/response";
 
 type ThreadPayload = {
   tenantId?: unknown;
@@ -81,8 +91,6 @@ function parseStoredThreadMessages(value: unknown) {
     const createdAt = new Date(message.createdAt);
     if (Number.isNaN(createdAt.valueOf())) return null;
 
-    // Store the full ThreadMessage object in `content` so fields like
-    // `status`, `attachments`, and `metadata` survive the round-trip.
     messages.push({
       id,
       parentId: record.parentId ?? null,
@@ -106,18 +114,18 @@ export function createThreadRoutes(store: AuthStore = getAuthStore()) {
 
   threadRoutes.get("/", async (c) => {
     const user = await getUser(c.req.raw);
-    if (!user) return c.json({ error: "invalid bearer token" }, 401);
+    if (!user) return invalidToken(c);
     const tenantId = c.req.query("tenantId");
     const threads = await store.listThreads(user.id, tenantId);
-    return c.json({ threads: threads.map(toThreadResponse) });
+    return ok(c, { threads: threads.map(toThreadResponse) });
   });
 
   threadRoutes.post("/", async (c) => {
     const user = await getUser(c.req.raw);
-    if (!user) return c.json({ error: "invalid bearer token" }, 401);
+    if (!user) return invalidToken(c);
     const body = await c.req.json<ThreadPayload>().catch(() => null);
     if (!body || typeof body.tenantId !== "string" || !body.tenantId.trim()) {
-      return c.json({ error: "tenantId is required" }, 400);
+      return badRequest(c, "tenantId is required");
     }
 
     const threadId = crypto.randomUUID();
@@ -134,22 +142,22 @@ export function createThreadRoutes(store: AuthStore = getAuthStore()) {
           : `${user.id}:${threadId}`,
     });
 
-    return c.json({ thread: toThreadResponse(thread) }, 201);
+    return created(c, { thread: toThreadResponse(thread) });
   });
 
   threadRoutes.get("/:id", async (c) => {
     const user = await getUser(c.req.raw);
-    if (!user) return c.json({ error: "invalid bearer token" }, 401);
+    if (!user) return invalidToken(c);
     const thread = await store.findThreadById(user.id, c.req.param("id"));
-    if (!thread) return c.json({ error: "Thread not found" }, 404);
-    return c.json({ thread: toThreadResponse(thread) });
+    if (!thread) return notFound(c, "Thread not found");
+    return ok(c, { thread: toThreadResponse(thread) });
   });
 
   threadRoutes.patch("/:id", async (c) => {
     const user = await getUser(c.req.raw);
-    if (!user) return c.json({ error: "invalid bearer token" }, 401);
+    if (!user) return invalidToken(c);
     const body = await c.req.json<ThreadPayload>().catch(() => null);
-    if (!body) return c.json({ error: "Request body must be valid JSON" }, 400);
+    if (!body) return badRequest(c, "Request body must be valid JSON");
 
     const updated = await store.updateThread(user.id, c.req.param("id"), {
       title:
@@ -160,26 +168,26 @@ export function createThreadRoutes(store: AuthStore = getAuthStore()) {
         typeof body.archived === "boolean" ? body.archived : undefined,
     });
 
-    if (!updated) return c.json({ error: "Thread not found" }, 404);
-    return c.json({ thread: toThreadResponse(updated) });
+    if (!updated) return notFound(c, "Thread not found");
+    return ok(c, { thread: toThreadResponse(updated) });
   });
 
   threadRoutes.delete("/:id", async (c) => {
     const user = await getUser(c.req.raw);
-    if (!user) return c.json({ error: "invalid bearer token" }, 401);
+    if (!user) return invalidToken(c);
     const deleted = await store.deleteThread(user.id, c.req.param("id"));
-    if (!deleted) return c.json({ error: "Thread not found" }, 404);
-    return c.json({ ok: true });
+    if (!deleted) return notFound(c, "Thread not found");
+    return okPlain(c);
   });
 
   threadRoutes.get("/:id/messages", async (c) => {
     const user = await getUser(c.req.raw);
-    if (!user) return c.json({ error: "invalid bearer token" }, 401);
+    if (!user) return invalidToken(c);
     const thread = await store.findThreadById(user.id, c.req.param("id"));
-    if (!thread) return c.json({ error: "Thread not found" }, 404);
+    if (!thread) return notFound(c, "Thread not found");
 
     const messages = await store.listThreadMessages(user.id, thread.id);
-    return c.json({
+    return ok(c, {
       headId: thread.headMessageId,
       messages: messages.map((message) => ({
         parentId: message.parentId,
@@ -191,17 +199,17 @@ export function createThreadRoutes(store: AuthStore = getAuthStore()) {
 
   threadRoutes.put("/:id/messages", async (c) => {
     const user = await getUser(c.req.raw);
-    if (!user) return c.json({ error: "invalid bearer token" }, 401);
+    if (!user) return invalidToken(c);
     const body = await c.req.json<MessageRepositoryPayload>().catch(() => null);
-    if (!body) return c.json({ error: "Request body must be valid JSON" }, 400);
+    if (!body) return badRequest(c, "Request body must be valid JSON");
 
     const messages = parseStoredThreadMessages(body.messages);
     if (!messages) {
-      return c.json({ error: "messages must be a valid assistant-ui repository" }, 400);
+      return badRequest(c, "messages must be a valid assistant-ui repository");
     }
 
     const thread = await store.findThreadById(user.id, c.req.param("id"));
-    if (!thread) return c.json({ error: "Thread not found" }, 404);
+    if (!thread) return notFound(c, "Thread not found");
 
     const count = await store.replaceThreadMessages(user.id, thread.id, {
       headMessageId:
@@ -211,7 +219,7 @@ export function createThreadRoutes(store: AuthStore = getAuthStore()) {
       messages,
     });
 
-    return c.json({ ok: true, count });
+    return ok(c, { count });
   });
 
   return threadRoutes;

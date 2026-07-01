@@ -27,10 +27,10 @@ export default function AdminUsersPage() {
       const res = await fetch("/api/admin/users");
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d.error === "string" ? d.error : `HTTP ${res.status}`);
+        throw new Error(d?.error?.message ?? `HTTP ${res.status}`);
       }
-      const data = await res.json() as { users: UserRow[] };
-      setUsers(data.users ?? []);
+      const body = await res.json() as any;
+      setUsers(body?.data?.users ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load users");
       setUsers([]);

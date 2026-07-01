@@ -15,6 +15,19 @@ import {
   hashResetToken,
   resetTokenExpiresAt,
 } from "../services/reset-password";
+import { ErrorCode } from "../utils/errors";
+import {
+  badRequest,
+  conflict,
+  created,
+  forbidden,
+  internalError,
+  invalidToken,
+  notFound,
+  ok,
+  okPlain,
+  unauthorized,
+} from "../utils/response";
 
 type LoginBody = {
   email?: string;
@@ -90,7 +103,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     const code = c.req.query("code");
     const state = c.req.query("state");
     if (!code || !state) {
-      return c.json({ error: "Missing Google callback parameters" }, 400);
+      return badRequest(c, "Missing Google callback parameters");
     }
 
     let profile: Awaited<ReturnType<typeof exchangeGoogleCode>>;
@@ -99,7 +112,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Google OAuth callback failed";
       console.error("[auth-api][google-callback][exchange]", message);
-      return c.json({ error: message }, 400);
+      return badRequest(c, message);
     }
 
     let existingOAuth;
@@ -108,7 +121,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     } catch (error) {
       const message = error instanceof Error ? error.message : "Failed to load Google account link";
       console.error("[auth-api][google-callback][lookup-oauth]", message);
-      return c.json({ error: message }, 500);
+      return internalError(c, message);
     }
 
     let user = existingOAuth ? await store.findUserById(existingOAuth.userId) : null;
@@ -139,7 +152,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     }
 
     if (!user) {
-      return c.json({ error: "Unable to create Google session" }, 500);
+      return internalError(c, "Unable to create Google session");
     }
 
     // Auto-assign super_admin if email matches ADMIN_SEED_EMAIL
@@ -166,15 +179,15 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
   authRoutes.post("/exchange", async (c) => {
     const body = await c.req.json<{ code?: string }>().catch(() => null);
     if (!body?.code) {
-      return c.json({ error: "code is required" }, 400);
+      return badRequest(c, "code is required");
     }
 
     const exchange = consumeExchange(body.code);
     if (!exchange) {
-      return c.json({ error: "exchange code is invalid or expired" }, 400);
+      return badRequest(c, "exchange code is invalid or expired");
     }
 
-    return c.json({
+    return ok(c, {
       accessToken: exchange.accessToken,
       refreshToken: exchange.refreshToken,
       expiresIn: Number(process.env.JWT_ACCESS_TTL ?? 3600),
@@ -188,34 +201,34 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
   authRoutes.post("/refresh", async (c) => {
     const body = await c.req.json<{ refreshToken?: string }>().catch(() => null);
     if (!body?.refreshToken) {
-      return c.json({ error: "refreshToken is required" }, 400);
+      return badRequest(c, "refreshToken is required");
     }
 
     const tokenHash = hashRefreshToken(body.refreshToken);
     const record = await store.findValidRefreshToken(tokenHash);
     if (!record) {
-      return c.json({ error: "refresh token is invalid or expired" }, 401);
+      return invalidToken(c, "refresh token is invalid or expired");
     }
 
     const user = await store.findUserById(record.userId);
     if (!user) {
-      return c.json({ error: "refresh token is invalid or expired" }, 401);
+      return invalidToken(c, "refresh token is invalid or expired");
     }
 
     await store.revokeRefreshToken(tokenHash);
-    return c.json(await issueSession(toSessionUser(user)));
+    return ok(c, await issueSession(toSessionUser(user)));
   });
 
   authRoutes.post("/register", async (c) => {
     const body = await c.req.json<LoginBody>().catch(() => null);
     if (!body?.email || !body.password) {
-      return c.json({ error: "email and password are required" }, 400);
+      return badRequest(c, "email and password are required");
     }
 
     const email = normalizeEmail(body.email);
     const existingUser = await store.findUserByEmail(email);
     if (existingUser) {
-      return c.json({ error: "email is already registered" }, 409);
+      return conflict(c, "email is already registered");
     }
 
     const user = await store.createUser({
@@ -230,33 +243,33 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
       await store.ensureUserRole(user.id, "super_admin");
     }
 
-    return c.json(await issueSession(toSessionUser(user)), 201);
+    return created(c, await issueSession(toSessionUser(user)));
   });
 
   authRoutes.post("/login", async (c) => {
     const body = await c.req.json<LoginBody>().catch(() => null);
     if (!body?.email || !body.password) {
-      return c.json({ error: "email and password are required" }, 400);
+      return badRequest(c, "email and password are required");
     }
 
     const user = await store.findUserByEmail(normalizeEmail(body.email));
     if (!user?.passwordHash) {
-      return c.json({ error: "invalid email or password" }, 401);
+      return unauthorized(c, "invalid email or password");
     }
 
     const valid = await verifyPassword(body.password, user.passwordHash);
     if (!valid) {
-      return c.json({ error: "invalid email or password" }, 401);
+      return unauthorized(c, "invalid email or password");
     }
 
-    return c.json(await issueSession(toSessionUser(user)));
+    return ok(c, await issueSession(toSessionUser(user)));
   });
 
   authRoutes.get("/me", async (c) => {
     const authorization = c.req.header("authorization");
     const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
     if (!token) {
-      return c.json({ error: "missing bearer token" }, 401);
+      return unauthorized(c);
     }
 
     try {
@@ -266,7 +279,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
         resolveUserPermissions(claims.id, store),
         resolveUserPermissionIds(claims.id, store),
       ]);
-      return c.json({
+      return ok(c, {
         user: {
           id: claims.id,
           email: claims.email,
@@ -278,7 +291,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
         permission_ids: permissionIds,
       });
     } catch {
-      return c.json({ error: "invalid bearer token" }, 401);
+      return invalidToken(c);
     }
   });
 
@@ -287,7 +300,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     if (body?.refreshToken) {
       await store.revokeRefreshToken(hashRefreshToken(body.refreshToken));
     }
-    return c.json({ ok: true });
+    return okPlain(c);
   });
 
   // POST /auth/set-password — allow OAuth users to set a password
@@ -295,39 +308,39 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     const authorization = c.req.header("authorization");
     const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
     if (!token) {
-      return c.json({ error: "missing bearer token" }, 401);
+      return unauthorized(c);
     }
 
     let claims;
     try {
       claims = await verifySessionToken(token);
     } catch {
-      return c.json({ error: "invalid or expired token" }, 401);
+      return invalidToken(c);
     }
 
     const body = await c.req.json<{ password?: string }>().catch(() => null);
     if (!body?.password || body.password.length < 8) {
-      return c.json({ error: "password must be at least 8 characters" }, 400);
+      return badRequest(c, "password must be at least 8 characters");
     }
 
     const user = await store.findUserById(claims.id);
     if (!user) {
-      return c.json({ error: "user not found" }, 404);
+      return notFound(c, "user not found");
     }
 
     await store.setUserPassword(claims.id, await hashPassword(body.password));
-    return c.json({ ok: true });
+    return okPlain(c);
   });
 
   // POST /auth/forgot-password — send reset link (dev: return token directly)
   authRoutes.post("/forgot-password", async (c) => {
     const body = await c.req.json<{ email?: string }>().catch(() => null);
-    if (!body?.email) return c.json({ error: "email is required" }, 400);
+    if (!body?.email) return badRequest(c, "email is required");
 
     const user = await store.findUserByEmail(body.email.trim().toLowerCase());
     if (!user) {
       // Don't reveal whether email exists — always return ok
-      return c.json({ ok: true });
+      return okPlain(c);
     }
 
     const rawToken = generateResetToken();
@@ -337,84 +350,86 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     // Dev mode: return token directly
     const isDev = process.env.NODE_ENV !== "production";
     console.info(`[reset-password] token for ${body.email}: ${rawToken}`);
-    return c.json({ ok: true, ...(isDev ? { token: rawToken } : {}) });
+    return ok(c, isDev ? { token: rawToken } : null);
   });
 
   // POST /auth/reset-password — reset password with token
   authRoutes.post("/reset-password", async (c) => {
     const body = await c.req.json<{ token?: string; password?: string }>().catch(() => null);
     if (!body?.token || !body?.password || body.password.length < 8) {
-      return c.json({ error: "invalid token or password (min 8 chars)" }, 400);
+      return badRequest(c, "invalid token or password (min 8 chars)");
     }
 
     const tokenHash = hashResetToken(body.token);
     const record = await store.findValidResetToken(tokenHash);
-    if (!record) return c.json({ error: "token is invalid or expired" }, 400);
+    if (!record) return badRequest(c, "token is invalid or expired");
 
     await store.consumeResetToken(record.id);
     await store.setUserPassword(record.userId, await hashPassword(body.password));
-    return c.json({ ok: true });
+    return okPlain(c);
   });
 
   // PATCH /auth/profile — update own profile (requires JWT)
   authRoutes.patch("/profile", async (c) => {
     const authorization = c.req.header("authorization");
     const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
-    if (!token) return c.json({ error: "missing bearer token" }, 401);
+    if (!token) return unauthorized(c);
 
     let claims;
     try { claims = await verifySessionToken(token); }
-    catch { return c.json({ error: "invalid or expired token" }, 401); }
+    catch { return invalidToken(c); }
 
     const body = await c.req.json<{ displayName?: string }>().catch(() => null);
-    if (!body) return c.json({ error: "invalid body" }, 400);
+    if (!body) return badRequest(c, "invalid body");
 
     const user = await store.updateUser(claims.id, { displayName: body.displayName });
-    if (!user) return c.json({ error: "user not found" }, 404);
+    if (!user) return notFound(c, "user not found");
 
-    return c.json({ user: { id: user.id, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl } });
+    return ok(c, {
+      user: { id: user.id, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl },
+    });
   });
 
   // POST /auth/change-password — change own password (old + new, requires JWT)
   authRoutes.post("/change-password", async (c) => {
     const authorization = c.req.header("authorization");
     const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
-    if (!token) return c.json({ error: "missing bearer token" }, 401);
+    if (!token) return unauthorized(c);
 
     let claims;
     try { claims = await verifySessionToken(token); }
-    catch { return c.json({ error: "invalid or expired token" }, 401); }
+    catch { return invalidToken(c); }
 
     const body = await c.req.json<{ oldPassword?: string; newPassword?: string }>().catch(() => null);
     if (!body?.oldPassword || !body?.newPassword || body.newPassword.length < 8) {
-      return c.json({ error: "oldPassword and newPassword (min 8 chars) are required" }, 400);
+      return badRequest(c, "oldPassword and newPassword (min 8 chars) are required");
     }
 
     const user = await store.findUserById(claims.id);
-    if (!user) return c.json({ error: "user not found" }, 404);
+    if (!user) return notFound(c, "user not found");
 
     if (user.passwordHash) {
       const valid = await verifyPassword(body.oldPassword, user.passwordHash);
-      if (!valid) return c.json({ error: "current password is incorrect" }, 403);
+      if (!valid) return forbidden(c, "current password is incorrect");
     }
 
     await store.setUserPassword(claims.id, await hashPassword(body.newPassword));
-    return c.json({ ok: true });
+    return okPlain(c);
   });
 
   // DELETE /auth/account — delete own account (requires JWT)
   authRoutes.delete("/account", async (c) => {
     const authorization = c.req.header("authorization");
     const token = authorization?.startsWith("Bearer ") ? authorization.slice("Bearer ".length) : null;
-    if (!token) return c.json({ error: "missing bearer token" }, 401);
+    if (!token) return unauthorized(c);
 
     let claims;
     try { claims = await verifySessionToken(token); }
-    catch { return c.json({ error: "invalid or expired token" }, 401); }
+    catch { return invalidToken(c); }
 
     await store.revokeAllUserTokens(claims.id);
     await store.deleteUserAccount(claims.id);
-    return c.json({ ok: true });
+    return okPlain(c);
   });
 
   return authRoutes;

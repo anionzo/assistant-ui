@@ -34,16 +34,16 @@ export async function authThreadFetch<T>(path: string, init: RequestInit, token:
 
   const payload = await response.json().catch(() => ({})) as Record<string, unknown>;
 
-  if (!response.ok) {
+  if (!response.ok || payload.success === false) {
     return {
       ok: false as const,
       status: response.status,
       error:
-        typeof payload.error === "string"
-          ? payload.error
-          : "Auth API request failed",
+        (payload.error as any)?.message ??
+        (typeof payload.error === "string" ? payload.error : null) ??
+        "Auth API request failed",
     };
   }
 
-  return { ok: true as const, data: payload as T };
+  return { ok: true as const, data: ((payload as any).data ?? payload) as T };
 }

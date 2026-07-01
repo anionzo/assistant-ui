@@ -1,0 +1,1153 @@
+openapi: "3.0.3"
+info:
+  title: Idx Auth API
+  description: |
+    Authentication, authorization, user management, and chat thread API for Idx Chat.
+    
+    ## Response Envelope
+    Every response follows a standardized format:
+    ```json
+    {
+      "success": true | false,
+      "requestId": "uuid-v4",
+      "data": { ... },
+      "error": {
+        "code": "ERROR_CODE",
+        "message": "Human-readable message",
+        "details": { ... }
+      }
+    }
+    ```
+    
+    ## Authentication
+    Most endpoints require a `Bearer` token in the `Authorization` header.
+    Obtain tokens via `/auth/login`, `/auth/register`, or `/auth/google`.
+  version: "0.1.0"
+  contact:
+    name: Idx Team
+
+servers:
+  - url: http://localhost:4000
+    description: Development
+
+tags:
+  - name: Health
+  - name: Auth
+    description: Authentication & session management
+  - name: Admin
+    description: Admin-only user & RBAC management
+  - name: Threads
+    description: Chat thread & message CRUD
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    ApiResponse:
+      type: object
+      required: [success, requestId]
+      properties:
+        success: { type: boolean }
+        requestId: { type: string, format: uuid }
+        data: {}
+        error:
+          $ref: "#/components/schemas/ApiError"
+
+    ApiError:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string }
+        message: { type: string }
+        details: {}
+
+    SessionPayload:
+      type: object
+      properties:
+        accessToken: { type: string }
+        refreshToken: { type: string }
+        expiresIn: { type: integer }
+        user:
+          $ref: "#/components/schemas/UserProfile"
+        roles:
+          type: array
+          items: { $ref: "#/components/schemas/RoleRef" }
+        permissions:
+          type: array
+          items: { type: string }
+        permission_ids:
+          type: array
+          items: { type: integer }
+
+    UserProfile:
+      type: object
+      properties:
+        id: { type: string }
+        email: { type: string }
+        displayName: { type: string, nullable: true }
+        avatarUrl: { type: string, nullable: true }
+
+    UserDetail:
+      allOf:
+        - $ref: "#/components/schemas/UserProfile"
+        - type: object
+          properties:
+            status: { type: string }
+            createdAt: { type: string, format: date-time }
+
+    RoleRef:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+
+    RoleDetail:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+
+    PermissionDetail:
+      type: object
+      properties:
+        id: { type: integer }
+        code: { type: string }
+        name: { type: string }
+        resource: { type: string }
+        action: { type: string }
+
+    ThreadSummary:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        conversationId: { type: string }
+        tenantId: { type: string }
+        updatedAt: { type: string, format: date-time }
+        archived: { type: boolean }
+
+    ThreadMessage:
+      type: object
+      properties:
+        parentId: { type: string, nullable: true }
+        message: { type: object }
+        runConfig: { type: object }
+
+    MessageRepository:
+      type: object
+      properties:
+        headId: { type: string }
+        messages:
+          type: array
+          items: { $ref: "#/components/schemas/ThreadMessage" }
+
+    ErrorCodes:
+      type: string
+      enum:
+        - VALIDATION_ERROR
+        - INVALID_JSON
+        - MISSING_FIELD
+        - INVALID_FORMAT
+        - PASSWORD_TOO_SHORT
+        - UNAUTHORIZED
+        - MISSING_TOKEN
+        - INVALID_TOKEN
+        - TOKEN_EXPIRED
+        - FORBIDDEN
+        - MISSING_PERMISSION
+        - ACCOUNT_BANNED
+        - NOT_FOUND
+        - USER_NOT_FOUND
+        - THREAD_NOT_FOUND
+        - CONFLICT
+        - EMAIL_EXISTS
+        - INVALID_CREDENTIALS
+        - INVALID_EXCHANGE_CODE
+        - INVALID_RESET_TOKEN
+        - AUTH_OAUTH_FAILED
+        - AUTH_GOOGLE_FAILED
+        - INTERNAL_ERROR
+
+paths:
+  # ── Health ──────────────────────────────────────────
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          status: { type: string, example: "ok" }
+
+  # ── Auth ────────────────────────────────────────────
+  /auth/google:
+    get:
+      tags: [Auth]
+      summary: Start Google OAuth flow
+      parameters:
+        - name: returnTo
+          in: query
+          schema: { type: string, default: "/" }
+        - name: frontend
+          in: query
+          schema: { type: string }
+      responses:
+        "302": { description: Redirect to Google consent screen }
+
+  /auth/google/callback:
+    get:
+      tags: [Auth]
+      summary: Google OAuth callback (handled by Google)
+      description: Redirects to frontend with exchange code
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema: { type: string }
+        - name: state
+          in: query
+          required: true
+          schema: { type: string }
+      responses:
+        "302": { description: Redirect to frontend callback }
+
+  /auth/exchange:
+    post:
+      tags: [Auth]
+      summary: Exchange OAuth code for session tokens
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code: { type: string }
+      responses:
+        "200":
+          description: Tokens issued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/SessionPayload"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+                displayName: { type: string }
+      responses:
+        "201":
+          description: User created, session returned
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/SessionPayload"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          $ref: "#/components/responses/Conflict"
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login with email & password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string }
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/SessionPayload"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/refresh:
+    post:
+      tags: [Auth]
+      summary: Refresh access token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refreshToken]
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "200":
+          description: New token pair
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/SessionPayload"
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+
+  /auth/me:
+    get:
+      tags: [Auth]
+      summary: Get current user profile & permissions
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Current user data
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user: { $ref: "#/components/schemas/UserProfile" }
+                          roles: { type: array, items: { $ref: "#/components/schemas/RoleRef" } }
+                          permissions: { type: array, items: { type: string } }
+                          permission_ids: { type: array, items: { type: integer } }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Revoke refresh token
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                refreshToken: { type: string }
+      responses:
+        "200":
+          description: Token revoked (no-op if already revoked)
+
+  /auth/set-password:
+    post:
+      tags: [Auth]
+      summary: Set password for OAuth-only account
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 8 }
+      responses:
+        "200":
+          description: Password set
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Request password reset
+      description: Always returns 200 to avoid email enumeration. In dev mode, includes the reset token in the response.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        "200":
+          description: Reset initiated (token included in dev mode)
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password with token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [token, password]
+              properties:
+                token: { type: string }
+                password: { type: string, minLength: 8 }
+      responses:
+        "200":
+          description: Password reset successful
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /auth/profile:
+    patch:
+      tags: [Auth]
+      summary: Update own display name
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+      responses:
+        "200":
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          user: { $ref: "#/components/schemas/UserProfile" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /auth/change-password:
+    post:
+      tags: [Auth]
+      summary: Change own password
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oldPassword, newPassword]
+              properties:
+                oldPassword: { type: string }
+                newPassword: { type: string, minLength: 8 }
+      responses:
+        "200":
+          description: Password changed
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /auth/account:
+    delete:
+      tags: [Auth]
+      summary: Delete own account
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Account deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  # ── Admin ───────────────────────────────────────────
+  /admin/users:
+    get:
+      tags: [Admin]
+      summary: List all users
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: User list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          users:
+                            type: array
+                            items: { $ref: "#/components/schemas/UserDetail" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/users/{id}:
+    get:
+      tags: [Admin]
+      summary: Get user details with roles & permissions
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: User detail
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Admin]
+      summary: Update user display name
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                displayName: { type: string }
+      responses:
+        "200":
+          description: User updated
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Admin]
+      summary: Delete user account
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: User deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/users/{id}/roles:
+    post:
+      tags: [Admin]
+      summary: Assign role to user
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roleName]
+              properties:
+                roleName: { type: string }
+      responses:
+        "200":
+          description: Role assigned
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Admin]
+      summary: Revoke role from user
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [roleName]
+              properties:
+                roleName: { type: string }
+      responses:
+        "200":
+          description: Role revoked
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/users/{id}/ban:
+    patch:
+      tags: [Admin]
+      summary: Ban or unban a user
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: { type: string, enum: [active, banned] }
+      responses:
+        "200":
+          description: Status updated
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/users/{id}/reset-password:
+    post:
+      tags: [Admin]
+      summary: Force reset user password
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                password: { type: string, minLength: 8 }
+      responses:
+        "200":
+          description: Password reset
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/users/{id}/force-logout:
+    post:
+      tags: [Admin]
+      summary: Revoke all user sessions
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Sessions revoked
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/roles:
+    get:
+      tags: [Admin]
+      summary: List all roles
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Role list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          roles:
+                            type: array
+                            items: { $ref: "#/components/schemas/RoleDetail" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/roles/{id}/permissions:
+    get:
+      tags: [Admin]
+      summary: List permissions for a role
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Permission list
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    post:
+      tags: [Admin]
+      summary: Assign permission to role
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissionId]
+              properties:
+                permissionId: { type: integer }
+      responses:
+        "200":
+          description: Permission assigned
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+    delete:
+      tags: [Admin]
+      summary: Revoke permission from role
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [permissionId]
+              properties:
+                permissionId: { type: integer }
+      responses:
+        "200":
+          description: Permission revoked
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/permissions:
+    get:
+      tags: [Admin]
+      summary: List all permissions
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Permission list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          permissions:
+                            type: array
+                            items: { $ref: "#/components/schemas/PermissionDetail" }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  /admin/stats:
+    get:
+      tags: [Admin]
+      summary: System statistics
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Stats
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          userCount: { type: integer }
+                          roleCount: { type: integer }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+
+  # ── Threads ─────────────────────────────────────────
+  /threads:
+    get:
+      tags: [Threads]
+      summary: List user's threads
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: tenantId
+          in: query
+          schema: { type: string }
+      responses:
+        "200":
+          description: Thread list
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          threads:
+                            type: array
+                            items: { $ref: "#/components/schemas/ThreadSummary" }
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+    post:
+      tags: [Threads]
+      summary: Create a new thread
+      security: [{ bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [tenantId]
+              properties:
+                tenantId: { type: string }
+                title: { type: string, default: "Cuộc trò chuyện mới" }
+                conversationId: { type: string }
+      responses:
+        "201":
+          description: Thread created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          thread: { $ref: "#/components/schemas/ThreadSummary" }
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+
+  /threads/{id}:
+    get:
+      tags: [Threads]
+      summary: Get thread by ID
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Thread found
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Threads]
+      summary: Update thread (title or archive)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                archived: { type: boolean }
+      responses:
+        "200":
+          description: Thread updated
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    delete:
+      tags: [Threads]
+      summary: Delete thread
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Thread deleted
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /threads/{id}/messages:
+    get:
+      tags: [Threads]
+      summary: Get thread messages
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/MessageRepository"
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    put:
+      tags: [Threads]
+      summary: Replace all thread messages
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MessageRepository"
+      responses:
+        "200":
+          description: Messages replaced
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          count: { type: integer }
+        "401":
+          $ref: "#/components/responses/InvalidToken"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Response Templates ──────────────────────────────
+  responses:
+    BadRequest:
+      description: Validation error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  error:
+                    type: object
+                    properties:
+                      code: { type: string, example: "VALIDATION_ERROR" }
+                      message: { type: string }
+    Unauthorized:
+      description: Missing or invalid credentials
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  error:
+                    type: object
+                    properties:
+                      code: { type: string, example: "UNAUTHORIZED" }
+                      message: { type: string }
+    InvalidToken:
+      description: Token invalid or expired
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  error:
+                    type: object
+                    properties:
+                      code: { type: string, example: "INVALID_TOKEN" }
+                      message: { type: string }
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  error:
+                    type: object
+                    properties:
+                      code: { type: string, example: "FORBIDDEN" }
+                      message: { type: string }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  error:
+                    type: object
+                    properties:
+                      code: { type: string, example: "NOT_FOUND" }
+                      message: { type: string }
+    Conflict:
+      description: Resource conflict
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  error:
+                    type: object
+                    properties:
+                      code: { type: string, example: "CONFLICT" }
+                      message: { type: string }
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: "#/components/schemas/ApiResponse"
+              - type: object
+                properties:
+                  success: { type: boolean, example: false }
+                  error:
+                    type: object
+                    properties:
+                      code: { type: string, example: "INTERNAL_ERROR" }
+                      message: { type: string }

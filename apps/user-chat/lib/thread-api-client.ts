@@ -39,14 +39,16 @@ async function fetchThreadApi<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
-  if (!response.ok) {
+  if (!response.ok || payload.success === false) {
     throw new ThreadApiError(
-      typeof payload.error === "string" ? payload.error : "Thread API request failed",
+      (payload.error as any)?.message ??
+        (typeof payload.error === "string" ? payload.error : null) ??
+        "Thread API request failed",
       response.status,
     );
   }
 
-  return payload as T;
+  return ((payload as any).data ?? payload) as T;
 }
 
 function reviveMessageDates(repository: ThreadMessagesResponse): ExportedMessageRepository {
