@@ -4,7 +4,15 @@
     "language": "Ngôn ngữ",
     "notSignedIn": "Chưa đăng nhập",
     "noAccess": "Bạn không có quyền xem trang này.",
-    "refresh": "Làm mới"
+    "refresh": "Làm mới",
+    "save": "Lưu",
+    "saving": "Đang lưu…",
+    "add": "Thêm",
+    "delete": "Xóa",
+    "enabled": "Đang bật",
+    "disabled": "Đang tắt",
+    "updateFailed": "Cập nhật thất bại",
+    "loadFailed": "Không tải được cấu hình"
   },
   "nav": {
     "main": "Menu",
@@ -29,5 +37,31 @@
   },
   "auth": {
     "logout": "Đăng xuất"
+  },
+  "gateway": {
+    "checking": "Đang kiểm tra gateway…",
+    "ok": "Gateway OK · {count} collections",
+    "error": "Gateway lỗi"
+  },
+  "security": {
+    "title": "Bảo mật IP",
+    "description": "Mặc định tắt. Bật sau khi đã thêm IP của bạn — tránh tự khóa khỏi admin.",
+    "status": "Trạng thái",
+    "clientIp": "IP kết nối:",
+    "publicIp": "IP công khai:",
+    "localhost": "(localhost)",
+    "addPublicIp": "Thêm IP công khai",
+    "addMyIp": "Thêm IP của tôi",
+    "addLocalhost": "Thêm localhost",
+    "disableAllowlist": "Tắt bắt IP",
+    "enableAllowlist": "Bật bắt IP",
+    "hint": "Bước 1: Thêm IP của bạn · Bước 2: Bật allowlist. CIDR hỗ trợ, ví dụ 10.0.0.0/8.",
+    "manualAdd": "Thêm IP thủ công",
+    "manualPlaceholder": "203.0.113.10 hoặc 10.0.0.0/8",
+    "saved": "Đã lưu cấu hình IP allowlist.",
+    "emptyIps": "Chưa có IP nào — thêm IP của bạn trước khi bật.",
+    "colIndex": "STT",
+    "colIp": "IP / CIDR",
+    "colActions": "Thao tác"
   }
 }

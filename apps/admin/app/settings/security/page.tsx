@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableRow, TableCell, TableEmpty, TableLoading } from "@/components/ui/table";
+import { useT } from "@idx/i18n";
 
 type Settings = {
   enabled: boolean;
@@ -18,6 +19,7 @@ type Settings = {
 };
 
 export default function SecuritySettingsPage() {
+  const t = useT();
   const { loading: meLoading, canManageIpAllowlist } = useAdminMe();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [clientIp, setClientIp] = useState("");
@@ -42,7 +44,7 @@ export default function SecuritySettingsPage() {
 
       if (!settingsRes.ok) {
         const data = await settingsRes.json().catch(() => ({}));
-        throw new Error(typeof data.error === "string" ? data.error : "Không tải được cấu hình");
+        throw new Error(typeof data.error === "string" ? data.error : t("common.loadFailed"));
       }
 
       const settingsBody = await settingsRes.json() as { settings: Settings };
@@ -66,7 +68,7 @@ export default function SecuritySettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, [canManageIpAllowlist]);
+  }, [canManageIpAllowlist, t]);
 
   useEffect(() => {
     if (!meLoading && canManageIpAllowlist) void load();
@@ -85,10 +87,10 @@ export default function SecuritySettingsPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "Cập nhật thất bại");
+        throw new Error(typeof data.error === "string" ? data.error : t("common.updateFailed"));
       }
       setSettings((data as { settings: Settings }).settings);
-      setSuccess("Đã lưu cấu hình IP allowlist.");
+      setSuccess(t("security.saved"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Update failed");
     } finally {
@@ -98,17 +100,17 @@ export default function SecuritySettingsPage() {
 
   return (
     <AdminShell
-      title="Bảo mật IP"
-      description="Mặc định tắt. Bật sau khi đã thêm IP của bạn — tránh tự khóa khỏi admin."
+      title={t("security.title")}
+      description={t("security.description")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || saving}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
     >
       {!meLoading && !canManageIpAllowlist ? (
-        <StatusBanner tone="error">Bạn không có quyền xem trang này.</StatusBanner>
+        <StatusBanner tone="error">{t("common.noAccess")}</StatusBanner>
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
@@ -118,23 +120,23 @@ export default function SecuritySettingsPage() {
         <section className="rounded-xl border border-border bg-card p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-semibold">Trạng thái</h2>
+              <h2 className="text-sm font-semibold">{t("security.status")}</h2>
               <div className="space-y-0.5 text-xs text-muted-foreground">
                 <p>
-                  IP kết nối:{" "}
+                  {t("security.clientIp")}{" "}
                   <span className="font-mono text-foreground">{clientIp || "—"}</span>
-                  {isLocalhost ? <span className="ml-1">(localhost)</span> : null}
+                  {isLocalhost ? <span className="ml-1">{t("security.localhost")}</span> : null}
                 </p>
                 {publicIp ? (
                   <p>
-                    IP công khai:{" "}
+                    {t("security.publicIp")}{" "}
                     <span className="font-mono text-foreground">{publicIp}</span>
                   </p>
                 ) : null}
               </div>
             </div>
             <Badge tone={settings?.enabled ? "success" : "warning"}>
-              {settings?.enabled ? "Đang bật" : "Đang tắt"}
+              {settings?.enabled ? t("common.enabled") : t("common.disabled")}
             </Badge>
           </div>
 
@@ -145,7 +147,7 @@ export default function SecuritySettingsPage() {
               onClick={() => void patch({ addIp: suggestedIp })}
             >
               <Plus className="size-4" />
-              {publicIp ? "Thêm IP công khai" : "Thêm IP của tôi"}
+              {publicIp ? t("security.addPublicIp") : t("security.addMyIp")}
             </Button>
             {isLocalhost && clientIp ? (
               <Button
@@ -154,7 +156,7 @@ export default function SecuritySettingsPage() {
                 disabled={saving || loading}
                 onClick={() => void patch({ addIp: clientIp })}
               >
-                Thêm localhost
+                {t("security.addLocalhost")}
               </Button>
             ) : null}
             <Button
@@ -164,19 +166,19 @@ export default function SecuritySettingsPage() {
               onClick={() => void patch({ enabled: !settings?.enabled })}
             >
               <Shield className="size-4" />
-              {settings?.enabled ? "Tắt bắt IP" : "Bật bắt IP"}
+              {settings?.enabled ? t("security.disableAllowlist") : t("security.enableAllowlist")}
             </Button>
           </div>
 
           {!settings?.enabled ? (
             <p className="mt-3 text-xs text-muted-foreground">
-              Bước 1: Thêm IP của bạn · Bước 2: Bật allowlist. CIDR hỗ trợ, ví dụ <code>10.0.0.0/8</code>.
+              {t("security.hint")}
             </p>
           ) : null}
         </section>
 
         <section className="rounded-xl border border-border bg-card p-4">
-          <h2 className="mb-3 text-sm font-semibold">Thêm IP thủ công</h2>
+          <h2 className="mb-3 text-sm font-semibold">{t("security.manualAdd")}</h2>
           <form
             className="flex flex-wrap items-end gap-2"
             onSubmit={(e) => {
@@ -189,22 +191,22 @@ export default function SecuritySettingsPage() {
               <Input
                 value={manualIp}
                 onChange={(e) => setManualIp(e.target.value)}
-                placeholder="203.0.113.10 hoặc 10.0.0.0/8"
+                placeholder={t("security.manualPlaceholder")}
               />
             </div>
             <Button type="submit" size="sm" disabled={saving || !manualIp.trim()}>
-              Thêm
+              {t("common.add")}
             </Button>
           </form>
         </section>
       </div> : null}
 
       {canManageIpAllowlist ? <div className="mt-6">
-        <Table headers={["STT", "IP / CIDR", "Actions"]}>
+        <Table headers={[t("security.colIndex"), t("security.colIp"), t("security.colActions")]}>
           {loading ? (
             <TableLoading colSpan={3} />
           ) : !settings || settings.ips.length === 0 ? (
-            <TableEmpty colSpan={3} message="Chưa có IP nào — thêm IP của bạn trước khi bật." />
+            <TableEmpty colSpan={3} message={t("security.emptyIps")} />
           ) : (
             settings.ips.map((ip, index) => (
               <TableRow key={ip}>
@@ -218,7 +220,7 @@ export default function SecuritySettingsPage() {
                     onClick={() => void patch({ removeIp: ip })}
                   >
                     <Trash2 className="size-3.5" />
-                    Xóa
+                    {t("common.delete")}
                   </Button>
                 </TableCell>
               </TableRow>

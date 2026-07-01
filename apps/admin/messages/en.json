@@ -4,7 +4,15 @@
     "language": "Language",
     "notSignedIn": "Not signed in",
     "noAccess": "You do not have access to this page.",
-    "refresh": "Refresh"
+    "refresh": "Refresh",
+    "save": "Save",
+    "saving": "Saving…",
+    "add": "Add",
+    "delete": "Delete",
+    "enabled": "Enabled",
+    "disabled": "Disabled",
+    "updateFailed": "Update failed",
+    "loadFailed": "Could not load configuration"
   },
   "nav": {
     "main": "Main",
@@ -29,5 +37,31 @@
   },
   "auth": {
     "logout": "Sign out"
+  },
+  "gateway": {
+    "checking": "Checking gateway…",
+    "ok": "Gateway OK · {count} collections",
+    "error": "Gateway error"
+  },
+  "security": {
+    "title": "IP security",
+    "description": "Disabled by default. Enable only after adding your IP — avoid locking yourself out.",
+    "status": "Status",
+    "clientIp": "Client IP:",
+    "publicIp": "Public IP:",
+    "localhost": "(localhost)",
+    "addPublicIp": "Add public IP",
+    "addMyIp": "Add my IP",
+    "addLocalhost": "Add localhost",
+    "disableAllowlist": "Disable IP allowlist",
+    "enableAllowlist": "Enable IP allowlist",
+    "hint": "Step 1: Add your IP · Step 2: Enable allowlist. CIDR supported, e.g. 10.0.0.0/8.",
+    "manualAdd": "Add IP manually",
+    "manualPlaceholder": "203.0.113.10 or 10.0.0.0/8",
+    "saved": "IP allowlist configuration saved.",
+    "emptyIps": "No IPs yet — add yours before enabling.",
+    "colIndex": "#",
+    "colIp": "IP / CIDR",
+    "colActions": "Actions"
   }
 }

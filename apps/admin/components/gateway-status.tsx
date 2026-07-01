@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 
 type Status = {
   gateway: "ok" | "error";
@@ -11,6 +12,7 @@ type Status = {
 };
 
 export function GatewayStatus({ className }: { className?: string }) {
+  const t = useT();
   const [status, setStatus] = useState<Status | null>(null);
 
   useEffect(() => {
@@ -47,7 +49,7 @@ export function GatewayStatus({ className }: { className?: string }) {
     return (
       <p className={cn("flex items-center gap-1.5 text-[11px] text-muted-foreground", className)}>
         <span className="size-1.5 rounded-full bg-muted-foreground/40" />
-        Đang kiểm tra gateway…
+        {t("gateway.checking")}
       </p>
     );
   }
@@ -66,8 +68,8 @@ export function GatewayStatus({ className }: { className?: string }) {
       />
       <span className={cn(ok ? "text-muted-foreground" : "text-destructive")}>
         {ok
-          ? `Gateway OK · ${status.collectionCount ?? 0} collections`
-          : `Gateway lỗi${status.message ? `: ${status.message}` : ""}`}
+          ? t("gateway.ok", { count: status.collectionCount ?? 0 })
+          : `${t("gateway.error")}${status.message ? `: ${status.message}` : ""}`}
       </span>
     </p>
   );
