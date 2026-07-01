@@ -1,34 +1,31 @@
 "use client";
 
+import { VoiceFormSessionInit } from "@/components/voice-form/voice-form-session-init";
+import { VoiceFormSplitPane } from "@/components/voice-form/voice-form-split-pane";
+import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  loadDraft,
   loadFormDetail,
   loadFormList,
   outputDownloadUrl,
   postFill,
   renderDocx,
   renderPreview,
-  saveDraft,
   ttsAudioUrl,
 } from "@/lib/voice-form/api";
-import {
-  formatConvLabel,
-  getActiveConversationId,
-  loadConversations,
-  saveConversations,
-  setActiveConversationId,
-  upsertConversation,
-} from "@/lib/voice-form/conversations";
 import { VoiceFormRecorder } from "@/lib/voice-form/recorder";
-import type { ChatTurn, ConversationStub, FillResponse, FormField, FormSchema, FormSummary } from "@/lib/voice-form/types";
+import { useVoiceFormSession } from "@/lib/voice-form/session-context";
+import type { ChatTurn, FillResponse, FormField, FormSchema, FormSummary } from "@/lib/voice-form/types";
+import { cn } from "@/lib/utils";
 import {
+  ArrowUpIcon,
+  Check,
+  CloudOff,
   FileDown,
   Loader2,
   Mic,
-  Plus,
   RefreshCw,
-  Send,
-  Trash2,
   Volume2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -57,10 +54,42 @@ function nowHM(): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
+function SaveStatusBadge({ status }: { status: "idle" | "saving" | "saved" | "error" }) {
+  if (status === "idle") return null;
+  if (status === "saving") {
+    return (
+      <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+        <Loader2 className="size-3 animate-spin" /> Đang lưu…
+      </span>
+    );
+  }
+  if (status === "saved") {
+    return (
+      <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
+        <Check className="size-3 text-green-600" /> Đã lưu
+      </span>
+    );
+  }
+  return (
+    <span className="text-destructive inline-flex items-center gap-1 text-xs">
+      <CloudOff className="size-3" /> Lỗi lưu
+    </span>
+  );
+}
+
 export function VoiceFormView() {
+  const {
+    initialAuth,
+    gatewaySessionId,
+    saveStatus,
+    sessionBusy,
+    restoredRecord,
+    consumeRestoredRecord,
+    persistSession,
+    setGuestGatewayId,
+  } = useVoiceFormSession();
+
   const [forms, setForms] = useState<FormSummary[]>([]);
-  const [conversations, setConversations] = useState<ConversationStub[]>([]);
-  const [sessionId, setSessionId] = useState("");
   const [formCode, setFormCode] = useState("");
   const [schema, setSchema] = useState<FormSchema | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, unknown>>({});
@@ -92,29 +121,20 @@ export function VoiceFormView() {
     setTimeout(() => setToast(null), 3600);
   }, []);
 
-  const refreshConversations = useCallback(() => {
-    setConversations(loadConversations());
-  }, []);
-
-  const touchConversation = useCallback(() => {
-    if (!sessionId) return;
-    const fieldCount = Object.keys(fieldValues).filter((k) => {
-      const v = fieldValues[k];
-      return !(v === undefined || v === null || v === "");
-    }).length;
-    upsertConversation({
-      id: sessionId,
+  const workspaceSnapshot = useCallback(
+    () => ({
       formCode,
-      formName: schema?.form_name || formCode,
-      fieldCount,
+      formName: schema?.form_name ?? formCode,
+      fieldValues,
+      history,
       decision,
-    });
-    refreshConversations();
-  }, [sessionId, fieldValues, formCode, schema, decision, refreshConversations]);
+    }),
+    [formCode, schema, fieldValues, history, decision],
+  );
 
   const schedulePreview = useCallback(
     (immediate = false) => {
-      if (!formCode) {
+      if (!formCode || !gatewaySessionId) {
         setPreviewHtml("");
         return;
       }
@@ -124,7 +144,7 @@ export function VoiceFormView() {
           const token = ++previewTokenRef.current;
           setPreviewLoading(true);
           try {
-            const data = await renderPreview(formCode, fieldValues, sessionId);
+            const data = await renderPreview(formCode, fieldValues, gatewaySessionId);
             if (token !== previewTokenRef.current) return;
             setPreviewHtml(data.html || "");
             if (data.output_file) setOutputFile(basename(data.output_file));
@@ -140,15 +160,73 @@ export function VoiceFormView() {
         immediate ? 60 : PREVIEW_DEBOUNCE_MS,
       );
     },
-    [formCode, fieldValues, sessionId],
+    [formCode, fieldValues, gatewaySessionId],
   );
+
+  const clearWorkspace = useCallback(() => {
+    setFormCode("");
+    setSchema(null);
+    setFieldValues({});
+    setHistory([]);
+    setNextField(null);
+    setInvalidFields({});
+    setDecision("incomplete");
+    setOutputFile("");
+    setLastAudioFile("");
+    setPreviewHtml("");
+  }, []);
+
+  const applyRestoredRecord = useCallback(
+    async (record: NonNullable<typeof restoredRecord>) => {
+      setFormCode(record.formCode);
+      setFieldValues(record.fieldValues ?? {});
+      setHistory(
+        (record.history ?? []).map((t) => ({
+          role: t.role as "user" | "assistant",
+          text: t.text,
+          time: nowHM(),
+        })),
+      );
+      setDecision(record.decision || "incomplete");
+      setNextField(null);
+      setInvalidFields({});
+      setOutputFile("");
+      setLastAudioFile("");
+
+      if (record.formCode) {
+        const detail = await loadFormDetail(record.formCode);
+        const formSchema = detail.form_schema;
+        if (!formSchema?.need_to_fill?.length) {
+          throw new Error("Biểu mẫu này chưa có lược đồ trường (need_to_fill).");
+        }
+        setSchema(formSchema);
+        setForms((prev) =>
+          prev.some((f) => f.form_code === record.formCode)
+            ? prev
+            : [{ form_code: record.formCode, form_name: formSchema.form_name || record.formCode }, ...prev],
+        );
+        schedulePreview(true);
+        setStatus("Sẵn sàng");
+        setStatusKind("");
+      } else {
+        clearWorkspace();
+        setStatus("Chọn biểu mẫu cho phiên này");
+        setStatusKind("");
+      }
+    },
+    [schedulePreview, clearWorkspace],
+  );
+
+  useEffect(() => {
+    if (!restoredRecord) return;
+    void applyRestoredRecord(restoredRecord)
+      .catch((err) => showToast(String(err instanceof Error ? err.message : err), true))
+      .finally(() => consumeRestoredRecord());
+  }, [restoredRecord, applyRestoredRecord, consumeRestoredRecord, showToast]);
 
   const applyFillResponse = useCallback(
     (data: FillResponse, opts: { fromVoice?: boolean; echoedUserTurn?: string } = {}) => {
-      if (data.session_id) {
-        setSessionId(data.session_id);
-        setActiveConversationId(data.session_id);
-      }
+      if (!initialAuth && data.session_id) setGuestGatewayId(data.session_id);
 
       const mode = data.mode || "fill_form";
       const adopted = mode === "pick_form" && data.form_code && data.form_code !== formCode;
@@ -173,12 +251,11 @@ export function VoiceFormView() {
       const transcript = (data.transcript || "").trim();
       const prompt = (data.voice_prompt || data.answer || "").trim();
 
-      setHistory((prev) => {
-        const next = [...prev];
-        if (transcript && !opts.echoedUserTurn) next.push({ role: "user", text: transcript, time: nowHM() });
-        if (prompt) next.push({ role: "assistant", text: prompt, time: nowHM() });
-        return next.slice(-24);
-      });
+      const nextHistory: ChatTurn[] = [...history];
+      if (transcript && !opts.echoedUserTurn) nextHistory.push({ role: "user", text: transcript, time: nowHM() });
+      if (prompt) nextHistory.push({ role: "assistant", text: prompt, time: nowHM() });
+      const trimmedHistory = nextHistory.slice(-24);
+      setHistory(trimmedHistory);
 
       if (mode === "chat") {
         setStatus("Sẵn sàng");
@@ -207,26 +284,42 @@ export function VoiceFormView() {
       }
 
       schedulePreview(true);
-      touchConversation();
+      void persistSession(workspaceSnapshot(), {
+        formCode: data.form_code ?? formCode,
+        formName: data.form_schema?.form_name ?? schema?.form_name,
+        fieldValues: data.field_values ?? fieldValues,
+        history: trimmedHistory,
+        decision: data.decision || mode,
+      });
     },
-    [formCode, schedulePreview, touchConversation],
+    [
+      initialAuth,
+      formCode,
+      schema,
+      fieldValues,
+      history,
+      schedulePreview,
+      persistSession,
+      workspaceSnapshot,
+      setGuestGatewayId,
+    ],
   );
 
   const postTurn = useCallback(
     async (extra: Record<string, string | Blob>, opts: { fromVoice?: boolean; echoedUserTurn?: string } = {}) => {
-      if (busy) return;
+      if (busy || !gatewaySessionId) return;
       setBusy(true);
       setStatus(opts.fromVoice ? "Đang nhận dạng & xử lý…" : "Đang xử lý…");
       setStatusKind("busy");
       try {
         const payload: Record<string, string | Blob> = {
-          session_id: sessionId,
+          session_id: gatewaySessionId,
           field_values: JSON.stringify(fieldValues),
           history: JSON.stringify(history),
           ...extra,
         };
         if (formCode) payload.form_code = formCode;
-        const data = await postFill(sessionId, payload);
+        const data = await postFill(gatewaySessionId, payload);
         applyFillResponse(data, opts);
       } catch (err) {
         setStatus("Lỗi");
@@ -236,7 +329,7 @@ export function VoiceFormView() {
         setBusy(false);
       }
     },
-    [busy, sessionId, fieldValues, history, formCode, applyFillResponse, showToast],
+    [busy, gatewaySessionId, fieldValues, history, formCode, applyFillResponse, showToast],
   );
 
   const selectForm = useCallback(
@@ -260,30 +353,6 @@ export function VoiceFormView() {
         setOutputFile("");
         setLastAudioFile("");
 
-        const sid = sessionId || crypto.randomUUID();
-        if (!sessionId) {
-          setSessionId(sid);
-          setActiveConversationId(sid);
-        }
-
-        const draft = await loadDraft(code, sid);
-        if (draft) {
-          if (draft.session_id) {
-            setSessionId(draft.session_id);
-            setActiveConversationId(draft.session_id);
-          }
-          if (draft.field_values) setFieldValues(draft.field_values);
-          if (draft.history?.length) {
-            setHistory(
-              draft.history.map((t) => ({
-                role: t.role as "user" | "assistant",
-                text: t.text,
-                time: nowHM(),
-              })),
-            );
-          }
-        }
-
         setForms((prev) =>
           prev.some((f) => f.form_code === code)
             ? prev
@@ -292,95 +361,40 @@ export function VoiceFormView() {
         setStatus("Sẵn sàng");
         setStatusKind("");
         schedulePreview(true);
-        touchConversation();
+        void persistSession(workspaceSnapshot(), {
+          formCode: code,
+          formName: formSchema.form_name || code,
+          fieldValues: {},
+          history: [],
+          decision: "incomplete",
+        });
       } catch (err) {
         setStatus("Lỗi");
         setStatusKind("error");
         showToast(String(err instanceof Error ? err.message : err), true);
       }
     },
-    [busy, sessionId, schedulePreview, touchConversation, showToast],
+    [busy, schedulePreview, persistSession, workspaceSnapshot, showToast],
   );
-
-  const newConversation = useCallback(() => {
-    if (busy) {
-      showToast("Đang xử lý — chờ một lát.");
-      return;
-    }
-    const id = crypto.randomUUID();
-    setSessionId(id);
-    setActiveConversationId(id);
-    upsertConversation({ id, formCode: "", formName: "", fieldCount: 0, decision: "" });
-    refreshConversations();
-    setFormCode("");
-    setSchema(null);
-    setFieldValues({});
-    setHistory([]);
-    setNextField(null);
-    setInvalidFields({});
-    setDecision("incomplete");
-    setOutputFile("");
-    setLastAudioFile("");
-    setPreviewHtml("");
-    setStatus("Cuộc hội thoại mới — chọn biểu mẫu");
-    setStatusKind("");
-    showToast("Đã tạo cuộc hội thoại mới.");
-  }, [busy, refreshConversations, showToast]);
-
-  const switchConversation = useCallback(
-    async (id: string) => {
-      if (busy) {
-        showToast("Đang xử lý — chờ một lát.");
-        return;
-      }
-      const conv = loadConversations().find((c) => c.id === id);
-      if (!conv) return;
-      setSessionId(id);
-      setActiveConversationId(id);
-      if (conv.formCode) {
-        await selectForm(conv.formCode);
-      } else {
-        setFormCode("");
-        setSchema(null);
-        setFieldValues({});
-        setHistory([]);
-        setPreviewHtml("");
-        setStatus("Chọn biểu mẫu cho cuộc hội thoại này");
-        setStatusKind("");
-      }
-      refreshConversations();
-    },
-    [busy, selectForm, refreshConversations, showToast],
-  );
-
-  const deleteConversation = useCallback(() => {
-    if (busy || !sessionId) return;
-    const list = loadConversations().filter((c) => c.id !== sessionId);
-    saveConversations(list);
-    refreshConversations();
-    if (list.length) void switchConversation(list[0].id);
-    else newConversation();
-    showToast("Đã xóa cuộc hội thoại.");
-  }, [busy, sessionId, switchConversation, newConversation, refreshConversations, showToast]);
 
   const sendText = useCallback(
     (text: string) => {
       const t = text.trim();
       if (!t || busy) return;
       setTextInput("");
-      setHistory((prev) => [...prev, { role: "user" as const, text: t, time: nowHM() }].slice(-24));
-      touchConversation();
+      const nextHistory = [...history, { role: "user" as const, text: t, time: nowHM() }].slice(-24);
+      setHistory(nextHistory);
       void postTurn({ text: t }, { echoedUserTurn: t });
     },
-    [busy, postTurn, touchConversation],
+    [busy, postTurn, history],
   );
 
   const handleDownload = useCallback(async () => {
-    if (!formCode || busy) return;
+    if (!formCode || busy || !gatewaySessionId) return;
     setStatus("Đang tạo tờ khai…");
     setStatusKind("busy");
     try {
-      const data = await renderDocx(formCode, fieldValues, sessionId);
+      const data = await renderDocx(formCode, fieldValues, gatewaySessionId);
       const file = basename(data.output_file || data.file_path || "");
       if (!file) throw new Error("không nhận được tên file");
       setOutputFile(file);
@@ -403,46 +417,10 @@ export function VoiceFormView() {
       setStatusKind("error");
       showToast(`Không tạo được tờ khai: ${String(err instanceof Error ? err.message : err)}`, true);
     }
-  }, [formCode, busy, fieldValues, sessionId, decision, showToast]);
-
-  const handleSaveDraft = useCallback(async () => {
-    if (!formCode) return;
-    try {
-      const data = await saveDraft(formCode, sessionId, fieldValues, history);
-      if (data.session_id) {
-        setSessionId(data.session_id);
-        setActiveConversationId(data.session_id);
-      }
-      touchConversation();
-      showToast("Đã lưu nháp.");
-    } catch (err) {
-      showToast(`Lưu nháp thất bại: ${String(err instanceof Error ? err.message : err)}`, true);
-    }
-  }, [formCode, sessionId, fieldValues, history, touchConversation, showToast]);
+  }, [formCode, busy, fieldValues, gatewaySessionId, decision, showToast]);
 
   useEffect(() => {
     setMicAvailable(!!navigator.mediaDevices?.getUserMedia);
-    loadFormList("")
-      .then((list) => {
-        setForms(list);
-        refreshConversations();
-        const convs = loadConversations();
-        const activeId = getActiveConversationId();
-        if (activeId && convs.some((c) => c.id === activeId)) {
-          void switchConversation(activeId);
-        } else if (convs.length) {
-          void switchConversation(convs[0].id);
-        } else {
-          newConversation();
-        }
-      })
-      .catch((err) => {
-        setStatus("Không tải được danh sách biểu mẫu");
-        setStatusKind("error");
-        showToast(String(err instanceof Error ? err.message : err), true);
-        if (!sessionId) newConversation();
-      });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -450,8 +428,8 @@ export function VoiceFormView() {
   }, [history, busy]);
 
   useEffect(() => {
-    if (formCode) schedulePreview();
-  }, [fieldValues, formCode, schedulePreview]);
+    if (formCode && gatewaySessionId) schedulePreview();
+  }, [fieldValues, formCode, gatewaySessionId, schedulePreview]);
 
   const fields = schema?.need_to_fill ?? [];
   const progress = useMemo(() => {
@@ -510,8 +488,25 @@ export function VoiceFormView() {
         ? "text-primary"
         : "text-muted-foreground";
 
+  const workspaceDisabled = busy || sessionBusy;
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3 p-4">
+    <div className="flex h-full min-h-0 flex-col gap-3 overflow-hidden p-4">
+      <VoiceFormSessionInit
+        onReady={(list) => {
+          setForms(list);
+          if (!initialAuth) {
+            setStatus("Đăng nhập để lưu phiên điền mẫu");
+            setStatusKind("");
+          }
+        }}
+        onError={(err) => {
+          setStatus("Không tải được dữ liệu");
+          setStatusKind("error");
+          showToast(String(err instanceof Error ? err.message : err), true);
+        }}
+      />
+
       {toast && (
         <div
           className={`fixed bottom-4 right-4 z-50 rounded-lg px-4 py-2 text-sm shadow-lg ${
@@ -522,38 +517,14 @@ export function VoiceFormView() {
         </div>
       )}
 
-      <header className="flex flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
+      <header className="flex shrink-0 flex-wrap items-center gap-3 rounded-xl border bg-card p-3">
         <div className="flex min-w-0 flex-1 items-center gap-2">
-          <select
-            className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1.5 text-sm"
-            value={sessionId}
-            onChange={(e) => void switchConversation(e.target.value)}
-            aria-label="Cuộc hội thoại"
-          >
-            {conversations.length === 0 ? (
-              <option value="">(chưa có cuộc hội thoại)</option>
-            ) : (
-              conversations.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {formatConvLabel(c)}
-                </option>
-              ))
-            )}
-          </select>
-          <button type="button" onClick={newConversation} className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-sm hover:bg-muted" title="Cuộc hội thoại mới">
-            <Plus className="size-4" /> Mới
-          </button>
-          <button type="button" onClick={deleteConversation} className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-sm hover:bg-muted" title="Xóa cuộc hội thoại">
-            <Trash2 className="size-4" />
-          </button>
-        </div>
-
-        <div className="flex min-w-[280px] flex-1 items-center gap-2">
-          <input
+          <Input
             type="search"
             placeholder="Tìm biểu mẫu (vd: tạm trú, thuế thu nhập)…"
-            className="min-w-0 flex-1 rounded-md border bg-background px-2 py-1.5 text-sm"
+            className="min-w-0 flex-1"
             value={formSearch}
+            disabled={workspaceDisabled}
             onChange={(e) => {
               setFormSearch(e.target.value);
               const q = e.target.value;
@@ -563,8 +534,9 @@ export function VoiceFormView() {
             }}
           />
           <select
-            className="min-w-[160px] rounded-md border bg-background px-2 py-1.5 text-sm"
+            className="border-input bg-background focus-visible:border-ring focus-visible:ring-ring/50 h-9 min-w-[160px] rounded-md border px-2.5 text-sm shadow-xs outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
             value={formCode}
+            disabled={workspaceDisabled}
             onChange={(e) => void selectForm(e.target.value)}
             aria-label="Chọn biểu mẫu"
           >
@@ -577,34 +549,44 @@ export function VoiceFormView() {
           </select>
         </div>
 
-        <div className={`text-sm font-medium ${statusClass}`}>{status}</div>
+        <div className="flex items-center gap-3">
+          {initialAuth && <SaveStatusBadge status={saveStatus} />}
+          <div className={`text-sm font-medium ${statusClass}`}>{status}</div>
+        </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
-        <section className="flex min-h-0 flex-col gap-3">
-          <div className="flex gap-3 rounded-xl border bg-card p-4">
-            <button
+      <VoiceFormSplitPane
+        left={
+        <section className="flex h-full min-h-0 flex-col gap-3">
+          <div className="flex shrink-0 gap-3 rounded-xl border bg-card p-4">
+            <Button
               type="button"
-              disabled={busy || !micAvailable}
+              variant="outline"
+              disabled={workspaceDisabled || !micAvailable}
               onPointerDown={(e) => { e.preventDefault(); void beginRecording(); }}
               onPointerUp={(e) => { e.preventDefault(); void endRecording(); }}
               onPointerLeave={() => { if (recording) void endRecording(); }}
-              className={`flex size-20 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                recording ? "border-primary bg-primary/10 text-primary" : "border-muted-foreground/30 hover:border-primary"
-              }`}
+              className={cn(
+                "size-20 shrink-0 rounded-full border-2 p-0",
+                recording
+                  ? "border-primary bg-primary/10 text-primary hover:bg-primary/10"
+                  : "border-muted-foreground/30 hover:border-primary",
+              )}
               aria-label="Giữ để nói"
             >
               <Mic className="size-8" />
-            </button>
+            </Button>
             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
               <p className="text-sm text-muted-foreground">
                 {micAvailable ? "Giữ để nói · hoặc nhắn tin bên dưới" : "Micro không khả dụng — dùng ô nhắn tin"}
               </p>
               <audio ref={audioRef} className="hidden" />
               {lastAudioFile && (
-                <button
+                <Button
                   type="button"
-                  className="inline-flex w-fit items-center gap-1 text-sm text-primary hover:underline"
+                  variant="link"
+                  size="sm"
+                  className="h-auto w-fit gap-1 px-0"
                   onClick={() => {
                     if (audioRef.current) {
                       audioRef.current.src = ttsAudioUrl(lastAudioFile);
@@ -613,7 +595,7 @@ export function VoiceFormView() {
                   }}
                 >
                   <Volume2 className="size-4" /> Nghe lại
-                </button>
+                </Button>
               )}
             </div>
           </div>
@@ -650,33 +632,38 @@ export function VoiceFormView() {
               <div ref={transcriptEndRef} />
             </div>
             <form
-              className="flex gap-2 border-t p-3"
+              className="flex items-center gap-2 border-t p-3"
               onSubmit={(e) => {
                 e.preventDefault();
                 sendText(textInput);
               }}
             >
-              <input
+              <Input
                 type="text"
                 value={textInput}
-                disabled={busy}
+                disabled={workspaceDisabled}
                 onChange={(e) => setTextInput(e.target.value)}
                 placeholder="Nhắn tin cho trợ lý…"
-                className="min-w-0 flex-1 rounded-md border bg-background px-3 py-2 text-sm"
+                className="min-w-0 flex-1"
               />
-              <button
+              <TooltipIconButton
+                tooltip="Gửi tin nhắn"
                 type="submit"
-                disabled={busy || !textInput.trim()}
-                className="inline-flex items-center justify-center rounded-md bg-primary px-3 py-2 text-primary-foreground disabled:opacity-50"
+                variant="default"
+                size="icon"
+                className="aui-composer-send size-7 shrink-0 rounded-full"
+                disabled={workspaceDisabled || !textInput.trim()}
+                aria-label="Gửi tin nhắn"
               >
-                <Send className="size-4" />
-              </button>
+                <ArrowUpIcon className="aui-composer-send-icon size-4.5" />
+              </TooltipIconButton>
             </form>
           </div>
         </section>
-
-        <section className="flex min-h-0 flex-col gap-3">
-          <div className="flex min-h-0 flex-1 flex-col rounded-xl border bg-card">
+        }
+        right={
+        <section className="flex h-full min-h-0 flex-col gap-3">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
             {schema && (
               <div className="border-b px-3 py-2">
                 <h2 className="font-semibold">{schema.form_name || formCode}</h2>
@@ -690,13 +677,17 @@ export function VoiceFormView() {
                     <div className="h-full bg-primary transition-all" style={{ width: `${progress.pct}%` }} />
                   </div>
                 </div>
-                <div className="mt-2 flex gap-2">
-                  <button type="button" onClick={() => void handleSaveDraft()} disabled={!formCode} className="rounded-md border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50">
-                    Lưu nháp
-                  </button>
-                  <button type="button" onClick={() => void handleDownload()} disabled={!formCode || busy} className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted disabled:opacity-50">
-                    <FileDown className="size-3" /> Tạo & tải tờ khai
-                  </button>
+                <div className="mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void handleDownload()}
+                    disabled={!formCode || workspaceDisabled}
+                  >
+                    <FileDown data-icon="inline-start" />
+                    Tạo & tải tờ khai
+                  </Button>
                 </div>
               </div>
             )}
@@ -724,9 +715,9 @@ export function VoiceFormView() {
                           {f.label || f.key}
                           {f.required && <span className="text-destructive"> *</span>}
                         </label>
-                        <input
+                        <Input
                           type="text"
-                          className="mt-1 w-full rounded-md border bg-background px-2 py-1 text-sm"
+                          className="mt-1 h-8"
                           value={displayValue(f, rawVal)}
                           placeholder={f.hint || (isNext ? "Đọc giá trị này hoặc gõ tay…" : "")}
                           onChange={(e) => {
@@ -756,7 +747,7 @@ export function VoiceFormView() {
             </div>
           </div>
 
-          <div className="flex min-h-[200px] flex-col rounded-xl border bg-card lg:min-h-0 lg:flex-1">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
             <div className="flex items-center justify-between border-b px-3 py-2 text-sm font-medium">
               <span>Xem trước tờ khai</span>
               {previewLoading && <RefreshCw className="size-4 animate-spin text-muted-foreground" />}
@@ -774,7 +765,8 @@ export function VoiceFormView() {
             </div>
           </div>
         </section>
-      </div>
+        }
+      />
     </div>
   );
 }

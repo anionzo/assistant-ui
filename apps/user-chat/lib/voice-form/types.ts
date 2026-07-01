@@ -24,6 +24,7 @@ export type ChatTurn = {
 
 export type ConversationStub = {
   id: string;
+  title: string;
   formCode: string;
   formName: string;
   fieldCount: number;

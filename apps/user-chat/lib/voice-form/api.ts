@@ -47,37 +47,6 @@ export async function loadFormDetail(code: string): Promise<{ form_schema?: Form
   return apiJson(`${PROXY}/${encodeURIComponent(code)}`, { method: "GET" });
 }
 
-export async function loadDraft(
-  formCode: string,
-  sessionId: string,
-): Promise<{
-  session_id?: string;
-  field_values?: Record<string, unknown>;
-  history?: Array<{ role: string; text: string }>;
-} | null> {
-  try {
-    return await apiJson(`/api/voice-form/draft/${encodeURIComponent(formCode)}`, {
-      method: "GET",
-      headers: sessionHeaders(sessionId),
-    });
-  } catch {
-    return null;
-  }
-}
-
-export async function saveDraft(
-  formCode: string,
-  sessionId: string,
-  fieldValues: Record<string, unknown>,
-  history: Array<{ role: string; text: string }>,
-): Promise<{ session_id?: string }> {
-  return apiJson("/api/voice-form/draft", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", ...sessionHeaders(sessionId) },
-    body: JSON.stringify({ form_code: formCode, field_values: fieldValues, history }),
-  });
-}
-
 export async function postFill(
   sessionId: string,
   extra: Record<string, string | Blob>,
