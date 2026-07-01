@@ -1,0 +1,33 @@
+{
+  "common": {
+    "loading": "Đang tải…",
+    "language": "Ngôn ngữ",
+    "notSignedIn": "Chưa đăng nhập",
+    "noAccess": "Bạn không có quyền xem trang này.",
+    "refresh": "Làm mới"
+  },
+  "nav": {
+    "main": "Menu",
+    "collections": "Bộ tài liệu",
+    "forms": "Biểu mẫu",
+    "users": "Người dùng",
+    "roles": "Vai trò",
+    "security": "Bảo mật IP",
+    "branding": "Thương hiệu",
+    "chatRuntime": "Chat Runtime"
+  },
+  "pagination": {
+    "perPage": "Hiển thị",
+    "perPageSuffix": "/ trang",
+    "prev": "Trước",
+    "next": "Sau",
+    "empty": "0 mục"
+  },
+  "table": {
+    "noData": "Không có dữ liệu.",
+    "loading": "Đang tải…"
+  },
+  "auth": {
+    "logout": "Đăng xuất"
+  }
+}

@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPageRange, PAGE_SIZE_OPTIONS, type PaginationMeta } from "@/lib/pagination";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 
 const controlHeight = "h-8";
 
@@ -23,6 +24,7 @@ export function PaginationBar({
   /** embedded = footer inside table card; standalone = separate card below list */
   variant?: "embedded" | "standalone";
 }) {
+  const t = useT();
   if (meta.total === 0) return null;
 
   return (
@@ -37,7 +39,7 @@ export function PaginationBar({
     >
       <div className="grid min-h-11 grid-cols-1 items-center gap-3 px-4 py-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-4">
         <p className="text-sm leading-none text-muted-foreground tabular-nums">
-          {formatPageRange(meta)}
+          {formatPageRange(meta, t("pagination.empty"))}
         </p>
 
         <div className="flex flex-wrap items-center justify-start gap-2 sm:justify-end">
@@ -48,7 +50,7 @@ export function PaginationBar({
                 controlHeight,
               )}
             >
-              <span className="whitespace-nowrap">Hiển thị</span>
+              <span className="whitespace-nowrap">{t("pagination.perPage")}</span>
               <select
                 value={pageSize}
                 onChange={(e) => onPageSizeChange(Number(e.target.value))}
@@ -64,7 +66,7 @@ export function PaginationBar({
                   </option>
                 ))}
               </select>
-              <span className="whitespace-nowrap">/ trang</span>
+              <span className="whitespace-nowrap">{t("pagination.perPageSuffix")}</span>
             </label>
           ) : null}
 
@@ -78,7 +80,7 @@ export function PaginationBar({
               onClick={() => onPageChange(meta.page - 1)}
             >
               <ChevronLeft className="size-3.5 shrink-0" />
-              <span>Trước</span>
+              <span>{t("pagination.prev")}</span>
             </Button>
 
             <span
@@ -98,7 +100,7 @@ export function PaginationBar({
               disabled={!meta.hasNext}
               onClick={() => onPageChange(meta.page + 1)}
             >
-              <span>Sau</span>
+              <span>{t("pagination.next")}</span>
               <ChevronRight className="size-3.5 shrink-0" />
             </Button>
           </div>

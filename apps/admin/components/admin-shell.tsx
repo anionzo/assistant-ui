@@ -16,26 +16,29 @@ import {
 import { AdminUserMenu } from "@/components/admin-user-menu";
 import { BrandLogo } from "@/components/brand-logo";
 import { GatewayStatus } from "@/components/gateway-status";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { useAdminMe } from "@/hooks/use-admin-me";
 import { useBranding } from "@/hooks/use-branding";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 
 const baseNav = [
-  { href: "/", label: "Collections", icon: LayoutDashboard },
-  { href: "/forms", label: "Forms", icon: FileStack },
-  { href: "/users", label: "Users", icon: Users },
-  { href: "/roles", label: "Roles", icon: Shield },
+  { href: "/", labelKey: "nav.collections", icon: LayoutDashboard },
+  { href: "/forms", labelKey: "nav.forms", icon: FileStack },
+  { href: "/users", labelKey: "nav.users", icon: Users },
+  { href: "/roles", labelKey: "nav.roles", icon: Shield },
 ] as const;
 
-const securityNav = { href: "/settings/security", label: "Security", icon: Lock } as const;
-const brandingNav = { href: "/settings/branding", label: "Branding", icon: ImageIcon } as const;
-const runtimeNav = { href: "/settings/runtime", label: "Chat Runtime", icon: SlidersHorizontal } as const;
+const securityNav = { href: "/settings/security", labelKey: "nav.security", icon: Lock } as const;
+const brandingNav = { href: "/settings/branding", labelKey: "nav.branding", icon: ImageIcon } as const;
+const runtimeNav = { href: "/settings/runtime", labelKey: "nav.chatRuntime", icon: SlidersHorizontal } as const;
 
 /** Main content width — centered; wide enough for data tables without full-bleed layout. */
 export const ADMIN_CONTENT_CLASS = "mx-auto w-full max-w-[1400px]";
 
 function Sidebar() {
   const pathname = usePathname();
+  const t = useT();
   const { canManageIpAllowlist, canReadBranding, canReadRuntime } = useAdminMe();
   const { branding } = useBranding();
   const settingsNav = [
@@ -57,7 +60,7 @@ function Sidebar() {
 
       <nav className="flex-1 space-y-1 px-3 py-4">
         <p className="px-2 pb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Main
+          {t("nav.main")}
         </p>
         {nav.map((item) => {
           const isActive =
@@ -76,13 +79,17 @@ function Sidebar() {
               )}
             >
               <item.icon className="size-4 shrink-0" />
-              {item.label}
+              {t(item.labelKey)}
             </Link>
           );
         })}
       </nav>
 
       <div className="mt-auto border-t border-border px-3 py-3">
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <span className="text-[11px] text-muted-foreground">{t("common.language")}</span>
+          <LanguageSwitcher />
+        </div>
         <GatewayStatus className="mb-3" />
         <AdminUserMenu />
       </div>

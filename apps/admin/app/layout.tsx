@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { AppI18nProvider } from "@/components/app-i18n-provider";
+import { getRequestLocale } from "@/lib/i18n/server";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -6,10 +8,14 @@ export const metadata: Metadata = {
   description: "Operator console for document corpus and forms",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const locale = await getRequestLocale();
+
   return (
-    <html lang="vi">
-      <body>{children}</body>
+    <html lang={locale}>
+      <body>
+        <AppI18nProvider locale={locale}>{children}</AppI18nProvider>
+      </body>
     </html>
   );
 }

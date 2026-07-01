@@ -1,5 +1,8 @@
+"use client";
+
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 
 export function Table({
   headers,
@@ -62,10 +65,11 @@ export function TableEmpty({
   colSpan: number;
   message?: string;
 }) {
+  const t = useT();
   return (
     <tr>
       <td className="px-4 py-6 text-center text-sm text-muted-foreground" colSpan={colSpan}>
-        {message ?? "No data."}
+        {message ?? t("table.noData")}
       </td>
     </tr>
   );
@@ -78,10 +82,11 @@ export function TableLoading({
   colSpan: number;
   message?: string;
 }) {
+  const t = useT();
   return (
     <tr>
       <td className="px-4 py-6 text-center text-sm text-muted-foreground" colSpan={colSpan}>
-        {message ?? "Loading…"}
+        {message ?? t("table.loading")}
       </td>
     </tr>
   );

@@ -1,0 +1,33 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "language": "Language",
+    "notSignedIn": "Not signed in",
+    "noAccess": "You do not have access to this page.",
+    "refresh": "Refresh"
+  },
+  "nav": {
+    "main": "Main",
+    "collections": "Collections",
+    "forms": "Forms",
+    "users": "Users",
+    "roles": "Roles",
+    "security": "Security",
+    "branding": "Branding",
+    "chatRuntime": "Chat Runtime"
+  },
+  "pagination": {
+    "perPage": "Show",
+    "perPageSuffix": "per page",
+    "prev": "Previous",
+    "next": "Next",
+    "empty": "0 items"
+  },
+  "table": {
+    "noData": "No data.",
+    "loading": "Loading…"
+  },
+  "auth": {
+    "logout": "Sign out"
+  }
+}

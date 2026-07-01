@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { ImageIcon, LogOut, Settings, SlidersHorizontal } from "lucide-react";
 import { useAdminMe } from "@/hooks/use-admin-me";
+import { useT } from "@idx/i18n";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -34,6 +35,7 @@ function displayLabel(user: { email: string; displayName: string | null }) {
 }
 
 export function AdminUserMenu({ className }: { className?: string }) {
+  const t = useT();
   const { me, loading, canManageIpAllowlist, canManageBranding, canManageRuntime } = useAdminMe();
 
   async function logout() {
@@ -44,7 +46,7 @@ export function AdminUserMenu({ className }: { className?: string }) {
   if (loading) {
     return (
       <div className={cn("px-1 py-2", className)}>
-        <p className="text-xs text-muted-foreground">Đang tải…</p>
+        <p className="text-xs text-muted-foreground">{t("common.loading")}</p>
       </div>
     );
   }
@@ -52,7 +54,7 @@ export function AdminUserMenu({ className }: { className?: string }) {
   if (!me) {
     return (
       <div className={cn("px-1 py-2", className)}>
-        <p className="text-xs text-muted-foreground">Chưa đăng nhập</p>
+        <p className="text-xs text-muted-foreground">{t("common.notSignedIn")}</p>
       </div>
     );
   }
@@ -134,7 +136,7 @@ export function AdminUserMenu({ className }: { className?: string }) {
           onClick={() => void logout()}
         >
           <LogOut className="size-3" />
-          Thoát
+          {t("auth.logout")}
         </Button>
       </div>
     </div>

@@ -33,8 +33,8 @@ export function paginateArray<T>(
   };
 }
 
-export function formatPageRange(meta: PaginationMeta): string {
-  if (meta.total === 0) return "0 mục";
+export function formatPageRange(meta: PaginationMeta, emptyLabel = "0"): string {
+  if (meta.total === 0) return emptyLabel;
   const from = (meta.page - 1) * meta.limit + 1;
   const to = Math.min(meta.page * meta.limit, meta.total);
   return `${from}–${to} / ${meta.total}`;
