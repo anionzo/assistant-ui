@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { RefreshCw, Shield } from "lucide-react";
+import { useT } from "@idx/i18n";
 import { AdminShell } from "@/components/admin-shell";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,7 @@ import { Card } from "@/components/ui/card";
 type RoleRow = { id: number; name: string; description: string };
 
 export default function RolesPage() {
+  const t = useT();
   const [roles, setRoles] = useState<RoleRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -33,18 +35,18 @@ export default function RolesPage() {
 
   return (
     <AdminShell
-      title="Roles"
-      description="Manage permission roles and their access rights."
+      title={t("roles.title")}
+      description={t("roles.description")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadRoles()} disabled={loading}>
-          <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} /> {t("common.refresh")}
         </Button>
       }
     >
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
       {loading ? (
-        <p className="text-sm text-muted-foreground">Loading roles…</p>
+        <p className="text-sm text-muted-foreground">{t("roles.loading")}</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {roles.map((r, index) => (

@@ -12,8 +12,10 @@ import { PaginationBar } from "@/components/ui/pagination";
 import { useClientPagination } from "@/hooks/use-client-pagination";
 import { asArray, bffJson } from "@/lib/api/bff";
 import type { ChunkHit } from "@/lib/types/gateway";
+import { useT } from "@idx/i18n";
 
 export default function SearchPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const collectionId = decodeURIComponent(params.id);
   const [query, setQuery] = useState("");
@@ -49,7 +51,7 @@ export default function SearchPage() {
       setHits(asArray<ChunkHit>(payload, ["chunks", "results", "hits", "items", "data"]));
       setPage(1);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Search failed");
+      setError(e instanceof Error ? e.message : t("collections.searchFailed"));
       setHits([]);
     } finally {
       setLoading(false);
@@ -58,12 +60,14 @@ export default function SearchPage() {
 
   return (
     <AdminShell
-      title={`Collection ${collectionId}`}
-      description="Test chunk retrieval against this collection."
+      title={t("collections.collectionTitle", { id: collectionId })}
+      description={t("collections.searchTitle")}
       sidebarContent={<CollectionNav collectionId={collectionId} active="search" />}
     >
       <StatusBanner tone="info">
-        If search returns 404, use <strong>Documents → View chunks</strong> for preview on this gateway.
+        {t("collections.search404HintBefore")}{" "}
+        <strong>{t("collections.search404HintLink")}</strong>{" "}
+        {t("collections.search404HintAfter")}
       </StatusBanner>
 
       <form
@@ -71,21 +75,21 @@ export default function SearchPage() {
         className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4"
       >
         <div className="min-w-[280px] flex-1">
-          <label className="mb-1 block text-sm font-medium">Query</label>
+          <label className="mb-1 block text-sm font-medium">{t("collections.query")}</label>
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search chunks…"
+            placeholder={t("collections.searchPlaceholder")}
             required
           />
         </div>
         <div className="w-24">
-          <label className="mb-1 block text-sm font-medium">Top K</label>
+          <label className="mb-1 block text-sm font-medium">{t("collections.topK")}</label>
           <Input value={topK} onChange={(e) => setTopK(e.target.value)} inputMode="numeric" />
         </div>
         <Button type="submit" disabled={loading}>
           <Search className="size-4" />
-          {loading ? "Searching…" : "Search"}
+          {loading ? t("common.searching") : t("common.search")}
         </Button>
       </form>
 
@@ -93,7 +97,7 @@ export default function SearchPage() {
 
       <div className="space-y-3">
         {hits.length === 0 && !loading ? (
-          <StatusBanner tone="info">Run a query to preview retrieval chunks.</StatusBanner>
+          <StatusBanner tone="info">{t("collections.searchHint")}</StatusBanner>
         ) : null}
         {pageHits.map((hit, index) => (
           <article
@@ -101,8 +105,14 @@ export default function SearchPage() {
             className="rounded-xl border border-border bg-card p-4 text-sm"
           >
             <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span>STT {rowOffset + index + 1}</span>
-              {hit.score !== undefined ? <span>score {String(hit.score)}</span> : null}
+              <span>
+                {t("common.colIndex")} {rowOffset + index + 1}
+              </span>
+              {hit.score !== undefined ? (
+                <span>
+                  {t("collections.score")} {String(hit.score)}
+                </span>
+              ) : null}
             </div>
             <p className="whitespace-pre-wrap leading-relaxed">
               {String(hit.text ?? hit.content ?? JSON.stringify(hit))}

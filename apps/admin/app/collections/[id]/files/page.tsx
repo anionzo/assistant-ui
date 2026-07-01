@@ -20,8 +20,23 @@ import {
 } from "@/lib/api/collections";
 import type { CorpusDocument, CorpusFile } from "@/lib/types/gateway";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
+
+const ALLOWED_EXTENSIONS = [".docx", ".pdf", ".xlsx", ".csv"];
+
+function indexStatusLabel(t: ReturnType<typeof useT>, fileId: string, documents: CorpusDocument[]) {
+  const doc = documents.find((d) => d.file_id === fileId);
+  if (!doc) return t("collections.statusPending");
+  if (doc.error) return t("collections.statusError", { error: doc.error });
+  if (doc.status === "READY" || (doc.progress ?? 0) >= 1) {
+    return t("collections.statusReady", { count: doc.chunk_count ?? 0 });
+  }
+  const pct = Math.round((doc.progress ?? 0) * 100);
+  return t("collections.statusIndexing", { status: doc.status ?? "Indexing", pct });
+}
 
 export default function FilesPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const collectionId = decodeURIComponent(params.id);
   const [files, setFiles] = useState<CorpusFile[]>([]);
@@ -56,13 +71,13 @@ export default function FilesPage() {
       });
       setAutoRefresh(pending);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load files");
+      setError(e instanceof Error ? e.message : t("collections.loadFilesFailed"));
       setFiles([]);
       setDocuments([]);
     } finally {
       setLoading(false);
     }
-  }, [collectionId]);
+  }, [collectionId, t]);
 
   useEffect(() => {
     void loadAll();
@@ -80,14 +95,13 @@ export default function FilesPage() {
     const fileInput = form.elements.namedItem("file") as HTMLInputElement | null;
     const file = fileInput?.files?.[0];
     if (!file) {
-      setError("Choose a file to upload.");
+      setError(t("collections.chooseFile"));
       return;
     }
 
-    const allowed = [".docx", ".pdf", ".xlsx", ".csv"];
     const ext = file.name.slice(file.name.lastIndexOf(".")).toLowerCase();
-    if (!allowed.includes(ext)) {
-      setError(`Unsupported file type "${ext}". Allowed: ${allowed.join(", ")}`);
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      setError(t("collections.unsupportedFileType", { ext, allowed: ALLOWED_EXTENSIONS.join(", ") }));
       return;
     }
 
@@ -96,27 +110,32 @@ export default function FilesPage() {
     setSuccess("");
     try {
       const doc = await uploadDocumentPipeline(collectionId, file);
-      setSuccess(`Uploaded ${file.name} — status: ${String(doc.status ?? "PENDING")}, indexing in progress.`);
+      setSuccess(
+        t("collections.uploadSuccess", {
+          filename: file.name,
+          status: String(doc.status ?? "PENDING"),
+        }),
+      );
       form.reset();
       setAutoRefresh(true);
       await loadAll();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e instanceof Error ? e.message : t("collections.uploadFailed"));
     } finally {
       setUploading(false);
     }
   }
 
   async function handleDelete(fileId: string, filename: string) {
-    if (!confirm(`Delete file "${filename}"?`)) return;
+    if (!confirm(t("collections.deleteFileConfirm", { filename }))) return;
     setDeletingId(fileId);
     setError("");
     try {
       await deleteFile(collectionId, fileId);
-      setSuccess(`Deleted ${filename}`);
+      setSuccess(t("collections.deleteSuccess", { filename }));
       await loadAll();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed");
+      setError(e instanceof Error ? e.message : t("collections.deleteFailed"));
     } finally {
       setDeletingId(null);
     }
@@ -124,12 +143,12 @@ export default function FilesPage() {
 
   return (
     <AdminShell
-      title={`Collection ${collectionId}`}
-      description="Upload source files. Status refreshes every 5s while indexing."
+      title={t("collections.collectionTitle", { id: collectionId })}
+      description={t("collections.filesDescription")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadAll()} disabled={loading}>
           <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
       sidebarContent={<CollectionNav collectionId={collectionId} active="files" />}
@@ -139,21 +158,30 @@ export default function FilesPage() {
         className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4"
       >
         <div className="min-w-[240px] flex-1">
-          <label className="mb-1 block text-sm font-medium">Upload file <span className="text-muted-foreground font-normal">(.docx, .pdf, .xlsx, .csv)</span></label>
+          <label className="mb-1 block text-sm font-medium">
+            {t("collections.uploadFileLabel")}{" "}
+            <span className="font-normal text-muted-foreground">{t("collections.uploadFileTypes")}</span>
+          </label>
           <Input name="file" type="file" required accept=".docx,.pdf,.xlsx,.csv" />
         </div>
         <Button type="submit" disabled={uploading}>
           <Upload className="size-4" />
-          {uploading ? "Uploading…" : "Upload"}
+          {uploading ? t("common.uploading") : t("common.upload")}
         </Button>
       </form>
 
-      {autoRefresh ? <StatusBanner tone="info">Auto-refreshing while files are indexing…</StatusBanner> : null}
+      {autoRefresh ? <StatusBanner tone="info">{t("collections.autoRefresh")}</StatusBanner> : null}
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {success ? <StatusBanner tone="success">{success}</StatusBanner> : null}
 
       <Table
-        headers={["STT", "Filename", "Index status", "Size", "Actions"]}
+        headers={[
+          t("common.colIndex"),
+          t("collections.colFilename"),
+          t("collections.colIndexStatus"),
+          t("collections.colSize"),
+          t("common.colActions"),
+        ]}
         footer={
           !loading && files.length > 0 ? (
             <PaginationBar meta={meta} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
@@ -161,9 +189,9 @@ export default function FilesPage() {
         }
       >
         {loading ? (
-          <TableLoading colSpan={5} message="Loading files…" />
+          <TableLoading colSpan={5} message={t("collections.loadingFiles")} />
         ) : files.length === 0 ? (
-          <TableEmpty colSpan={5} message="No files yet — upload above." />
+          <TableEmpty colSpan={5} message={t("collections.filesEmpty")} />
         ) : (
           pageFiles.map((file, index) => {
             const fileId = String(file.id ?? index);
@@ -180,7 +208,7 @@ export default function FilesPage() {
                     status.tone === "pending" && "text-muted-foreground",
                   )}
                 >
-                  {status.label}
+                  {indexStatusLabel(t, fileId, documents)}
                 </TableCell>
                 <TableCell className="text-muted-foreground">
                   {file.size_bytes ? `${Math.round(Number(file.size_bytes) / 1024)} KB` : "—"}
@@ -193,7 +221,7 @@ export default function FilesPage() {
                     disabled={deletingId === fileId}
                   >
                     <Trash2 className="size-3.5" />
-                    {deletingId === fileId ? "…" : "Delete"}
+                    {deletingId === fileId ? "…" : t("common.delete")}
                   </Button>
                 </TableCell>
               </TableRow>

@@ -11,6 +11,7 @@ import { PaginationBar } from "@/components/ui/pagination";
 import { Table, TableRow, TableCell, TableEmpty, TableLoading } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import type { PaginationMeta } from "@/lib/pagination";
+import { useT } from "@idx/i18n";
 
 type UserRow = {
   id: string;
@@ -29,6 +30,7 @@ const DEFAULT_META: PaginationMeta = {
 };
 
 export default function AdminUsersPage() {
+  const t = useT();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [pagination, setPagination] = useState<PaginationMeta>(DEFAULT_META);
   const [page, setPage] = useState(1);
@@ -57,13 +59,13 @@ export default function AdminUsersPage() {
       setUsers(body?.users ?? []);
       setPagination(body?.pagination ?? DEFAULT_META);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load users");
+      setError(e instanceof Error ? e.message : t("common.loadFailed"));
       setUsers([]);
       setPagination(DEFAULT_META);
     } finally {
       setLoading(false);
     }
-  }, [page, pageSize, query]);
+  }, [page, pageSize, query, t]);
 
   useEffect(() => {
     void loadUsers();
@@ -79,12 +81,12 @@ export default function AdminUsersPage() {
 
   return (
     <AdminShell
-      title="Users"
-      description="Manage registered user accounts."
+      title={t("users.title")}
+      description={t("users.description")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadUsers()} disabled={loading}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
     >
@@ -96,18 +98,24 @@ export default function AdminUsersPage() {
         <Input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Tìm theo email…"
+          placeholder={t("users.searchPlaceholder")}
           className="max-w-sm"
         />
         <Button type="submit" variant="secondary" size="sm">
-          Tìm
+          {t("common.search")}
         </Button>
       </form>
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
       <Table
-        headers={["STT", "Email", "Display name", "Status", "Actions"]}
+        headers={[
+          t("common.colIndex"),
+          t("common.email"),
+          t("users.colDisplayName"),
+          t("common.status"),
+          t("common.colActions"),
+        ]}
         footer={
           <PaginationBar
             meta={pagination}
@@ -123,7 +131,7 @@ export default function AdminUsersPage() {
         {loading ? (
           <TableLoading colSpan={5} />
         ) : users.length === 0 ? (
-          <TableEmpty colSpan={5} message="No users found." />
+          <TableEmpty colSpan={5} message={t("users.empty")} />
         ) : (
           users.map((u, index) => (
             <TableRow key={u.id}>
@@ -132,12 +140,12 @@ export default function AdminUsersPage() {
               <TableCell className="text-muted-foreground">{u.displayName ?? "—"}</TableCell>
               <TableCell>
                 <Badge tone={u.status === "banned" ? "error" : "success"}>
-                  {u.status === "banned" ? "Banned" : "Active"}
+                  {u.status === "banned" ? t("common.banned") : t("common.active")}
                 </Badge>
               </TableCell>
               <TableCell>
                 <Link href={`/users/${encodeURIComponent(u.id)}`} className="text-primary hover:underline text-sm">
-                  Manage
+                  {t("common.manage")}
                 </Link>
               </TableCell>
             </TableRow>

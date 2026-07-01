@@ -108,7 +108,7 @@ export function AdminUserMenu({ className }: { className?: string }) {
             className="inline-flex h-7 min-w-[3.5rem] flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 text-[11px] font-medium hover:bg-muted"
           >
             <ImageIcon className="size-3" />
-            Brand
+            {t("nav.quickBrand")}
           </Link>
         ) : null}
         {canManageRuntime ? (
@@ -117,7 +117,7 @@ export function AdminUserMenu({ className }: { className?: string }) {
             className="inline-flex h-7 min-w-[3.5rem] flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 text-[11px] font-medium hover:bg-muted"
           >
             <SlidersHorizontal className="size-3" />
-            Runtime
+            {t("nav.quickRuntime")}
           </Link>
         ) : null}
         {canManageIpAllowlist ? (
@@ -126,7 +126,7 @@ export function AdminUserMenu({ className }: { className?: string }) {
             className="inline-flex h-7 min-w-[3.5rem] flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 text-[11px] font-medium hover:bg-muted"
           >
             <Settings className="size-3" />
-            IP
+            {t("nav.quickIp")}
           </Link>
         ) : null}
         <Button

@@ -12,8 +12,10 @@ import { Table, TableRow, TableCell, TableEmpty, TableLoading } from "@/componen
 import { useClientPagination } from "@/hooks/use-client-pagination";
 import { listCollections } from "@/lib/api/collections";
 import type { Collection } from "@/lib/types/gateway";
+import { useT } from "@idx/i18n";
 
 export default function AdminHome() {
+  const t = useT();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -45,12 +47,12 @@ export default function AdminHome() {
 
   return (
     <AdminShell
-      title="Collections"
-      description="Create corpus, upload files, verify chunks, then publish to chat."
+      title={t("collections.title")}
+      description={t("collections.description")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadCollections()} disabled={loading}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
     >
@@ -61,7 +63,7 @@ export default function AdminHome() {
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
       <Table
-        headers={["STT", "ID", "Name", "Chunk size", "Actions"]}
+        headers={[t("common.colIndex"), t("collections.colId"), t("collections.colName"), t("collections.colChunkSize"), t("common.colActions")]}
         footer={
           !loading && collections.length > 0 ? (
             <PaginationBar
@@ -74,9 +76,9 @@ export default function AdminHome() {
         }
       >
         {loading ? (
-          <TableLoading colSpan={5} message="Loading collections…" />
+          <TableLoading colSpan={5} message={t("collections.loading")} />
         ) : collections.length === 0 ? (
-          <TableEmpty colSpan={5} message="No collections yet — create one above." />
+          <TableEmpty colSpan={5} message={t("collections.empty")} />
         ) : (
           pageCollections.map((collection, index) => {
             const id = String(collection.id ?? index);
@@ -90,9 +92,9 @@ export default function AdminHome() {
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-2">
-                    <Link href={`/collections/${encodeURIComponent(id)}/files`} className="text-primary hover:underline">Upload</Link>
-                    <Link href={`/collections/${encodeURIComponent(id)}/documents`} className="text-primary hover:underline">Review</Link>
-                    <Link href={`/collections/${encodeURIComponent(id)}/settings`} className="text-primary hover:underline">Settings</Link>
+                    <Link href={`/collections/${encodeURIComponent(id)}/files`} className="text-primary hover:underline">{t("common.upload")}</Link>
+                    <Link href={`/collections/${encodeURIComponent(id)}/documents`} className="text-primary hover:underline">{t("collections.review")}</Link>
+                    <Link href={`/collections/${encodeURIComponent(id)}/settings`} className="text-primary hover:underline">{t("collections.settings")}</Link>
                   </div>
                 </TableCell>
               </TableRow>

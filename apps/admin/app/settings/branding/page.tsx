@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAdminMe } from "@/hooks/use-admin-me";
 import { DEFAULT_LOGO_URL } from "@/lib/branding-defaults";
+import { useT } from "@idx/i18n";
 
 type BrandingSurface = {
   appName: string;
@@ -46,6 +47,7 @@ function PreviewCard({
 }
 
 export default function BrandingSettingsPage() {
+  const t = useT();
   const { loading: meLoading, canManageBranding, canReadBranding } = useAdminMe();
   const [branding, setBranding] = useState<Branding | null>(null);
   const [logoUrl, setLogoUrl] = useState("");
@@ -66,7 +68,7 @@ export default function BrandingSettingsPage() {
       const res = await fetch("/api/settings/branding");
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "Không tải được branding");
+        throw new Error(typeof data.error === "string" ? data.error : t("branding.loadFailed"));
       }
       const next = (data as { branding: Branding }).branding;
       setBranding(next);
@@ -76,12 +78,12 @@ export default function BrandingSettingsPage() {
       setUserAppName(next.user.appName);
       setUserTagline(next.user.tagline);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Load failed");
+      setError(e instanceof Error ? e.message : t("common.loadFailed"));
       setBranding(null);
     } finally {
       setLoading(false);
     }
-  }, [canReadBranding]);
+  }, [canReadBranding, t]);
 
   useEffect(() => {
     if (!meLoading && canReadBranding) void load();
@@ -104,13 +106,13 @@ export default function BrandingSettingsPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "Cập nhật thất bại");
+        throw new Error(typeof data.error === "string" ? data.error : t("common.updateFailed"));
       }
       const next = (data as { branding: Branding }).branding;
       setBranding(next);
-      setSuccess("Đã lưu branding cho admin và user chat.");
+      setSuccess(t("branding.saved"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Update failed");
+      setError(e instanceof Error ? e.message : t("common.updateFailed"));
     } finally {
       setSaving(false);
     }
@@ -120,17 +122,17 @@ export default function BrandingSettingsPage() {
 
   return (
     <AdminShell
-      title="Branding"
-      description="Logo chung và tên hiển thị cho Admin / User Chat."
+      title={t("branding.title")}
+      description={t("branding.description")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || saving}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
     >
       {!meLoading && !canReadBranding ? (
-        <StatusBanner tone="error">Bạn không có quyền xem trang này.</StatusBanner>
+        <StatusBanner tone="error">{t("common.noAccess")}</StatusBanner>
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
@@ -139,20 +141,20 @@ export default function BrandingSettingsPage() {
       {canReadBranding ? (
         <div className="mt-4 grid gap-4 xl:grid-cols-[280px_1fr]">
           <section className="space-y-3 rounded-xl border border-border bg-card p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Preview</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("branding.preview")}</p>
             <PreviewCard
-              title="Admin"
+              title={t("branding.admin")}
               logoUrl={previewLogo}
               surface={{ appName: adminAppName, tagline: adminTagline }}
             />
             <PreviewCard
-              title="User Chat"
+              title={t("branding.userChat")}
               logoUrl={previewLogo}
               surface={{ appName: userAppName, tagline: userTagline }}
             />
             {branding?.updatedAt ? (
               <p className="text-[11px] text-muted-foreground">
-                Cập nhật: {new Date(branding.updatedAt).toLocaleString()}
+                {t("common.updatedAt", { date: new Date(branding.updatedAt).toLocaleString() })}
               </p>
             ) : null}
           </section>
@@ -166,7 +168,7 @@ export default function BrandingSettingsPage() {
               }}
             >
               <div className="space-y-1">
-                <label className="text-sm font-medium">Logo URL (chung)</label>
+                <label className="text-sm font-medium">{t("branding.logoUrl")}</label>
                 <Input
                   value={logoUrl}
                   onChange={(e) => setLogoUrl(e.target.value)}
@@ -177,25 +179,25 @@ export default function BrandingSettingsPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-3 rounded-lg border border-border p-3">
-                  <p className="text-sm font-semibold">Admin</p>
+                  <p className="text-sm font-semibold">{t("branding.admin")}</p>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium">Tên app</label>
+                    <label className="text-sm font-medium">{t("branding.appName")}</label>
                     <Input value={adminAppName} onChange={(e) => setAdminAppName(e.target.value)} readOnly={!canManageBranding} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium">Tagline</label>
+                    <label className="text-sm font-medium">{t("branding.tagline")}</label>
                     <Input value={adminTagline} onChange={(e) => setAdminTagline(e.target.value)} readOnly={!canManageBranding} />
                   </div>
                 </div>
 
                 <div className="space-y-3 rounded-lg border border-border p-3">
-                  <p className="text-sm font-semibold">User Chat</p>
+                  <p className="text-sm font-semibold">{t("branding.userChat")}</p>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium">Tên app</label>
+                    <label className="text-sm font-medium">{t("branding.appName")}</label>
                     <Input value={userAppName} onChange={(e) => setUserAppName(e.target.value)} readOnly={!canManageBranding} />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-sm font-medium">Tagline</label>
+                    <label className="text-sm font-medium">{t("branding.tagline")}</label>
                     <Input value={userTagline} onChange={(e) => setUserTagline(e.target.value)} readOnly={!canManageBranding} />
                   </div>
                 </div>
@@ -203,7 +205,7 @@ export default function BrandingSettingsPage() {
 
               {canManageBranding ? (
                 <Button type="submit" disabled={saving || loading}>
-                  {saving ? "Đang lưu…" : "Lưu branding"}
+                  {saving ? t("common.saving") : t("branding.saveBranding")}
                 </Button>
               ) : null}
             </form>

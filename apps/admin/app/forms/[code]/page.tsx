@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { ChevronDown, ChevronRight, Trash2 } from "lucide-react";
+import { useT } from "@idx/i18n";
 import { AdminShell } from "@/components/admin-shell";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,8 @@ import {
 import { readUploadFeedback } from "@/lib/forms/upload-feedback";
 
 function FieldRow({ field }: { field: NormalizedFormField }) {
+  const t = useT();
+
   return (
     <tr className="border-b border-border/70 last:border-0">
       <td className="px-4 py-2.5 font-mono text-xs">{field.key}</td>
@@ -27,9 +30,9 @@ function FieldRow({ field }: { field: NormalizedFormField }) {
       <td className="px-4 py-2.5">{field.label}</td>
       <td className="px-4 py-2.5">
         {field.required ? (
-          <span className="text-xs font-medium text-destructive">Required</span>
+          <span className="text-xs font-medium text-destructive">{t("common.required")}</span>
         ) : (
-          <span className="text-xs text-muted-foreground">Optional</span>
+          <span className="text-xs text-muted-foreground">{t("common.optional")}</span>
         )}
       </td>
       <td className="px-4 py-2.5 text-xs text-muted-foreground">{field.hint ?? "—"}</td>
@@ -45,6 +48,7 @@ function sourceLabel(source: string) {
 }
 
 export default function FormDetailPage() {
+  const t = useT();
   const params = useParams<{ code: string }>();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -82,7 +86,7 @@ export default function FormDetailPage() {
   }, [loadDetail]);
 
   async function handleDelete() {
-    if (!confirm(`Delete form ${code}?`)) return;
+    if (!confirm(t("forms.deleteConfirm", { code }))) return;
     setDeleting(true);
     setError("");
     try {
@@ -101,36 +105,31 @@ export default function FormDetailPage() {
 
   return (
     <AdminShell
-      title={`Form ${meta.formCode || code}`}
-      description="Schema preview and raw JSON view."
+      title={t("forms.detailTitle", { code: meta.formCode || code })}
+      description={t("forms.detailDescription")}
       actions={
         <Button variant="destructive" size="sm" onClick={() => void handleDelete()} disabled={deleting}>
           <Trash2 className="size-4" />
-          {deleting ? "Deleting…" : "Delete"}
+          {deleting ? t("forms.deleting") : t("common.delete")}
         </Button>
       }
     >
       <Link href="/forms" className="mb-4 inline-block text-sm text-primary hover:underline">
-        ← Back to forms
+        {t("common.backToForms")}
       </Link>
 
       {uploadNotice ? (
         <div className="mb-4">
-          <StatusBanner tone="success">
-            Form ingested successfully
-            {uploadNotice.fileName ? ` from ${uploadNotice.fileName}` : ""}. Review the schema below.
-          </StatusBanner>
+          <StatusBanner tone="success">{t("forms.ingestedBanner")}</StatusBanner>
         </div>
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
       {loading ? (
-        <StatusBanner tone="info">Loading…</StatusBanner>
+        <StatusBanner tone="info">{t("common.loading")}</StatusBanner>
       ) : !schema ? (
-        <StatusBanner tone="info">
-          No form schema found in gateway response — check Raw JSON for the payload shape.
-        </StatusBanner>
+        <StatusBanner tone="info">{t("forms.noSchema")}</StatusBanner>
       ) : (
         <div className="space-y-4">
           <div className="rounded-xl border border-border bg-card p-4">
@@ -140,21 +139,21 @@ export default function FormDetailPage() {
             ) : null}
             <dl className="mt-3 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
               <div>
-                <dt className="font-medium text-foreground">Form code</dt>
+                <dt className="font-medium text-foreground">{t("forms.formCode")}</dt>
                 <dd className="font-mono">{meta.formCode}</dd>
               </div>
               {meta.formName ? (
                 <div>
-                  <dt className="font-medium text-foreground">Form name</dt>
+                  <dt className="font-medium text-foreground">{t("forms.formName")}</dt>
                   <dd>{meta.formName}</dd>
                 </div>
               ) : null}
               <div>
-                <dt className="font-medium text-foreground">Field source</dt>
+                <dt className="font-medium text-foreground">{t("forms.fieldSource")}</dt>
                 <dd className="font-mono">{sourceLabel(schema.source)}</dd>
               </div>
               <div>
-                <dt className="font-medium text-foreground">Fields</dt>
+                <dt className="font-medium text-foreground">{t("forms.fields")}</dt>
                 <dd>{schema.fields.length}</dd>
               </div>
             </dl>
@@ -163,17 +162,19 @@ export default function FormDetailPage() {
           {hasFields ? (
             <div className="overflow-hidden rounded-xl border border-border bg-card">
               <div className="border-b border-border bg-muted/50 px-4 py-2.5">
-                <span className="text-sm font-medium">Fields ({schema.fields.length})</span>
+                <span className="text-sm font-medium">
+                  {t("forms.fieldsCount", { count: schema.fields.length })}
+                </span>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] text-left text-sm">
                   <thead className="border-b border-border bg-muted/30 text-muted-foreground">
                     <tr>
-                      <th className="w-[180px] px-4 py-2.5 font-medium">Key</th>
-                      <th className="w-[110px] px-4 py-2.5 font-medium">Type</th>
-                      <th className="px-4 py-2.5 font-medium">Label</th>
-                      <th className="w-[90px] px-4 py-2.5 font-medium">Required</th>
-                      <th className="px-4 py-2.5 font-medium">Hint</th>
+                      <th className="w-[180px] px-4 py-2.5 font-medium">{t("forms.colKey")}</th>
+                      <th className="w-[110px] px-4 py-2.5 font-medium">{t("forms.colType")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("forms.colLabel")}</th>
+                      <th className="w-[90px] px-4 py-2.5 font-medium">{t("common.required")}</th>
+                      <th className="px-4 py-2.5 font-medium">{t("forms.colHint")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -185,10 +186,7 @@ export default function FormDetailPage() {
               </div>
             </div>
           ) : (
-            <StatusBanner tone="info">
-              Schema loaded but no fillable fields were found. The form may still be valid for voice-fill if
-              fields are generated at runtime — inspect Raw JSON.
-            </StatusBanner>
+            <StatusBanner tone="info">{t("forms.noSchema")}</StatusBanner>
           )}
         </div>
       )}
@@ -200,7 +198,7 @@ export default function FormDetailPage() {
           className="flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
         >
           {showRaw ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-          Raw JSON
+          {t("forms.rawJson")}
         </button>
         {showRaw ? (
           <pre className="mt-2 max-h-80 overflow-auto rounded-xl border border-border bg-card p-4 text-xs leading-relaxed">

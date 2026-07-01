@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useAdminMe } from "@/hooks/use-admin-me";
 import { APP_CONFIG_FALLBACKS } from "@/lib/app-config-fallbacks";
+import { useT } from "@idx/i18n";
 
 type ChatRuntime = {
   tenantId: string;
@@ -20,6 +21,7 @@ type ChatRuntime = {
 };
 
 export default function ChatRuntimeSettingsPage() {
+  const t = useT();
   const { loading: meLoading, canManageRuntime, canReadRuntime } = useAdminMe();
   const [runtime, setRuntime] = useState<ChatRuntime | null>(null);
   const [tenantId, setTenantId] = useState("");
@@ -51,16 +53,16 @@ export default function ChatRuntimeSettingsPage() {
       const res = await fetch("/api/settings/chat-runtime");
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "Không tải được chat runtime");
+        throw new Error(typeof data.error === "string" ? data.error : t("runtime.loadFailed"));
       }
       applyRuntime((data as { chatRuntime: ChatRuntime }).chatRuntime);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Load failed");
+      setError(e instanceof Error ? e.message : t("common.loadFailed"));
       setRuntime(null);
     } finally {
       setLoading(false);
     }
-  }, [applyRuntime, canReadRuntime]);
+  }, [applyRuntime, canReadRuntime, t]);
 
   useEffect(() => {
     if (!meLoading && canReadRuntime) void load();
@@ -74,7 +76,7 @@ export default function ChatRuntimeSettingsPage() {
     try {
       const topK = Number(defaultTopK);
       if (!Number.isInteger(topK) || topK < 1 || topK > 50) {
-        throw new Error("Top K phải là số nguyên từ 1 đến 50");
+        throw new Error(t("runtime.topKInvalid"));
       }
 
       const res = await fetch("/api/settings/chat-runtime", {
@@ -91,12 +93,12 @@ export default function ChatRuntimeSettingsPage() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(typeof data.error === "string" ? data.error : "Cập nhật thất bại");
+        throw new Error(typeof data.error === "string" ? data.error : t("common.updateFailed"));
       }
       applyRuntime((data as { chatRuntime: ChatRuntime }).chatRuntime);
-      setSuccess("Đã lưu cấu hình chat runtime cho user chat.");
+      setSuccess(t("runtime.saved"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Update failed");
+      setError(e instanceof Error ? e.message : t("common.updateFailed"));
     } finally {
       setSaving(false);
     }
@@ -106,17 +108,17 @@ export default function ChatRuntimeSettingsPage() {
 
   return (
     <AdminShell
-      title="Chat Runtime"
-      description="Tenant, corpus và pipeline mặc định cho user chat."
+      title={t("runtime.title")}
+      description={t("runtime.description")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || saving}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
     >
       {!meLoading && !canReadRuntime ? (
-        <StatusBanner tone="error">Bạn không có quyền xem trang này.</StatusBanner>
+        <StatusBanner tone="error">{t("common.noAccess")}</StatusBanner>
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
@@ -125,24 +127,24 @@ export default function ChatRuntimeSettingsPage() {
       {canReadRuntime ? (
         <div className="mt-4 grid gap-4 xl:grid-cols-[280px_1fr]">
           <section className="space-y-3 rounded-xl border border-border bg-card p-4">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Tóm tắt</p>
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{t("runtime.summary")}</p>
             <dl className="space-y-2 text-sm">
               <div>
-                <dt className="text-xs text-muted-foreground">Tenant</dt>
+                <dt className="text-xs text-muted-foreground">{t("runtime.tenant")}</dt>
                 <dd className="font-mono text-xs">{tenantId || defaults.tenantId}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Corpus</dt>
+                <dt className="text-xs text-muted-foreground">{t("runtime.corpus")}</dt>
                 <dd className="font-mono text-xs">{defaultCorpusId || defaults.defaultCorpusId}</dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Chat pipeline</dt>
+                <dt className="text-xs text-muted-foreground">{t("runtime.chatPipeline")}</dt>
                 <dd className="font-mono text-xs break-all">{defaultChatPipeline || defaults.defaultChatPipeline}</dd>
               </div>
             </dl>
             {runtime?.updatedAt ? (
               <p className="text-[11px] text-muted-foreground">
-                Cập nhật: {new Date(runtime.updatedAt).toLocaleString()}
+                {t("common.updatedAt", { date: new Date(runtime.updatedAt).toLocaleString() })}
               </p>
             ) : null}
           </section>
@@ -157,7 +159,7 @@ export default function ChatRuntimeSettingsPage() {
             >
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Tenant ID</label>
+                  <label className="text-sm font-medium">{t("runtime.tenantId")}</label>
                   <Input
                     value={tenantId}
                     onChange={(e) => setTenantId(e.target.value)}
@@ -166,7 +168,7 @@ export default function ChatRuntimeSettingsPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Tên hiển thị tenant</label>
+                  <label className="text-sm font-medium">{t("runtime.tenantDisplayName")}</label>
                   <Input
                     value={tenantDisplayName}
                     onChange={(e) => setTenantDisplayName(e.target.value)}
@@ -177,7 +179,7 @@ export default function ChatRuntimeSettingsPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-sm font-medium">Corpus mặc định</label>
+                <label className="text-sm font-medium">{t("runtime.defaultCorpus")}</label>
                 <Input
                   value={defaultCorpusId}
                   onChange={(e) => setDefaultCorpusId(e.target.value)}
@@ -188,7 +190,7 @@ export default function ChatRuntimeSettingsPage() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Chat pipeline</label>
+                  <label className="text-sm font-medium">{t("runtime.chatPipeline")}</label>
                   <Input
                     value={defaultChatPipeline}
                     onChange={(e) => setDefaultChatPipeline(e.target.value)}
@@ -197,7 +199,7 @@ export default function ChatRuntimeSettingsPage() {
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-sm font-medium">Voice pipeline</label>
+                  <label className="text-sm font-medium">{t("runtime.voicePipeline")}</label>
                   <Input
                     value={defaultVoicePipeline}
                     onChange={(e) => setDefaultVoicePipeline(e.target.value)}
@@ -208,7 +210,7 @@ export default function ChatRuntimeSettingsPage() {
               </div>
 
               <div className="space-y-1 md:max-w-[12rem]">
-                <label className="text-sm font-medium">Top K (1–50)</label>
+                <label className="text-sm font-medium">{t("runtime.topK")}</label>
                 <Input
                   type="number"
                   min={1}
@@ -221,7 +223,7 @@ export default function ChatRuntimeSettingsPage() {
 
               {canManageRuntime ? (
                 <Button type="submit" disabled={saving || loading}>
-                  {saving ? "Đang lưu…" : "Lưu chat runtime"}
+                  {saving ? t("common.saving") : t("runtime.saveRuntime")}
                 </Button>
               ) : null}
             </form>

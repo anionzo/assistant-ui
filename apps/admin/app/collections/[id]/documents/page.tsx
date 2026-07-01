@@ -15,8 +15,10 @@ import { useClientPagination } from "@/hooks/use-client-pagination";
 import { listDocuments, publishCollection } from "@/lib/api/collections";
 import type { CorpusDocument } from "@/lib/types/gateway";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 
 export default function DocumentsPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const collectionId = decodeURIComponent(params.id);
   const [documents, setDocuments] = useState<CorpusDocument[]>([]);
@@ -40,12 +42,12 @@ export default function DocumentsPage() {
     try {
       setDocuments(await listDocuments(collectionId));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load documents");
+      setError(e instanceof Error ? e.message : t("collections.loadDocumentsFailed"));
       setDocuments([]);
     } finally {
       setLoading(false);
     }
-  }, [collectionId]);
+  }, [collectionId, t]);
 
   useEffect(() => {
     void loadDocuments();
@@ -57,9 +59,14 @@ export default function DocumentsPage() {
     setSuccess("");
     try {
       const result = await publishCollection(collectionId, corpusId.trim());
-      setSuccess(`Published to corpus "${corpusId}" — chat can use updated RAG (${String((result as { status?: string }).status ?? "ok")}).`);
+      setSuccess(
+        t("collections.publishSuccess", {
+          corpusId,
+          status: String((result as { status?: string }).status ?? "ok"),
+        }),
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Publish failed");
+      setError(e instanceof Error ? e.message : t("collections.publishFailed"));
     } finally {
       setPublishing(false);
     }
@@ -67,23 +74,23 @@ export default function DocumentsPage() {
 
   return (
     <AdminShell
-      title={`Collection ${collectionId}`}
-      description="Review indexed documents, preview chunks, then publish to chat tenant."
+      title={t("collections.collectionTitle", { id: collectionId })}
+      description={t("collections.documentsDescription")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadDocuments()} disabled={loading}>
           <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
       sidebarContent={<CollectionNav collectionId={collectionId} active="documents" />}
     >
       <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
         <div className="min-w-[220px] flex-1">
-          <label className="mb-1 block text-sm font-medium">Publish to corpus ID</label>
+          <label className="mb-1 block text-sm font-medium">{t("collections.publishCorpus")}</label>
           <Input value={corpusId} onChange={(e) => setCorpusId(e.target.value)} />
         </div>
         <Button onClick={() => void publishCorpus()} disabled={publishing}>
-          {publishing ? "Publishing…" : "Publish to chat"}
+          {publishing ? t("collections.publishing") : t("collections.publishToChat")}
         </Button>
       </div>
 
@@ -91,7 +98,13 @@ export default function DocumentsPage() {
       {success ? <StatusBanner tone="success">{success}</StatusBanner> : null}
 
       <Table
-        headers={["STT", "File", "Status", "Chunks", "Actions"]}
+        headers={[
+          t("common.colIndex"),
+          t("collections.colFile"),
+          t("common.status"),
+          t("collections.colChunks"),
+          t("common.colActions"),
+        ]}
         footer={
           !loading && documents.length > 0 ? (
             <PaginationBar meta={meta} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
@@ -101,7 +114,7 @@ export default function DocumentsPage() {
         {loading ? (
           <TableLoading colSpan={5} />
         ) : documents.length === 0 ? (
-          <TableEmpty colSpan={5} message="No documents indexed yet — upload files first." />
+          <TableEmpty colSpan={5} message={t("collections.documentsEmpty")} />
         ) : (
           pageDocuments.map((doc, index) => {
             const docId = String(doc.id ?? index);
@@ -114,7 +127,7 @@ export default function DocumentsPage() {
                     doc.status === "READY" ? "text-emerald-700" : doc.error ? "text-destructive" : "text-muted-foreground",
                   )}
                 >
-                  {doc.error ? `Error: ${doc.error}` : String(doc.status ?? "—")}
+                  {doc.error ? t("collections.documentError", { error: doc.error }) : String(doc.status ?? "—")}
                 </TableCell>
                 <TableCell className="text-muted-foreground">{String(doc.chunk_count ?? 0)}</TableCell>
                 <TableCell>
@@ -122,7 +135,7 @@ export default function DocumentsPage() {
                     href={`/collections/${encodeURIComponent(collectionId)}/documents/${encodeURIComponent(docId)}`}
                     className="text-primary hover:underline"
                   >
-                    View chunks
+                    {t("collections.viewChunks")}
                   </Link>
                 </TableCell>
               </TableRow>

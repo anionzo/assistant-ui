@@ -6,8 +6,10 @@ import { createCollection } from "@/lib/api/collections";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBanner } from "@/components/status-banner";
+import { useT } from "@idx/i18n";
 
 export function CreateCollectionForm({ onCreated }: { onCreated: () => void }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [corpusId, setCorpusId] = useState("admission-chatbot-corpus");
@@ -31,7 +33,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated: () => void }) {
       setOpen(false);
       onCreated();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to create collection");
+      setError(e instanceof Error ? e.message : t("collections.createFailed"));
     } finally {
       setSaving(false);
     }
@@ -41,7 +43,7 @@ export function CreateCollectionForm({ onCreated }: { onCreated: () => void }) {
     return (
       <Button size="sm" onClick={() => setOpen(true)}>
         <Plus className="size-4" />
-        New collection
+        {t("collections.newCollection")}
       </Button>
     );
   }
@@ -51,23 +53,29 @@ export function CreateCollectionForm({ onCreated }: { onCreated: () => void }) {
       onSubmit={(e) => void handleSubmit(e)}
       className="w-full max-w-xl space-y-3 rounded-xl border border-border bg-card p-4"
     >
-      <p className="text-sm font-medium">Create collection</p>
+      <p className="text-sm font-medium">{t("collections.createTitle")}</p>
       <div>
-        <label className="mb-1 block text-xs text-muted-foreground">Name</label>
+        <label className="mb-1 block text-xs text-muted-foreground">{t("common.name")}</label>
         <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="admission-docs-2026" required />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-muted-foreground">Corpus ID</label>
+        <label className="mb-1 block text-xs text-muted-foreground">{t("collections.corpusId")}</label>
         <Input value={corpusId} onChange={(e) => setCorpusId(e.target.value)} required />
       </div>
       <div>
-        <label className="mb-1 block text-xs text-muted-foreground">Description (optional)</label>
+        <label className="mb-1 block text-xs text-muted-foreground">
+          {t("collections.descriptionLabel")} {t("common.optional")}
+        </label>
         <Input value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       <div className="flex gap-2">
-        <Button type="submit" disabled={saving}>{saving ? "Creating…" : "Create"}</Button>
-        <Button type="button" variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+        <Button type="submit" disabled={saving}>
+          {saving ? t("common.creating") : t("common.create")}
+        </Button>
+        <Button type="button" variant="outline" onClick={() => setOpen(false)}>
+          {t("common.cancel")}
+        </Button>
       </div>
     </form>
   );

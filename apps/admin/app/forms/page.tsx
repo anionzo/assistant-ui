@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Plus, RefreshCw, Search, X } from "lucide-react";
+import { useT } from "@idx/i18n";
 import { AdminShell } from "@/components/admin-shell";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import type { FormSummary } from "@/lib/types/gateway";
 import { readUploadFeedback } from "@/lib/forms/upload-feedback";
 
 export default function FormsListPage() {
+  const t = useT();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [forms, setForms] = useState<FormSummary[]>([]);
@@ -100,20 +102,20 @@ export default function FormsListPage() {
 
   return (
     <AdminShell
-      title="Forms"
-      description="Manage structured form templates served by the gateway."
+      title={t("forms.title")}
+      description={t("forms.description")}
       actions={
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={() => void loadForms()} disabled={loading}>
             <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-            Refresh
+            {t("common.refresh")}
           </Button>
           <Link
             href="/forms/new"
             className="inline-flex h-8 items-center gap-1 rounded-lg bg-primary px-2.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
           >
             <Plus className="size-4" />
-            Upload form
+            {t("forms.uploadForm")}
           </Link>
         </div>
       }
@@ -126,24 +128,22 @@ export default function FormsListPage() {
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search forms by keyword…"
+          placeholder={t("forms.searchPlaceholder")}
           className="flex-1 border-0 bg-transparent p-0 h-auto text-sm shadow-none focus-visible:ring-0"
         />
         {isSearchActive ? (
           <Button type="button" variant="ghost" size="sm" onClick={clearSearch}>
             <X className="size-3.5" />
-            Clear
+            {t("common.clear")}
           </Button>
         ) : null}
         <Button type="submit" variant="secondary" size="sm" disabled={searching || !searchQuery.trim()}>
-          {searching ? "Searching…" : "Search"}
+          {searching ? t("common.searching") : t("common.search")}
         </Button>
       </form>
 
       {showUploadedBanner ? (
-        <StatusBanner tone="success">
-          New form uploaded successfully. It should appear in the list below — use Refresh if needed.
-        </StatusBanner>
+        <StatusBanner tone="success">{t("forms.uploadedBanner")}</StatusBanner>
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
@@ -151,13 +151,13 @@ export default function FormsListPage() {
       {isSearchActive && !searching && !searchError ? (
         <StatusBanner tone="info">
           {searchResults !== null && searchResults.length === 0
-            ? `No results for "${searchQuery}"`
-            : `${searchResults?.length ?? 0} result(s) for "${searchQuery}"`}
+            ? t("forms.noSearchResults", { query: searchQuery })
+            : t("forms.searchResults", { count: searchResults?.length ?? 0, query: searchQuery })}
         </StatusBanner>
       ) : null}
 
       <Table
-        headers={["STT", "Code", "Title", "Actions"]}
+        headers={[t("common.colIndex"), t("forms.colCode"), t("forms.colTitle"), t("common.colActions")]}
         footer={
           !tableLoading && displayed.length > 0 ? (
             <PaginationBar meta={meta} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
@@ -165,9 +165,9 @@ export default function FormsListPage() {
         }
       >
         {tableLoading ? (
-          <TableLoading colSpan={4} message={searching ? "Searching…" : "Loading forms…"} />
+          <TableLoading colSpan={4} message={searching ? t("common.searching") : t("forms.loading")} />
         ) : displayed.length === 0 ? (
-          <TableEmpty colSpan={4} message={isSearchActive ? "No results found." : "No forms returned from gateway."} />
+          <TableEmpty colSpan={4} message={isSearchActive ? t("forms.emptySearch") : t("forms.emptyGateway")} />
         ) : (
           pageItems.map((form, index) => {
             const code = String(form.form_code ?? form.code ?? index);
@@ -178,7 +178,7 @@ export default function FormsListPage() {
                 <TableCell>{String(form.form_name ?? form.title ?? form.name ?? "—")}</TableCell>
                 <TableCell>
                   <Link href={`/forms/${encodeURIComponent(code)}`} className="text-primary hover:underline">
-                    View
+                    {t("common.view")}
                   </Link>
                 </TableCell>
               </TableRow>

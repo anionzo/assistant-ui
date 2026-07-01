@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { RefreshCw } from "lucide-react";
+import { useT } from "@idx/i18n";
 import { AdminShell } from "@/components/admin-shell";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,7 @@ type PermissionInfo = { id: number; code: string; name: string; resource: string
 type RoleInfo = { id: number; name: string; description: string };
 
 export default function RoleDetailPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const roleId = Number(decodeURIComponent(params.id));
 
@@ -61,7 +63,6 @@ export default function RoleDetailPage() {
 
   const rolePermIds = new Set(rolePerms.map((p) => p.id));
 
-  // Group by resource
   const grouped: Record<string, PermissionInfo[]> = {};
   for (const p of allPermissions) {
     (grouped[p.resource] ??= []).push(p);
@@ -69,25 +70,25 @@ export default function RoleDetailPage() {
 
   return (
     <AdminShell
-      title={role?.name ?? "Role"}
-      description="Manage permissions for this role."
+      title={role?.name ?? t("roles.detailTitle")}
+      description={t("roles.detailDescription")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
-          <RefreshCw className={cn("size-4", loading && "animate-spin")} /> Refresh
+          <RefreshCw className={cn("size-4", loading && "animate-spin")} /> {t("common.refresh")}
         </Button>
       }
     >
       <Link href="/roles" className="mb-4 inline-block text-sm text-primary hover:underline">
-        ← Back to roles
+        {t("common.backToRoles")}
       </Link>
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {role ? <p className="mb-4 text-xs text-muted-foreground">{role.description}</p> : null}
 
       {loading ? (
-        <StatusBanner tone="info">Loading…</StatusBanner>
+        <StatusBanner tone="info">{t("common.loading")}</StatusBanner>
       ) : !role ? (
-        <StatusBanner tone="error">Role not found.</StatusBanner>
+        <StatusBanner tone="error">{t("roles.notFound")}</StatusBanner>
       ) : (
         <div className="space-y-4">
           {Object.entries(grouped).map(([resource, perms]) => (

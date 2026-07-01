@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Upload } from "lucide-react";
+import { useT } from "@idx/i18n";
 import { AdminShell } from "@/components/admin-shell";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
@@ -17,6 +18,7 @@ type UploadSuccess = {
 };
 
 export default function NewFormPage() {
+  const t = useT();
   const formRef = useRef<HTMLFormElement>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -29,7 +31,7 @@ export default function NewFormPage() {
     const codeInput = form.elements.namedItem("form_code") as HTMLInputElement | null;
     const file = fileInput?.files?.[0];
     if (!file) {
-      setError("Choose a form file to upload.");
+      setError(t("forms.chooseFile"));
       return;
     }
 
@@ -55,7 +57,7 @@ export default function NewFormPage() {
 
       const code = String(result.form_code ?? result.code ?? codeInput?.value.trim() ?? "").trim();
       if (!code) {
-        setError("Upload completed but no form code was returned — check the forms list.");
+        setError(t("forms.uploadNoCode"));
         return;
       }
 
@@ -79,9 +81,9 @@ export default function NewFormPage() {
   }
 
   return (
-    <AdminShell title="Upload form" description="Ingest a new form definition via /forms/ingest.">
+    <AdminShell title={t("forms.uploadTitle")} description={t("forms.uploadDescription")}>
       <Link href="/forms" className="mb-4 inline-block text-sm text-primary hover:underline">
-        ← Back to forms
+        {t("common.backToForms")}
       </Link>
 
       {success ? (
@@ -90,7 +92,7 @@ export default function NewFormPage() {
             <div className="flex items-start gap-2">
               <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
               <div className="space-y-1">
-                <p className="font-medium">Form uploaded successfully</p>
+                <p className="font-medium">{t("forms.uploadSuccess")}</p>
                 <p>
                   <span className="font-mono">{success.code}</span>
                   {success.formName ? (
@@ -100,7 +102,9 @@ export default function NewFormPage() {
                     </>
                   ) : null}
                 </p>
-                <p className="text-emerald-900/80">File: {success.fileName}</p>
+                <p className="text-emerald-900/80">
+                  {t("forms.uploadFile")} {success.fileName}
+                </p>
               </div>
             </div>
           </StatusBanner>
@@ -110,16 +114,16 @@ export default function NewFormPage() {
               href={formDetailHref(success.code, { uploaded: true, fileName: success.fileName })}
               className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
             >
-              View form schema
+              {t("forms.viewSchema")}
             </Link>
             <Button type="button" variant="outline" size="sm" onClick={handleUploadAnother}>
-              Upload another
+              {t("forms.uploadAnother")}
             </Button>
             <Link
               href={formsListHref(true)}
               className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-xs font-medium hover:bg-muted"
             >
-              Back to forms list
+              {t("forms.backToList")}
             </Link>
           </div>
         </div>
@@ -130,19 +134,19 @@ export default function NewFormPage() {
           className="max-w-xl space-y-4 rounded-xl border border-border bg-card p-6"
         >
           <div>
-            <label className="mb-1 block text-sm font-medium">Form code (optional)</label>
+            <label className="mb-1 block text-sm font-medium">{t("forms.formCodeOptional")}</label>
             <Input name="form_code" placeholder="admission_form_v1" disabled={uploading} />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Form file</label>
+            <label className="mb-1 block text-sm font-medium">{t("forms.formFile")}</label>
             <Input name="file" type="file" required disabled={uploading} />
           </div>
           <Button type="submit" disabled={uploading}>
             <Upload className="size-4" />
-            {uploading ? "Uploading…" : "Upload"}
+            {uploading ? t("common.uploading") : t("common.upload")}
           </Button>
           {uploading ? (
-            <p className="text-xs text-muted-foreground">Sending file to gateway — please wait…</p>
+            <p className="text-xs text-muted-foreground">{t("forms.uploadWait")}</p>
           ) : null}
         </form>
       )}

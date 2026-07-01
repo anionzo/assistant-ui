@@ -10,8 +10,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getCollection, updateCollectionSettings } from "@/lib/api/collections";
 import type { Collection } from "@/lib/types/gateway";
+import { useT } from "@idx/i18n";
 
 export default function SettingsPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const collectionId = decodeURIComponent(params.id);
   const [collection, setCollection] = useState<Collection | null>(null);
@@ -34,11 +36,11 @@ export default function SettingsPage() {
       setChunkOverlap(String(cfg.chunk_overlap ?? 50));
       setLanguage(String(cfg.language ?? "vi"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load settings");
+      setError(e instanceof Error ? e.message : t("collections.loadSettingsFailed"));
     } finally {
       setLoading(false);
     }
-  }, [collectionId]);
+  }, [collectionId, t]);
 
   useEffect(() => {
     void load();
@@ -57,36 +59,39 @@ export default function SettingsPage() {
         language,
       });
       setCollection(updated);
-      setSuccess("Parser settings saved. Re-upload or reprocess documents to apply.");
+      setSuccess(t("collections.settingsSaved"));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to save settings");
+      setError(e instanceof Error ? e.message : t("collections.saveSettingsFailed"));
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <AdminShell title={`Collection ${collectionId}`} description="Parser and chunking defaults for new uploads." sidebarContent={<CollectionNav collectionId={collectionId} active="settings" />}>
-
+    <AdminShell
+      title={t("collections.collectionTitle", { id: collectionId })}
+      description={t("collections.settingsDescription")}
+      sidebarContent={<CollectionNav collectionId={collectionId} active="settings" />}
+    >
       {loading ? (
-        <StatusBanner tone="info">Loading settings…</StatusBanner>
+        <StatusBanner tone="info">{t("collections.loadingSettings")}</StatusBanner>
       ) : (
         <form onSubmit={(e) => void handleSave(e)} className="max-w-lg space-y-4 rounded-xl border border-border bg-card p-6">
           <div>
-            <label className="mb-1 block text-sm font-medium">Chunk size</label>
+            <label className="mb-1 block text-sm font-medium">{t("collections.chunkSize")}</label>
             <Input value={chunkSize} onChange={(e) => setChunkSize(e.target.value)} inputMode="numeric" required />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Chunk overlap</label>
+            <label className="mb-1 block text-sm font-medium">{t("collections.chunkOverlap")}</label>
             <Input value={chunkOverlap} onChange={(e) => setChunkOverlap(e.target.value)} inputMode="numeric" required />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium">Language</label>
+            <label className="mb-1 block text-sm font-medium">{t("collections.language")}</label>
             <Input value={language} onChange={(e) => setLanguage(e.target.value)} placeholder="vi" required />
           </div>
           <Button type="submit" disabled={saving}>
             <Save className="size-4" />
-            {saving ? "Saving…" : "Save settings"}
+            {saving ? t("common.saving") : t("collections.saveSettings")}
           </Button>
         </form>
       )}

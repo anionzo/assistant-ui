@@ -17,8 +17,10 @@ import {
 } from "@/lib/api/collections";
 import type { CorpusDocument, DocumentChunk } from "@/lib/types/gateway";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 
 export default function DocumentDetailPage() {
+  const t = useT();
   const params = useParams<{ id: string; docId: string }>();
   const collectionId = decodeURIComponent(params.id);
   const documentId = decodeURIComponent(params.docId);
@@ -48,29 +50,29 @@ export default function DocumentDetailPage() {
       setDocument(doc);
       setChunks(chunkList);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load document");
+      setError(e instanceof Error ? e.message : t("collections.loadDocumentFailed"));
       setDocument(null);
       setChunks([]);
     } finally {
       setLoading(false);
     }
-  }, [collectionId, documentId]);
+  }, [collectionId, documentId, t]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
   async function handleReprocess() {
-    if (!confirm("Reprocess this document from source file?")) return;
+    if (!confirm(t("collections.reprocessConfirm"))) return;
     setReprocessing(true);
     setError("");
     setSuccess("");
     try {
       await reprocessDocument(collectionId, documentId);
-      setSuccess("Reprocess started — refresh in a few seconds.");
+      setSuccess(t("collections.reprocessStarted"));
       setTimeout(() => void load(), 3000);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Reprocess failed");
+      setError(e instanceof Error ? e.message : t("collections.reprocessFailed"));
     } finally {
       setReprocessing(false);
     }
@@ -78,17 +80,21 @@ export default function DocumentDetailPage() {
 
   return (
     <AdminShell
-      title={document?.file_name ? String(document.file_name) : `Document ${documentId}`}
-      description="Chunk preview and reprocess for QA before publish."
+      title={
+        document?.file_name
+          ? String(document.file_name)
+          : t("collections.documentTitle", { id: documentId })
+      }
+      description={t("collections.chunkPreview")}
       actions={
         <>
           <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading}>
             <RefreshCw className={cn("size-4", loading && "animate-spin")} />
-            Refresh
+            {t("common.refresh")}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => void handleReprocess()} disabled={reprocessing}>
             <RotateCcw className="size-4" />
-            {reprocessing ? "Reprocessing…" : "Reprocess"}
+            {reprocessing ? t("collections.reprocessing") : t("collections.reprocess")}
           </Button>
         </>
       }
@@ -98,7 +104,7 @@ export default function DocumentDetailPage() {
         href={`/collections/${encodeURIComponent(collectionId)}/documents`}
         className="mb-4 inline-block text-sm text-primary hover:underline"
       >
-        ← Back to documents
+        {t("common.backToDocuments")}
       </Link>
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
@@ -106,24 +112,36 @@ export default function DocumentDetailPage() {
 
       {document ? (
         <div className="mb-6 grid gap-3 rounded-xl border border-border bg-card p-4 text-sm sm:grid-cols-4">
-          <div><span className="text-muted-foreground">Status</span><p className="font-medium">{String(document.status ?? "—")}</p></div>
-          <div><span className="text-muted-foreground">Chunks</span><p className="font-medium">{String(document.chunk_count ?? 0)}</p></div>
-          <div><span className="text-muted-foreground">Tokens</span><p className="font-medium">{String(document.token_count ?? 0)}</p></div>
-          <div><span className="text-muted-foreground">Progress</span><p className="font-medium">{Math.round((document.progress ?? 0) * 100)}%</p></div>
+          <div>
+            <span className="text-muted-foreground">{t("common.status")}</span>
+            <p className="font-medium">{String(document.status ?? "—")}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t("collections.colChunks")}</span>
+            <p className="font-medium">{String(document.chunk_count ?? 0)}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t("collections.colTokens")}</span>
+            <p className="font-medium">{String(document.token_count ?? 0)}</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">{t("collections.colProgress")}</span>
+            <p className="font-medium">{Math.round((document.progress ?? 0) * 100)}%</p>
+          </div>
         </div>
       ) : null}
 
-      <h2 className="mb-3 text-sm font-semibold">Chunks ({chunks.length})</h2>
+      <h2 className="mb-3 text-sm font-semibold">{t("collections.chunksTitle", { count: chunks.length })}</h2>
       <div className="space-y-3">
         {loading ? (
-          <StatusBanner tone="info">Loading chunks…</StatusBanner>
+          <StatusBanner tone="info">{t("collections.loadingChunks")}</StatusBanner>
         ) : chunks.length === 0 ? (
-          <StatusBanner tone="info">No chunks yet — document may still be indexing.</StatusBanner>
+          <StatusBanner tone="info">{t("collections.chunksEmpty")}</StatusBanner>
         ) : (
           pageChunks.map((chunk, index) => (
             <article key={String(chunk.id ?? rowOffset + index)} className="rounded-xl border border-border bg-card p-4 text-sm">
               <p className="mb-2 text-xs text-muted-foreground">
-                STT {rowOffset + index + 1} · {String(chunk.id ?? "")}
+                {t("common.colIndex")} {rowOffset + index + 1} · {String(chunk.id ?? "")}
               </p>
               <p className="whitespace-pre-wrap leading-relaxed">
                 {String(chunk.content ?? chunk.text ?? "")}

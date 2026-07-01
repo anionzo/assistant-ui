@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { Ban, CheckCircle, Key, LogOut, RefreshCw, Trash2, X } from "lucide-react";
+import { useT } from "@idx/i18n";
 import { AdminShell } from "@/components/admin-shell";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
@@ -15,6 +16,7 @@ type UserDetail = {
 };
 
 export default function AdminUserDetailPage() {
+  const t = useT();
   const params = useParams<{ id: string }>();
   const router = useRouter();
   const userId = decodeURIComponent(params.id);
@@ -23,24 +25,19 @@ export default function AdminUserDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Ban
   const [banning, setBanning] = useState(false);
 
-  // Reset password
   const [newPw, setNewPw] = useState("");
   const [resetting, setResetting] = useState(false);
   const [pwResult, setPwResult] = useState("");
 
-  // Role
   const [allRoles, setAllRoles] = useState<Array<{ id: number; name: string }>>([]);
   const [selectedRole, setSelectedRole] = useState("");
   const [assigning, setAssigning] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
 
-  // Force logout
   const [forceLogging, setForceLogging] = useState(false);
 
-  // Delete
   const [deleting, setDeleting] = useState(false);
 
   const loadUser = useCallback(async () => {
@@ -77,7 +74,8 @@ export default function AdminUserDetailPage() {
   async function toggleBan() {
     if (!detail) return;
     const newStatus = detail.user.status === "banned" ? "active" : "banned";
-    if (!confirm(`${newStatus === "banned" ? "Ban" : "Unban"} user ${detail.user.email}?`)) return;
+    const action = newStatus === "banned" ? t("users.ban") : t("users.unban");
+    if (!confirm(t("users.banConfirm", { action, email: detail.user.email }))) return;
     setBanning(true);
     setError("");
     try {
@@ -100,7 +98,7 @@ export default function AdminUserDetailPage() {
 
   async function handleResetPassword(e: React.FormEvent) {
     e.preventDefault();
-    if (newPw.length < 8) { setPwResult("Mật khẩu tối thiểu 8 ký tự."); return; }
+    if (newPw.length < 8) { setPwResult(t("users.passwordMin8")); return; }
     setPwResult("");
     setResetting(true);
     try {
@@ -113,7 +111,7 @@ export default function AdminUserDetailPage() {
         const d = await res.json().catch(() => ({}));
         throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
-      setPwResult("Mật khẩu đã được đặt lại.");
+      setPwResult(t("users.passwordReset"));
       setNewPw("");
     } catch (e) {
       setPwResult(e instanceof Error ? e.message : "Reset failed");
@@ -167,7 +165,7 @@ export default function AdminUserDetailPage() {
   }
 
   async function forceLogout() {
-    if (!confirm(`Force logout user ${detail?.user.email}?`)) return;
+    if (!confirm(t("users.forceLogoutConfirm", { email: detail?.user.email ?? "" }))) return;
     setForceLogging(true);
     setError("");
     try {
@@ -187,7 +185,7 @@ export default function AdminUserDetailPage() {
   }
 
   async function deleteUser() {
-    if (!confirm(`Permanently delete user ${detail?.user.email}? This cannot be undone.`)) return;
+    if (!confirm(t("users.deleteConfirm", { email: detail?.user.email ?? "" }))) return;
     setDeleting(true);
     setError("");
     try {
@@ -210,46 +208,51 @@ export default function AdminUserDetailPage() {
 
   return (
     <AdminShell
-      title={u ? u.email : "User"}
-      description="View and manage user account."
+      title={u ? u.email : t("users.detailTitle")}
+      description={t("users.detailDescription")}
       actions={
         <Button variant="outline" size="sm" onClick={() => void loadUser()} disabled={loading}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
-          Refresh
+          {t("common.refresh")}
         </Button>
       }
     >
       <Link href="/users" className="mb-4 inline-block text-sm text-primary hover:underline">
-        ← Back to users
+        {t("common.backToUsers")}
       </Link>
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
 
       {loading ? (
-        <StatusBanner tone="info">Loading user…</StatusBanner>
+        <StatusBanner tone="info">{t("users.loadingUser")}</StatusBanner>
       ) : !detail ? (
-        <StatusBanner tone="error">User not found.</StatusBanner>
+        <StatusBanner tone="error">{t("users.notFound")}</StatusBanner>
       ) : (
         <div className="space-y-4">
-          {/* Info */}
           <div className="rounded-xl border border-border bg-card p-4 text-sm">
             <div className="grid gap-2 sm:grid-cols-3">
-              <div><span className="text-muted-foreground">Email</span><p className="font-medium">{detail.user.email}</p></div>
-              <div><span className="text-muted-foreground">Tên</span><p className="font-medium">{detail.user.displayName ?? "—"}</p></div>
-              <div><span className="text-muted-foreground">Trạng thái</span>
+              <div>
+                <span className="text-muted-foreground">{t("common.email")}</span>
+                <p className="font-medium">{detail.user.email}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t("users.displayName")}</span>
+                <p className="font-medium">{detail.user.displayName ?? "—"}</p>
+              </div>
+              <div>
+                <span className="text-muted-foreground">{t("common.status")}</span>
                 <p className={`font-medium ${detail.user.status === "banned" ? "text-destructive" : "text-emerald-700"}`}>
-                  {detail.user.status}
+                  {detail.user.status === "banned" ? t("common.banned") : detail.user.status === "active" ? t("common.active") : detail.user.status}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Roles */}
           <div className="rounded-xl border border-border bg-card p-4">
-            <h2 className="text-sm font-medium mb-2">Vai trò</h2>
+            <h2 className="text-sm font-medium mb-2">{t("users.roles")}</h2>
             <div className="flex flex-wrap gap-1.5 mb-3">
               {detail.roles.length === 0 ? (
-                <span className="text-xs text-muted-foreground">Chưa có vai trò</span>
+                <span className="text-xs text-muted-foreground">{t("users.noRoles")}</span>
               ) : (
                 detail.roles.map((r) => (
                   <span key={r.id} className="inline-flex items-center gap-1 rounded bg-muted/50 px-2 py-0.5 text-xs font-mono">
@@ -272,7 +275,7 @@ export default function AdminUserDetailPage() {
                 onChange={(e) => setSelectedRole(e.target.value)}
                 className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs h-8"
               >
-                <option value="">-- Chọn vai trò --</option>
+                <option value="">{t("users.selectRole")}</option>
                 {allRoles
                   .filter((r) => !detail.roles.some((ur) => ur.id === r.id))
                   .map((r) => (
@@ -286,54 +289,51 @@ export default function AdminUserDetailPage() {
                 onClick={() => void assignRole()}
                 disabled={assigning || !selectedRole}
               >
-                {assigning ? "..." : "Gán"}
+                {assigning ? t("common.saving") : t("users.assign")}
               </Button>
             </div>
           </div>
 
-          {/* Actions */}
           <div className="rounded-xl border border-border bg-card p-4">
-            <h2 className="text-sm font-medium mb-3">Actions</h2>
+            <h2 className="text-sm font-medium mb-3">{t("users.actions")}</h2>
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" onClick={() => void toggleBan()} disabled={banning}>
                 {detail.user.status === "banned" ? <CheckCircle className="size-3.5" /> : <Ban className="size-3.5" />}
-                {banning ? "..." : detail.user.status === "banned" ? "Unban" : "Ban"}
+                {banning ? t("common.saving") : detail.user.status === "banned" ? t("users.unban") : t("users.ban")}
               </Button>
               <Button variant="outline" size="sm" onClick={() => void forceLogout()} disabled={forceLogging}>
                 <LogOut className="size-3.5" />
-                {forceLogging ? "..." : "Force logout"}
+                {forceLogging ? t("common.saving") : t("users.forceLogout")}
               </Button>
               <Button variant="destructive" size="sm" onClick={() => void deleteUser()} disabled={deleting}>
                 <Trash2 className="size-3.5" />
-                {deleting ? "..." : "Delete"}
+                {deleting ? t("common.saving") : t("common.delete")}
               </Button>
             </div>
           </div>
 
-          {/* Reset password */}
           <div className="rounded-xl border border-border bg-card p-4">
-            <h2 className="text-sm font-medium mb-2">Reset password</h2>
+            <h2 className="text-sm font-medium mb-2">{t("users.resetPassword")}</h2>
             <form onSubmit={(e) => void handleResetPassword(e)} className="flex items-center gap-2">
               <input
                 type="password"
                 value={newPw}
                 onChange={(e) => setNewPw(e.target.value)}
-                placeholder="New password (min 8 chars)"
+                placeholder={t("users.newPasswordPlaceholder")}
                 minLength={8}
                 className="flex-1 rounded-md border border-border bg-background px-2 py-1.5 text-xs h-8"
               />
               <Button type="submit" variant="secondary" size="sm" disabled={resetting || newPw.length < 8}>
                 <Key className="size-3.5" />
-                {resetting ? "..." : "Reset"}
+                {resetting ? t("common.saving") : t("users.reset")}
               </Button>
             </form>
             {pwResult ? <p className="mt-1 text-xs text-muted-foreground">{pwResult}</p> : null}
           </div>
 
-          {/* Permissions */}
           <details className="rounded-xl border border-border bg-card p-4 text-sm">
             <summary className="cursor-pointer text-sm font-medium text-muted-foreground">
-              Permissions ({detail.permissions.length})
+              {t("users.permissions", { count: detail.permissions.length })}
             </summary>
             <div className="mt-2 flex flex-wrap gap-1">
               {detail.permissions.map((p) => (
