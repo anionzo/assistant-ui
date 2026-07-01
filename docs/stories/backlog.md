@@ -171,3 +171,33 @@ B5 (admin user mgmt UI)
 - B4 phụ thuộc B3 (cần API endpoints để gọi)
 - B5 phụ thuộc B2 (cần admin API endpoints)
 - B4, B5 song song được (khác app)
+
+---
+
+## Notes / Patterns (đọc trước khi code sau này)
+
+### Auth flow
+```
+Browser → BFF /api/auth/login → auth-api /auth/login → JWT tokens
+BFF sets cookies via response.cookies.set() (on Response object)
+Server Components: use checkSession() (read-only), not resolveSession()
+Route Handlers: use resolveSession() (can refresh + write cookies)
+cookies().set() FAILS in Server Components → always set on Response object
+idx_refresh TTL: 7 days (JWT_REFRESH_TTL=604800), idx_session TTL: 1h (JWT_ACCESS_TTL=3600)
+```
+
+### RBAC permission model
+```
+JWT: role_ids (INT[]) only — compact
+/auth/me: returns { user, roles, permissions: string[], permission_ids: int[] }
+Admin BFF: requireAdminPermission(P.COLLECTIONS_READ) — checks by INT ID
+Permission IDs: 10-14 collections, 20-23 documents, 30-32 files, 40-43 forms, 50-57 users
+Role IDs: 1=super_admin, 2=admin, 3=operator, 4=viewer, 5=user
+```
+
+### Response format
+```
+ALL APIs return flat JSON — no { success, data } wrapper
+Client: body.users (NOT body.data.users)
+Error: body.error as string (NOT body.error.message)
+```
