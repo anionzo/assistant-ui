@@ -222,6 +222,55 @@ class MemoryAuthStore implements AuthStore {
     return [...this.users.values()];
   }
 
+  async countUsers(search?: string) {
+    const users = [...this.users.values()];
+    if (!search) return users.length;
+    const q = search.toLowerCase();
+    return users.filter((user) => user.email.toLowerCase().includes(q)).length;
+  }
+
+  async listUsersPage(input: { page: number; limit: number; search?: string }) {
+    let users = [...this.users.values()];
+    if (input.search) {
+      const q = input.search.toLowerCase();
+      users = users.filter((user) => user.email.toLowerCase().includes(q));
+    }
+    const skip = (input.page - 1) * input.limit;
+    const items = users.slice(skip, skip + input.limit);
+    const total = users.length;
+    const totalPages = Math.max(1, Math.ceil(total / input.limit));
+    return {
+      page: Math.min(input.page, totalPages),
+      limit: input.limit,
+      total,
+      totalPages,
+      hasNext: input.page < totalPages,
+      hasPrev: input.page > 1,
+      items,
+    };
+  }
+
+  async listThreadsPage(
+    userId: string,
+    tenantId: string | undefined,
+    input: { page: number; limit: number },
+  ) {
+    const all = await this.listThreads(userId, tenantId);
+    const skip = (input.page - 1) * input.limit;
+    const items = all.slice(skip, skip + input.limit);
+    const total = all.length;
+    const totalPages = Math.max(1, Math.ceil(total / input.limit));
+    return {
+      page: Math.min(input.page, totalPages),
+      limit: input.limit,
+      total,
+      totalPages,
+      hasNext: input.page < totalPages,
+      hasPrev: input.page > 1,
+      items,
+    };
+  }
+
   async updateUser(userId: string, input: { displayName?: string }) {
     const user = this.users.get(userId);
     if (!user) return null;

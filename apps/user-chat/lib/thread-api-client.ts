@@ -9,8 +9,18 @@ type ThreadDto = {
   archived: boolean;
 };
 
+export type ThreadListPagination = {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrev: boolean;
+};
+
 export type ThreadListResponse = {
   threads: ThreadDto[];
+  pagination?: ThreadListPagination;
 };
 
 type ThreadMessagesResponse = {
@@ -85,7 +95,7 @@ export async function fetchThreadList(): Promise<ThreadListResponse> {
 
   if (threadListInFlight) return threadListInFlight;
 
-  threadListInFlight = fetchThreadApi<ThreadListResponse>("/api/threads")
+  threadListInFlight = fetchThreadApi<ThreadListResponse>("/api/threads?page=1&limit=50")
     .then((data) => {
       threadListCache = { data, expiresAt: Date.now() + THREAD_LIST_TTL_MS };
       return data;

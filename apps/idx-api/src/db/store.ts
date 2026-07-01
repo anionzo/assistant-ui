@@ -1,3 +1,4 @@
+import type { PaginatedResult } from "../utils/pagination";
 import { MongoAuthStore } from "./mongo/store";
 import type {
   ChatMessageRecord,
@@ -60,6 +61,17 @@ export interface AuthStore {
   assignRolePermission(roleId: number, permissionId: number): Promise<void>;
   revokeRolePermission(roleId: number, permissionId: number): Promise<void>;
   listAllUsers(): Promise<UserRecord[]>;
+  listUsersPage(input: {
+    page: number;
+    limit: number;
+    search?: string;
+  }): Promise<PaginatedResult<UserRecord>>;
+  countUsers(search?: string): Promise<number>;
+  listThreadsPage(
+    userId: string,
+    tenantId: string | undefined,
+    input: { page: number; limit: number },
+  ): Promise<PaginatedResult<ChatThreadRecord>>;
   updateUser(userId: string, input: { displayName?: string }): Promise<UserRecord | null>;
   setUserPassword(userId: string, passwordHash: string): Promise<void>;
   setUserStatus(userId: string, status: string): Promise<void>;

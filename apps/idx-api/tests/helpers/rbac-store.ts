@@ -160,6 +160,31 @@ export class RbacTestStore implements AuthStore {
   async listAllUsers() {
     return [];
   }
+  async countUsers() {
+    return 0;
+  }
+  async listUsersPage() {
+    return {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+      items: [],
+    };
+  }
+  async listThreadsPage() {
+    return {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+      items: [],
+    };
+  }
   async updateUser() {
     return null;
   }

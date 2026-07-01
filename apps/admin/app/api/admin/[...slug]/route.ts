@@ -43,7 +43,12 @@ async function handle(req: Request, context: RouteContext) {
   }
 
   const { authApiUrl } = getAdminConfig();
-  const upstream = `${authApiUrl}/admin/${path}`;
+  const incomingUrl = new URL(req.url);
+  const upstreamUrl = new URL(`${authApiUrl}/admin/${path}`);
+  incomingUrl.searchParams.forEach((value, key) => {
+    upstreamUrl.searchParams.set(key, value);
+  });
+  const upstream = upstreamUrl.toString();
 
   const body = req.method === "GET" || req.method === "HEAD"
     ? undefined

@@ -16,8 +16,15 @@ export async function GET(request: Request) {
 
   const url = new URL(request.url);
   const tenantId = url.searchParams.get("tenantId") ?? getServerConfig().tenantId;
-  const result = await authThreadFetch<{ threads: unknown[] }>(
-    `/threads?tenantId=${encodeURIComponent(tenantId)}`,
+  const page = url.searchParams.get("page") ?? "1";
+  const limit = url.searchParams.get("limit") ?? "50";
+  const upstream = new URLSearchParams({
+    tenantId,
+    page,
+    limit,
+  });
+  const result = await authThreadFetch<{ threads: unknown[]; pagination?: unknown }>(
+    `/threads?${upstream.toString()}`,
     { method: "GET" },
     session.token,
   );

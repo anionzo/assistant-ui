@@ -6,6 +6,7 @@ import {
   getAuthStore,
 } from "../db/store";
 import { ErrorCode } from "../utils/errors";
+import { buildPaginationMeta, parsePaginationQuery } from "../utils/pagination";
 import {
   badRequest,
   created,
@@ -116,8 +117,15 @@ export function createThreadRoutes(store: AuthStore = getAuthStore()) {
     const user = await getUser(c.req.raw);
     if (!user) return invalidToken(c);
     const tenantId = c.req.query("tenantId");
-    const threads = await store.listThreads(user.id, tenantId);
-    return ok(c, { threads: threads.map(toThreadResponse) });
+    const { page, limit } = parsePaginationQuery({
+      page: c.req.query("page"),
+      limit: c.req.query("limit"),
+    });
+    const result = await store.listThreadsPage(user.id, tenantId, { page, limit });
+    return ok(c, {
+      threads: result.items.map(toThreadResponse),
+      pagination: buildPaginationMeta(result.total, result.page, result.limit),
+    });
   });
 
   threadRoutes.post("/", async (c) => {

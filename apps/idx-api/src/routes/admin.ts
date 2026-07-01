@@ -4,6 +4,7 @@ import { requireAuth, requirePermission } from "../middleware/auth";
 import { PERMISSIONS } from "../services/permissions";
 import { hashPassword } from "../services/password";
 import { ErrorCode } from "../utils/errors";
+import { buildPaginationMeta, parsePaginationQuery } from "../utils/pagination";
 import { badRequest, forbidden, notFound, ok, okPlain } from "../utils/response";
 
 export function createAdminRoutes(store: AuthStore = getAuthStore()) {
@@ -11,17 +12,23 @@ export function createAdminRoutes(store: AuthStore = getAuthStore()) {
 
   adminRoutes.use("*", requireAuth);
 
-  // GET /admin/users — list all users
+  // GET /admin/users — paginated user list (?page=1&limit=20&q=email)
   adminRoutes.get("/users", requirePermission(PERMISSIONS.USERS_LIST), async (c) => {
-    const users = await store.listAllUsers();
+    const { page, limit } = parsePaginationQuery({
+      page: c.req.query("page"),
+      limit: c.req.query("limit"),
+    });
+    const search = c.req.query("q")?.trim().toLowerCase();
+    const result = await store.listUsersPage({ page, limit, search: search || undefined });
     return ok(c, {
-      users: users.map((u) => ({
+      users: result.items.map((u) => ({
         id: u.id,
         email: u.email,
         displayName: u.displayName,
         status: u.status,
         createdAt: u.createdAt,
       })),
+      pagination: buildPaginationMeta(result.total, result.page, result.limit),
     });
   });
 
@@ -206,11 +213,13 @@ export function createAdminRoutes(store: AuthStore = getAuthStore()) {
 
   // GET /admin/stats — system stats
   adminRoutes.get("/stats", requirePermission(PERMISSIONS.USERS_LIST), async (c) => {
-    const userList = await store.listAllUsers();
-    const roleList = await store.listRoles();
+    const [userCount, roleList] = await Promise.all([
+      store.countUsers(),
+      store.listRoles(),
+    ]);
 
     return ok(c, {
-      userCount: userList.length,
+      userCount,
       roleCount: roleList.length,
     });
   });

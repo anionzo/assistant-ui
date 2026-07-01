@@ -13,6 +13,7 @@ import type {
   UpdateChatThreadInput,
   UserRecord,
 } from "../types";
+import { buildPaginationMeta, type PaginatedResult } from "../../utils/pagination";
 import { COLLECTIONS } from "./collections";
 import { getMongoDb } from "./client";
 
@@ -221,12 +222,24 @@ export class MongoAuthStore {
   }
 
   async listThreads(userId: string, tenantId?: string) {
+    const page = await this.listThreadsPage(userId, tenantId, { page: 1, limit: 10_000 });
+    return page.items;
+  }
+
+  async listThreadsPage(
+    userId: string,
+    tenantId: string | undefined,
+    input: { page: number; limit: number },
+  ): Promise<PaginatedResult<ChatThreadRecord>> {
     const filter = tenantId ? { userId, tenantId } : { userId };
-    const docs = await (await collection<ChatThreadDoc>(COLLECTIONS.chatThreads))
-      .find(filter)
-      .sort({ updatedAt: -1 })
-      .toArray();
-    return docs.map(toThreadRecord);
+    const coll = await collection<ChatThreadDoc>(COLLECTIONS.chatThreads);
+    const skip = (input.page - 1) * input.limit;
+    const [docs, total] = await Promise.all([
+      coll.find(filter).sort({ updatedAt: -1 }).skip(skip).limit(input.limit).toArray(),
+      coll.countDocuments(filter),
+    ]);
+    const meta = buildPaginationMeta(total, input.page, input.limit);
+    return { ...meta, items: docs.map(toThreadRecord) };
   }
 
   async findThreadById(userId: string, threadId: string) {
@@ -397,8 +410,33 @@ export class MongoAuthStore {
   }
 
   async listAllUsers() {
-    const docs = await (await collection<UserDoc>(COLLECTIONS.users)).find().sort({ createdAt: 1 }).toArray();
-    return docs.map(toUserRecord);
+    const page = await this.listUsersPage({ page: 1, limit: 10_000 });
+    return page.items;
+  }
+
+  async countUsers(search?: string) {
+    const filter = search
+      ? { email: { $regex: escapeRegex(search), $options: "i" } }
+      : {};
+    return (await collection<UserDoc>(COLLECTIONS.users)).countDocuments(filter);
+  }
+
+  async listUsersPage(input: {
+    page: number;
+    limit: number;
+    search?: string;
+  }): Promise<PaginatedResult<UserRecord>> {
+    const filter = input.search
+      ? { email: { $regex: escapeRegex(input.search), $options: "i" } }
+      : {};
+    const coll = await collection<UserDoc>(COLLECTIONS.users);
+    const skip = (input.page - 1) * input.limit;
+    const [docs, total] = await Promise.all([
+      coll.find(filter).sort({ createdAt: 1 }).skip(skip).limit(input.limit).toArray(),
+      coll.countDocuments(filter),
+    ]);
+    const meta = buildPaginationMeta(total, input.page, input.limit);
+    return { ...meta, items: docs.map(toUserRecord) };
   }
 
   async updateUser(userId: string, input: { displayName?: string }) {
@@ -483,4 +521,8 @@ export class MongoAuthStore {
     const docs = await (await collection<PermissionDoc>(COLLECTIONS.permissions)).find().sort({ _id: 1 }).toArray();
     return docs.map(toPermissionRecord);
   }
+}
+
+function escapeRegex(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
