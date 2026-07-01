@@ -15,6 +15,7 @@ import {
   hashResetToken,
   resetTokenExpiresAt,
 } from "../services/reset-password";
+import { sendPasswordResetEmail } from "../services/reset-email";
 import {
   badRequest,
   conflict,
@@ -214,13 +215,20 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
 
     try {
       const claims = await verifySessionToken(token);
-      const [roles, permissions, permissionIds] = await Promise.all([
+      const [user, roles, permissions, permissionIds] = await Promise.all([
+        store.findUserById(claims.id),
         resolveUserRoles(claims.id, store),
         resolveUserPermissions(claims.id, store),
         resolveUserPermissionIds(claims.id, store),
       ]);
       return ok(c, {
-        user: { id: claims.id, email: claims.email, displayName: claims.displayName, avatarUrl: claims.avatarUrl },
+        user: {
+          id: claims.id,
+          email: claims.email,
+          displayName: claims.displayName,
+          avatarUrl: claims.avatarUrl,
+          hasPassword: Boolean(user?.passwordHash),
+        },
         roles: roles.map((r) => ({ id: r.id, name: r.name })),
         permissions, permission_ids: permissionIds,
       });
@@ -253,6 +261,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
 
     const user = await store.findUserById(claims.id);
     if (!user) return notFound(c, "user not found");
+    if (user.passwordHash) return conflict(c, "password is already set; use change-password");
 
     await store.setUserPassword(claims.id, await hashPassword(body.password));
     return okPlain(c);
@@ -270,9 +279,16 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     const rawToken = generateResetToken();
     await store.createResetToken(user.id, hashResetToken(rawToken), resetTokenExpiresAt());
 
-    const isDev = process.env.NODE_ENV !== "production";
-    console.info(`[reset-password] token for ${body.email}: ${rawToken}`);
-    return ok(c, { ok: true, ...(isDev ? { token: rawToken } : {}) });
+    const { sent, resetUrl, devToken } = await sendPasswordResetEmail(
+      body.email.trim().toLowerCase(),
+      rawToken,
+    );
+    return ok(c, {
+      ok: true,
+      sent,
+      resetUrl,
+      ...(devToken ? { token: devToken } : {}),
+    });
   });
 
   // ── Reset password ────────────────────────────────────
@@ -326,17 +342,22 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     catch { return invalidToken(c); }
 
     const body = await c.req.json<{ oldPassword?: string; newPassword?: string }>().catch(() => null);
-    if (!body?.oldPassword || !body?.newPassword || body.newPassword.length < 8) {
-      return badRequest(c, "oldPassword and newPassword (min 8 chars) are required");
+    if (!body?.newPassword || body.newPassword.length < 8) {
+      return badRequest(c, "newPassword (min 8 chars) is required");
     }
 
     const user = await store.findUserById(claims.id);
     if (!user) return notFound(c, "user not found");
 
-    if (user.passwordHash) {
-      const valid = await verifyPassword(body.oldPassword, user.passwordHash);
-      if (!valid) return forbidden(c, "current password is incorrect");
+    if (!user.passwordHash) {
+      return badRequest(c, "no password set; use set-password");
     }
+    if (!body.oldPassword) {
+      return badRequest(c, "oldPassword is required");
+    }
+
+    const valid = await verifyPassword(body.oldPassword, user.passwordHash);
+    if (!valid) return forbidden(c, "current password is incorrect");
 
     await store.setUserPassword(claims.id, await hashPassword(body.newPassword));
     return okPlain(c);

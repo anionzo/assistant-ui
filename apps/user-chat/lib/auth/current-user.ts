@@ -2,6 +2,7 @@ export type AuthUser = {
   email: string;
   displayName?: string | null;
   avatarUrl?: string | null;
+  hasPassword?: boolean;
 };
 
 const CURRENT_USER_TTL_MS = 30_000;
@@ -10,7 +11,6 @@ let cachedUser: { user: AuthUser | null; expiresAt: number } | null = null;
 let inFlight: Promise<AuthUser | null> | null = null;
 
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
-  // Don't serve stale negative cache — retry on unknown auth state
   if (cachedUser && cachedUser.expiresAt > Date.now() && cachedUser.user) {
     return cachedUser.user;
   }
@@ -24,10 +24,7 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
       cachedUser = { user, expiresAt: Date.now() + CURRENT_USER_TTL_MS };
       return user;
     })
-    .catch(() => {
-      // Don't cache negative results from network errors
-      return null;
-    })
+    .catch(() => null)
     .finally(() => {
       inFlight = null;
     });

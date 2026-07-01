@@ -9,11 +9,13 @@ export default function ForgotPasswordPage() {
   const [step, setStep] = useState<"email" | "done">("email");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [devResetUrl, setDevResetUrl] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     setLoading(true);
+    setDevResetUrl(null);
 
     try {
       const res = await fetch("/api/auth/forgot-password", {
@@ -25,6 +27,13 @@ export default function ForgotPasswordPage() {
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {
+        const token = typeof data.token === "string" ? data.token : null;
+        const resetUrl = typeof data.resetUrl === "string"
+          ? data.resetUrl
+          : token
+            ? `/dat-lai-mat-khau?token=${encodeURIComponent(token)}`
+            : null;
+        setDevResetUrl(resetUrl);
         setStep("done");
       } else {
         setError(typeof data.error === "string" ? data.error : "Có lỗi xảy ra.");
@@ -66,8 +75,16 @@ export default function ForgotPasswordPage() {
         ) : (
           <div className="mt-6 text-sm">
             <p className="text-muted-foreground">
-              Nếu email <strong>{email}</strong> đã được đăng ký, bạn sẽ nhận được hướng dẫn đặt lại mật khẩu (kiểm tra console nếu đang chạy dev).
+              Nếu email <strong>{email}</strong> đã được đăng ký, bạn sẽ nhận hướng dẫn đặt lại mật khẩu qua email.
             </p>
+            {devResetUrl ? (
+              <p className="mt-4 rounded-md border border-dashed p-3 text-xs">
+                Dev:{" "}
+                <Link href={devResetUrl} className="text-primary underline break-all">
+                  {devResetUrl}
+                </Link>
+              </p>
+            ) : null}
             <Link href="/login" className="mt-4 inline-block text-primary hover:underline">
               ← Quay lại đăng nhập
             </Link>

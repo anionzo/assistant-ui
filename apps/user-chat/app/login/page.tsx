@@ -7,7 +7,7 @@ export default function LoginPage() {
       <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
         <h1 className="text-2xl font-semibold">Đăng nhập</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Đăng nhập để lưu lịch sử trò chuyện.
+          Đăng nhập để đồng bộ lịch sử trên mọi thiết bị.
         </p>
         <div className="mt-6">
           <LoginForm />

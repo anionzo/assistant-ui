@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { authApiFetch } from "@/lib/auth/auth-api-client";
 import { resolveSession } from "@/lib/auth/session-resolve";
 
 export const runtime = "nodejs";
@@ -9,10 +10,21 @@ export async function GET() {
     return NextResponse.json({ error: "Missing session cookie" }, { status: 401 });
   }
 
-  const response = NextResponse.json({ user: session.user });
-  if (session.refreshed) {
-    // resolveSession already set cookies via cookies().set()
-    // Still attach explicitly for safety
+  const profile = await authApiFetch<{
+    user: {
+      id: string;
+      email: string;
+      displayName: string | null;
+      avatarUrl: string | null;
+      hasPassword?: boolean;
+    };
+  }>("/auth/me", {
+    headers: { Authorization: `Bearer ${session.accessToken}` },
+  });
+
+  if (profile.ok) {
+    return NextResponse.json({ user: profile.data.user });
   }
-  return response;
+
+  return NextResponse.json({ user: session.user });
 }

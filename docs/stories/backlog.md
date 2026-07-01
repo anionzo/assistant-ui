@@ -40,7 +40,7 @@ Docs gate **PASS** — see [E01 validation](./epics/E01-docs-bootstrap/validatio
 
 ---
 
-## Next Up — Auth UI Polish + Admin User Management (post-E08)
+## Implemented — Auth UI Polish + Admin User Management (post-E08)
 
 ### Tổng quan
 
@@ -158,21 +158,13 @@ Docs gate **PASS** — see [E01 validation](./epics/E01-docs-bootstrap/validatio
 | B5.6 | Delete user button | `app/admin/users/*` | Confirm → xóa |
 | B5.7 | Link trong admin sidebar | `components/collection-nav.tsx` hoặc admin layout | Thêm "Users" vào nav |
 
-### Thứ tự triển khai
+### Status (2026-07-01)
 
-```
-B1 (forgot/reset pw) → B2 (admin user mgmt mở rộng) → B3 (user self-service API)
-                                                              ↓
-B4 (user-chat UI polish) ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ← ┘
-B5 (admin user mgmt UI)
-```
-
-### Phụ thuộc
-
-- B1, B2, B3 phụ thuộc auth-api (DB migration + routes)
-- B4 phụ thuộc B3 (cần API endpoints để gọi)
-- B5 phụ thuộc B2 (cần admin API endpoints)
-- B4, B5 song song được (khác app)
+- B1–B3: idx-api routes + migrations done
+- B4: user-chat UI done (forgot/reset, settings profile/password/delete account, guest copy)
+- B5: admin users UI done (`/users`, `/users/[id]`)
+- Forgot-password prod email: configure `RESET_PASSWORD_WEBHOOK_URL` on idx-api (dev returns reset link in API response)
+- Smoke: `pnpm test:e2e` / `pnpm test:platform` → `scripts/dev/e2e-smoke.mjs`
 
 ---
 

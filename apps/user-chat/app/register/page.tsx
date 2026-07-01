@@ -7,7 +7,7 @@ export default function RegisterPage() {
       <div className="rounded-2xl border border-border bg-card p-8 shadow-sm">
         <h1 className="text-2xl font-semibold">Tạo tài khoản</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Đăng ký tài khoản miễn phí để đồng bộ lịch sử trò chuyện.
+          Tạo tài khoản để lưu và đồng bộ cuộc trò chuyện.
         </p>
         <div className="mt-6">
           <RegisterForm />
