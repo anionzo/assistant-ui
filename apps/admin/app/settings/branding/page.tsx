@@ -121,7 +121,7 @@ export default function BrandingSettingsPage() {
   return (
     <AdminShell
       title="Branding"
-      description="Logo chung + tên hiển thị riêng cho Admin và User Chat (app_config)."
+      description="Logo chung và tên hiển thị cho Admin / User Chat."
       actions={
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || saving}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
@@ -129,21 +129,8 @@ export default function BrandingSettingsPage() {
         </Button>
       }
     >
-      <StatusBanner tone="info">
-        Logo dùng chung. Tên/tagline tách riêng cho <strong>Admin</strong> và <strong>User Chat</strong>.
-        Cần <code>settings.branding.read</code> để xem, <code>settings.branding</code> hoặc role <strong>branding_admin</strong> để sửa.
-      </StatusBanner>
-
       {!meLoading && !canReadBranding ? (
-        <StatusBanner tone="error">
-          Bạn không có quyền xem branding. Nhờ super_admin gán role <strong>branding_admin</strong> hoặc permission tương ứng.
-        </StatusBanner>
-      ) : null}
-
-      {!meLoading && canReadBranding && !canManageBranding ? (
-        <StatusBanner tone="info">
-          Chế độ chỉ xem — không có quyền <code>settings.branding</code> để lưu thay đổi.
-        </StatusBanner>
+        <StatusBanner tone="error">Bạn không có quyền xem trang này.</StatusBanner>
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}

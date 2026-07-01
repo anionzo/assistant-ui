@@ -107,7 +107,7 @@ export default function ChatRuntimeSettingsPage() {
   return (
     <AdminShell
       title="Chat Runtime"
-      description="Tenant, corpus và pipeline mặc định cho user chat (app_config.system.chat_runtime)."
+      description="Tenant, corpus và pipeline mặc định cho user chat."
       actions={
         <Button variant="outline" size="sm" onClick={() => void load()} disabled={loading || saving}>
           <RefreshCw className={`size-4 ${loading ? "animate-spin" : ""}`} />
@@ -115,23 +115,8 @@ export default function ChatRuntimeSettingsPage() {
         </Button>
       }
     >
-      <StatusBanner tone="info">
-        Cấu hình lưu trong MongoDB <code>app_config</code>. User chat đọc qua{" "}
-        <code>GET /public/app-config</code>. Cần <code>settings.runtime.read</code> để xem,{" "}
-        <code>settings.runtime</code> hoặc role <strong>branding_admin</strong> để sửa.
-      </StatusBanner>
-
       {!meLoading && !canReadRuntime ? (
-        <StatusBanner tone="error">
-          Bạn không có quyền xem chat runtime. Nhờ super_admin gán role{" "}
-          <strong>branding_admin</strong> hoặc permission tương ứng.
-        </StatusBanner>
-      ) : null}
-
-      {!meLoading && canReadRuntime && !canManageRuntime ? (
-        <StatusBanner tone="info">
-          Chế độ chỉ xem — không có quyền <code>settings.runtime</code> để lưu thay đổi.
-        </StatusBanner>
+        <StatusBanner tone="error">Bạn không có quyền xem trang này.</StatusBanner>
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}

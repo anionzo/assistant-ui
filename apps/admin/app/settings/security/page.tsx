@@ -107,15 +107,8 @@ export default function SecuritySettingsPage() {
         </Button>
       }
     >
-      <StatusBanner tone="info">
-        Chỉ user có role <strong>security_admin</strong> (permission <code>security.ip_allowlist</code>) mới chỉnh được.
-        Allowlist chỉ chặn <strong>API admin</strong> sau đăng nhập; trang/API cấu hình vẫn exempt để tránh tự khóa.
-      </StatusBanner>
-
       {!meLoading && !canManageIpAllowlist ? (
-        <StatusBanner tone="error">
-          Bạn không có quyền quản lý IP allowlist. Nhờ super_admin gán role <strong>security_admin</strong> trong Users → Roles.
-        </StatusBanner>
+        <StatusBanner tone="error">Bạn không có quyền xem trang này.</StatusBanner>
       ) : null}
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
