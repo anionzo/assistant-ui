@@ -31,6 +31,9 @@ const securityNav = { href: "/settings/security", label: "Security", icon: Lock 
 const brandingNav = { href: "/settings/branding", label: "Branding", icon: ImageIcon } as const;
 const runtimeNav = { href: "/settings/runtime", label: "Chat Runtime", icon: SlidersHorizontal } as const;
 
+/** Main content width — centered; wide enough for data tables without full-bleed layout. */
+export const ADMIN_CONTENT_CLASS = "mx-auto w-full max-w-[1400px]";
+
 function Sidebar() {
   const pathname = usePathname();
   const { canManageIpAllowlist, canReadBranding, canReadRuntime } = useAdminMe();
@@ -106,12 +109,12 @@ export function AdminShell({
   return (
     <div className="flex min-h-screen bg-background">
       <Sidebar />
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {isCollectionPage && sidebarContent ? (
           <CollectionSubNav>{sidebarContent}</CollectionSubNav>
         ) : null}
-        <main className="flex-1 px-8 py-6">
-          <div className="mx-auto max-w-5xl">
+        <main className="min-w-0 flex-1 px-8 py-6">
+          <div className={ADMIN_CONTENT_CLASS}>
             <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-semibold tracking-tight">
@@ -138,7 +141,7 @@ export function AdminShell({
 function CollectionSubNav({ children }: { children: ReactNode }) {
   return (
     <div className="sticky top-0 z-10 border-b border-border bg-card/95 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-5xl items-center gap-2 px-8 py-2 text-sm">
+      <div className={cn(ADMIN_CONTENT_CLASS, "flex items-center gap-2 py-2")}>
         <PanelRightOpen className="size-3.5 shrink-0 text-muted-foreground" />
         {children}
       </div>
