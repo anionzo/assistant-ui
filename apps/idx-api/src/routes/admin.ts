@@ -1,6 +1,11 @@
 import { Hono } from "hono";
 import { type AuthStore, getAuthStore } from "../db/store";
 import { requireAuth, requirePermission } from "../middleware/auth";
+import { normalizeClientIp } from "../utils/ip-allowlist";
+import {
+  getAdminIpAllowlistSettings,
+  updateAdminIpAllowlistSettings,
+} from "../services/admin-ip-allowlist-config";
 import { PERMISSIONS } from "../services/permissions";
 import { hashPassword } from "../services/password";
 import { ErrorCode } from "../utils/errors";
@@ -209,6 +214,48 @@ export function createAdminRoutes(store: AuthStore = getAuthStore()) {
   adminRoutes.get("/permissions", requirePermission(PERMISSIONS.USERS_READ), async (c) => {
     const permList = await store.listPermissions();
     return ok(c, { permissions: permList.map((p) => ({ id: p.id, code: p.code, name: p.name, resource: p.resource, action: p.action })) });
+  });
+
+  // GET /admin/settings/ip-allowlist
+  adminRoutes.get("/settings/ip-allowlist", requirePermission(PERMISSIONS.SECURITY_IP_ALLOWLIST), async (c) => {
+    const settings = await getAdminIpAllowlistSettings();
+    return ok(c, { settings });
+  });
+
+  // PATCH /admin/settings/ip-allowlist
+  adminRoutes.patch("/settings/ip-allowlist", requirePermission(PERMISSIONS.SECURITY_IP_ALLOWLIST), async (c) => {
+    const auth = c.get("auth");
+    const body = await c.req.json<{
+      enabled?: boolean;
+      ips?: string[];
+      addIp?: string;
+      removeIp?: string;
+      clientIp?: string;
+    }>().catch(() => null);
+    if (!body) return badRequest(c, "invalid body");
+
+    const clientIp =
+      normalizeClientIp(body.clientIp ?? c.req.header("x-client-ip") ?? c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ?? "127.0.0.1");
+
+    try {
+      const settings = await updateAdminIpAllowlistSettings({
+        enabled: body.enabled,
+        ips: body.ips,
+        addIp: body.addIp,
+        removeIp: body.removeIp,
+        updatedBy: auth.session.id,
+        clientIp,
+      });
+      return ok(c, { settings });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "update failed";
+      if (message === "invalid_ip") return badRequest(c, "invalid IP or CIDR");
+      if (message === "ips_required") return badRequest(c, "add at least one IP before enabling");
+      if (message === "client_ip_not_allowed") {
+        return badRequest(c, "your current IP must be in the allowlist before enabling");
+      }
+      throw error;
+    }
   });
 
   // GET /admin/stats — system stats

@@ -1,3 +1,4 @@
+import { ensureAppConfigBootstrap } from "./config-store";
 import { COLLECTIONS } from "./collections";
 import { getMongoDb } from "./client";
 import { buildRolePermissionPairs, SEED_PERMISSIONS, SEED_ROLES } from "./seed-data";
@@ -18,6 +19,35 @@ type PermissionSeedDoc = {
   action: string;
   createdAt: Date;
 };
+
+async function ensureRbacPatches(db: Awaited<ReturnType<typeof getMongoDb>>): Promise<void> {
+  const roles = db.collection<RoleSeedDoc>(COLLECTIONS.roles);
+  const permissions = db.collection<PermissionSeedDoc>(COLLECTIONS.permissions);
+
+  for (const role of SEED_ROLES) {
+    await roles.updateOne(
+      { _id: role._id },
+      { $setOnInsert: { ...role } },
+      { upsert: true },
+    );
+  }
+
+  for (const permission of SEED_PERMISSIONS) {
+    await permissions.updateOne(
+      { _id: permission._id },
+      { $setOnInsert: { ...permission } },
+      { upsert: true },
+    );
+  }
+
+  for (const pair of buildRolePermissionPairs()) {
+    await db.collection(COLLECTIONS.rolePermissions).updateOne(
+      { roleId: pair.roleId, permissionId: pair.permissionId },
+      { $setOnInsert: pair },
+      { upsert: true },
+    );
+  }
+}
 
 export async function ensureMongoBootstrap(): Promise<void> {
   const db = await getMongoDb();
@@ -50,7 +80,11 @@ export async function ensureMongoBootstrap(): Promise<void> {
     );
     await db.collection(COLLECTIONS.rolePermissions).insertMany(buildRolePermissionPairs());
     console.info("[bootstrap] RBAC seed applied");
+  } else {
+    await ensureRbacPatches(db);
   }
 
-  console.info("[bootstrap] MongoDB indexes and seed ready");
+  await ensureAppConfigBootstrap();
+
+  console.info("[bootstrap] MongoDB indexes, seed, and app_config ready");
 }

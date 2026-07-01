@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import { verifySessionToken, type SessionClaims } from "../services/jwt";
+import { ROLES } from "../services/permissions";
 import { resolveUserPermissions, resolveUserRoles } from "../services/rbac";
 import { ErrorCode } from "../utils/errors";
 import { unauthorized, invalidToken, forbidden } from "../utils/response";
@@ -44,6 +45,23 @@ export function requirePermission(code: string) {
     const permissions = await resolveUserPermissions(auth.session.id, store);
     if (!permissions.includes(code)) {
       return forbidden(c, `missing permission: ${code}`, ErrorCode.MISSING_PERMISSION);
+    }
+
+    await next();
+  });
+}
+
+export function requireSuperAdmin() {
+  return createMiddleware<{ Variables: { auth: AuthContext } }>(async (c, next) => {
+    const auth = c.get("auth");
+    if (!auth?.session) {
+      return unauthorized(c);
+    }
+
+    const store = resolveStore(c);
+    const roles = await resolveUserRoles(auth.session.id, store);
+    if (!roles.some((role) => role.id === ROLES.SUPER_ADMIN)) {
+      return forbidden(c, "super_admin required");
     }
 
     await next();

@@ -3,6 +3,7 @@ import { createMiddleware } from "hono/factory";
 import { createAuthRoutes } from "./routes/auth";
 import { createAdminRoutes } from "./routes/admin";
 import { createRagRoutes } from "./routes/rag";
+import { createInternalRoutes } from "./routes/internal";
 import { createThreadRoutes } from "./routes/threads";
 import { ensureMongoBootstrap } from "./db/mongo/bootstrap";
 import { type AuthStore, getAuthStore } from "./db/store";
@@ -58,6 +59,7 @@ export function createApp(store: AuthStore = getAuthStore()) {
   app.route("/admin", createAdminRoutes(store));
   app.route("/rag", createRagRoutes(store));
   app.route("/threads", createThreadRoutes(store));
+  app.route("/internal", createInternalRoutes());
 
   return app;
 }

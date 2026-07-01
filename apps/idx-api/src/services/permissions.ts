@@ -35,6 +35,9 @@ export const PERMISSIONS = {
   USERS_RESET_PASSWORD: "users.reset_password",
   USERS_DELETE:       "users.delete",
   USERS_FORCE_LOGOUT: "users.force_logout",
+
+  // security (58)
+  SECURITY_IP_ALLOWLIST: "security.ip_allowlist",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -45,7 +48,8 @@ export const ROLES = {
   ADMIN:       2,
   OPERATOR:    3,
   VIEWER:      4,
-  USER:        5,
+  USER:           5,
+  SECURITY_ADMIN: 6,
 } as const;
 
 export type RoleId = (typeof ROLES)[keyof typeof ROLES];
