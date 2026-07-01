@@ -28,16 +28,13 @@ export async function authApiFetch<T>(
   });
 
   const payload = await parseJson(response);
-  if (!response.ok || payload.success === false) {
+  if (!response.ok) {
     return {
       ok: false,
       status: response.status,
-      error:
-        payload?.error?.message ??
-        (typeof payload.error === "string" ? payload.error : null) ??
-        "Auth API request failed",
+      error: typeof payload.error === "string" ? payload.error : "Auth API request failed",
     };
   }
 
-  return { ok: true, data: ((payload as any).data ?? payload) as T };
+  return { ok: true, data: payload as T };
 }

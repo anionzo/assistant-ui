@@ -11,15 +11,20 @@ const cookieBase = {
 };
 
 export async function setAuthCookies(accessToken: string, refreshToken: string) {
-  const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, accessToken, {
-    ...cookieBase,
-    maxAge: Number(process.env.JWT_ACCESS_TTL ?? 3600),
-  });
-  cookieStore.set(REFRESH_COOKIE_NAME, refreshToken, {
-    ...cookieBase,
-    maxAge: Number(process.env.JWT_REFRESH_TTL ?? 604_800),
-  });
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(SESSION_COOKIE_NAME, accessToken, {
+      ...cookieBase,
+      maxAge: Number(process.env.JWT_ACCESS_TTL ?? 3600),
+    });
+    cookieStore.set(REFRESH_COOKIE_NAME, refreshToken, {
+      ...cookieBase,
+      maxAge: Number(process.env.JWT_REFRESH_TTL ?? 604_800),
+    });
+  } catch {
+    // Cookie write not allowed (e.g. in Server Components).
+    // Route handlers will set cookies; this is a no-op for Server Components.
+  }
 }
 
 export async function clearAuthCookies() {

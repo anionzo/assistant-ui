@@ -68,3 +68,14 @@ export async function resolveSession(): Promise<ResolvedSession | null> {
 
   return pending;
 }
+
+export async function checkSession(): Promise<SessionUser | null> {
+  try {
+    const config = getServerConfig();
+    const accessToken = await getSessionCookie();
+    if (!accessToken) return null;
+    return verifySessionToken(accessToken, config.jwtSecret);
+  } catch {
+    return null;
+  }
+}
