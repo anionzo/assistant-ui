@@ -3,6 +3,7 @@ export const DEFAULT_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";
 export const CONFIG_KEYS = {
   adminIpAllowlist: "admin.ip_allowlist",
   systemBranding: "system.branding",
+  systemChatRuntime: "system.chat_runtime",
 } as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];
@@ -35,9 +36,19 @@ export type BrandingConfigValue = {
   user: BrandingSurfaceValue;
 };
 
+export type ChatRuntimeConfigValue = {
+  tenantId: string;
+  tenantDisplayName: string;
+  defaultCorpusId: string;
+  defaultChatPipeline: string;
+  defaultVoicePipeline: string;
+  defaultTopK: number;
+};
+
 export type ConfigValueMap = {
   [CONFIG_KEYS.adminIpAllowlist]: IpAllowlistConfigValue;
   [CONFIG_KEYS.systemBranding]: BrandingConfigValue;
+  [CONFIG_KEYS.systemChatRuntime]: ChatRuntimeConfigValue;
 };
 
 export const CONFIG_DEFAULTS: {
@@ -68,6 +79,18 @@ export const CONFIG_DEFAULTS: {
         appName: "Idx Chat",
         tagline: "Trợ lý tuyển sinh HUIT",
       },
+    },
+  },
+  [CONFIG_KEYS.systemChatRuntime]: {
+    scope: "system",
+    schemaVersion: 1,
+    value: {
+      tenantId: "huit_admission_chatbot",
+      tenantDisplayName: "HUIT Admission Chatbot",
+      defaultCorpusId: "admission-chatbot-corpus",
+      defaultChatPipeline: "huit_chat_multi_query_prod",
+      defaultVoicePipeline: "huit_voice_multi_query_prod",
+      defaultTopK: 5,
     },
   },
 };

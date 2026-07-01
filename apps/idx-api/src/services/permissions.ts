@@ -39,9 +39,11 @@ export const PERMISSIONS = {
   // security (58)
   SECURITY_IP_ALLOWLIST: "security.ip_allowlist",
 
-  // settings (59-60)
+  // settings (59-62)
   SETTINGS_BRANDING:      "settings.branding",
   SETTINGS_BRANDING_READ: "settings.branding.read",
+  SETTINGS_RUNTIME:       "settings.runtime",
+  SETTINGS_RUNTIME_READ:  "settings.runtime.read",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

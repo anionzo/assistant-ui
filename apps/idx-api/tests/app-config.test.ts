@@ -10,6 +10,13 @@ describe("app_config", () => {
     expect(defaults.value.user.appName).toBeTruthy();
   });
 
+  it("defines JSON defaults for chat runtime", () => {
+    const defaults = CONFIG_DEFAULTS[CONFIG_KEYS.systemChatRuntime];
+    expect(defaults.scope).toBe("system");
+    expect(defaults.value.tenantId).toBeTruthy();
+    expect(defaults.value.defaultTopK).toBeGreaterThan(0);
+  });
+
   it("defines JSON defaults for admin IP allowlist", () => {
     const defaults = CONFIG_DEFAULTS[CONFIG_KEYS.adminIpAllowlist];
     expect(defaults.scope).toBe("admin");

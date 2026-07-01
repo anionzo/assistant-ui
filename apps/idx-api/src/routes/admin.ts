@@ -7,6 +7,7 @@ import {
   updateAdminIpAllowlistSettings,
 } from "../services/admin-ip-allowlist-config";
 import { getBrandingSettings, updateBrandingSettings } from "../services/branding-config";
+import { getChatRuntimeSettings, updateChatRuntimeSettings } from "../services/chat-runtime-config";
 import { PERMISSIONS } from "../services/permissions";
 import { hashPassword } from "../services/password";
 import { ErrorCode } from "../utils/errors";
@@ -294,6 +295,42 @@ export function createAdminRoutes(store: AuthStore = getAuthStore()) {
       if (message === "invalid_admin_tagline") return badRequest(c, "invalid admin tagline");
       if (message === "invalid_user_app_name") return badRequest(c, "invalid user app name");
       if (message === "invalid_user_tagline") return badRequest(c, "invalid user tagline");
+      throw error;
+    }
+  });
+
+  // GET /admin/settings/chat-runtime
+  adminRoutes.get(
+    "/settings/chat-runtime",
+    requireAnyPermission([PERMISSIONS.SETTINGS_RUNTIME_READ, PERMISSIONS.SETTINGS_RUNTIME]),
+    async (c) => {
+      const chatRuntime = await getChatRuntimeSettings();
+      return ok(c, { chatRuntime });
+    },
+  );
+
+  // PATCH /admin/settings/chat-runtime
+  adminRoutes.patch("/settings/chat-runtime", requirePermission(PERMISSIONS.SETTINGS_RUNTIME), async (c) => {
+    const auth = c.get("auth");
+    const body = await c.req.json<{
+      tenantId?: string;
+      tenantDisplayName?: string;
+      defaultCorpusId?: string;
+      defaultChatPipeline?: string;
+      defaultVoicePipeline?: string;
+      defaultTopK?: number;
+    }>().catch(() => null);
+    if (!body) return badRequest(c, "invalid body");
+
+    try {
+      const chatRuntime = await updateChatRuntimeSettings({
+        ...body,
+        updatedBy: auth.session.id,
+      });
+      return ok(c, { chatRuntime });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "update failed";
+      if (message.startsWith("invalid_")) return badRequest(c, message.replaceAll("_", " "));
       throw error;
     }
   });
