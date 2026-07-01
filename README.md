@@ -35,36 +35,44 @@ Frontend apps **không** chứa `MODULAR_RAG_GATEWAY_URL` hay API keys — chỉ
 | `apps/admin` | Next.js 15 | 3002 |
 | `apps/idx-api` | Hono + Drizzle ORM | 4000 |
 
+## Cấu trúc thư mục
+
+Monorepo **pnpm** + **Turborepo**: apps chạy được, packages là thư viện dùng chung.
+
+```text
+assistant-ui/
+├── apps/                 # user-chat, admin, idx-api
+├── packages/             # modular-rag-sdk, voice-input (@idx/*)
+├── docs/                 # Harness + product docs
+├── scripts/              # harness-cli, e2e smoke
+└── node_modules/         # dependency (pnpm) — không sửa tay
+```
+
+| Thư mục | Làm gì |
+|---------|--------|
+| `apps/` | Ứng dụng deploy / `pnpm dev` |
+| `packages/` | Code share giữa apps (SSE parser, voice UI) |
+| `node_modules/` | Thư viện bên thứ 3 — sinh ra từ `pnpm install` |
+| `terminals/`, `agent-tools/` | Artifact agent/IDE — xóa được, đã gitignore |
+
+Chi tiết từng thư mục con, file nào xóa được: **[docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md)**.
+
 ## Chạy local
 
-### 1. Idx API
+Hướng dẫn đầy đủ: **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** (setup env, Docker stack, native, test).
 
 ```powershell
-Copy-Item .env.example apps/idx-api/.env
-# Thêm MODULAR_RAG_GATEWAY_URL, USER_API_KEY, ADMIN_API_KEY, IDX_SERVICE_SECRET vào apps/idx-api/.env
-pnpm --filter @idx/idx-api db:migrate
-pnpm --filter @idx/idx-api dev          # :4000
+pnpm install
+Copy-Item apps\idx-api\.env.example apps\idx-api\.env
+Copy-Item apps\user-chat\.env.example apps\user-chat\.env.local
+Copy-Item apps\admin\.env.example apps\admin\.env.local
+# Đồng bộ IDX_SERVICE_SECRET giữa 3 file env
+
+pnpm dev:stack      # Docker: mongo + idx-api + user-chat + admin
+pnpm test:e2e       # smoke (cần stack đang chạy)
 ```
 
-### 2. User Chat
-
-```powershell
-Copy-Item apps/user-chat/.env.example apps/user-chat/.env.local
-pnpm --filter @idx/user-chat dev         # :3001
-```
-
-### 3. Admin
-
-```powershell
-Copy-Item apps/admin/.env.example apps/admin/.env.local
-pnpm --filter @idx/admin dev             # :3002
-```
-
-### Tạo admin đầu tiên
-
-1. Set `ADMIN_SEED_EMAIL=admin@huit.edu.vn` trong `apps/idx-api/.env`
-2. Đăng ký tài khoản bằng email đó (qua user-chat hoặc Google OAuth)
-3. idx-api tự động gán role `super_admin`
+Native từng app: `pnpm --filter @idx/idx-api dev` → `:4000`, `pnpm dev` → `:3001`, `pnpm dev:admin` → `:3002`.
 
 ## RBAC
 
@@ -89,6 +97,8 @@ pnpm --filter @idx/admin test
 
 ## Docs
 
-- [docs/DOC_MAP.md](docs/DOC_MAP.md)
+- [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md) — **chạy local & test**
+- [docs/DOC_MAP.md](docs/DOC_MAP.md) — đọc trước khi code
+- [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md) — giải thích từng thư mục trong repo
 - [docs/stories/backlog.md](docs/stories/backlog.md)
 - [docs/decisions/0022-central-idx-api-gateway.md](docs/decisions/0022-central-idx-api-gateway.md)

@@ -2,6 +2,8 @@
 
 **Một trang đọc trước khi code.** Repo: `assistant-ui` · Product: **Idx Chat** · Gate: **PASS** (E01).
 
+**Chạy local / test?** → [LOCAL_DEV.md](./LOCAL_DEV.md) · **Chưa rõ thư mục?** → [REPO_LAYOUT.md](./REPO_LAYOUT.md)
+
 ## Đọc theo vai trò
 
 | Vai trò | Đọc trước |

@@ -10,14 +10,17 @@ dist/
 # Downloaded Harness CLI binary for installed project instances.
 scripts/bin/harness-cli
 scripts/bin/harness-cli.exe
+
+# Dependencies & build artifacts
 node_modules/
 .next/
-dist/
 coverage/
 .turbo/
+*.tsbuildinfo
+
+# Environment (never commit secrets)
 .env
 .env.local
-*.tsbuildinfo
 
 # Idx-api dev process logs
 tmp_auth_api.out.log
@@ -26,24 +29,24 @@ tmp_auth_api.err.log
 # Orphan folder after auth-api -> idx-api rename (Windows lock may leave empty dir)
 apps/auth-api/
 
-# Local terminal session snapshots
+# Local pnpm store (should not live in repo root)
+.pnpm-store/
+
+# Agent / IDE runtime artifacts (safe to delete locally)
 terminals/
+agent-tools/
+mcps/
+_tmp_*
+cookies.txt
 
-# Docs
+# Harness local docs & agent config (tracked exceptions below)
 docs/
-
-# Agent system files
-.codex/
+!docs/DOC_MAP.md
+!docs/stories/backlog.md
+!docs/LOCAL_DEV.md
+!docs/REPO_LAYOUT.md
+AGENTS.md
 .agents/
+.codex/
 .opencode/
 history/
-AGENTS.md
-_tmp_46320_63004078d830955450a5ee370e49d2c0
-_tmp_46320_027dc4978fbb530f8f3101ec439a7479
-_tmp_42936_1267ba2eac64627ebf8bccd4de2c1030
-_tmp_42936_04161d15d8026a4df42fc95b3de3ccfd
-/docs
-/scripts
-cookies.txt
-agent-tools/431aae12-d44f-4309-b1b7-b911f7ea5b4d.txt
-/docs
