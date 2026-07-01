@@ -20,11 +20,25 @@ export type ResolvedSession = {
   refreshed: boolean;
 };
 
+const refreshInFlight = new Map<string, Promise<ResolvedSession | null>>();
+
 async function refreshSession(refreshToken: string) {
   return authApiFetch<RefreshResponse>("/auth/refresh", {
     method: "POST",
     body: JSON.stringify({ refreshToken }),
   });
+}
+
+async function doRefresh(refreshToken: string): Promise<ResolvedSession | null> {
+  const result = await refreshSession(refreshToken);
+  if (!result.ok) return null;
+
+  await setAuthCookies(result.data.accessToken, result.data.refreshToken);
+  return {
+    user: result.data.user,
+    accessToken: result.data.accessToken,
+    refreshed: true,
+  };
 }
 
 export async function resolveSession(): Promise<ResolvedSession | null> {
@@ -43,13 +57,14 @@ export async function resolveSession(): Promise<ResolvedSession | null> {
   const refreshToken = await getRefreshCookie();
   if (!refreshToken) return null;
 
-  const result = await refreshSession(refreshToken);
-  if (!result.ok) return null;
+  // Deduplicate concurrent refresh calls for the same token
+  let pending = refreshInFlight.get(refreshToken);
+  if (!pending) {
+    pending = doRefresh(refreshToken).finally(() => {
+      refreshInFlight.delete(refreshToken);
+    });
+    refreshInFlight.set(refreshToken, pending);
+  }
 
-  await setAuthCookies(result.data.accessToken, result.data.refreshToken);
-  return {
-    user: result.data.user,
-    accessToken: result.data.accessToken,
-    refreshed: true,
-  };
+  return pending;
 }
