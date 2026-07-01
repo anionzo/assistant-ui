@@ -16,6 +16,7 @@ import {
   resetTokenExpiresAt,
 } from "../services/reset-password";
 import { sendPasswordResetEmail } from "../services/reset-email";
+import { isSelfServicePasswordResetEnabled } from "../utils/password-reset-policy";
 import {
   badRequest,
   conflict,
@@ -270,6 +271,10 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
   // ── Forgot password ───────────────────────────────────
 
   authRoutes.post("/forgot-password", async (c) => {
+    if (!isSelfServicePasswordResetEnabled()) {
+      return forbidden(c, "self-service password reset is disabled; contact an administrator");
+    }
+
     const body = await c.req.json<{ email?: string }>().catch(() => null);
     if (!body?.email) return badRequest(c, "email is required");
 
@@ -294,6 +299,10 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
   // ── Reset password ────────────────────────────────────
 
   authRoutes.post("/reset-password", async (c) => {
+    if (!isSelfServicePasswordResetEnabled()) {
+      return forbidden(c, "self-service password reset is disabled; contact an administrator");
+    }
+
     const body = await c.req.json<{ token?: string; password?: string }>().catch(() => null);
     if (!body?.token || !body?.password || body.password.length < 8) {
       return badRequest(c, "invalid token or password (min 8 chars)");
