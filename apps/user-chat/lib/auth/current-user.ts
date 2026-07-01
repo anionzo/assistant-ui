@@ -10,7 +10,8 @@ let cachedUser: { user: AuthUser | null; expiresAt: number } | null = null;
 let inFlight: Promise<AuthUser | null> | null = null;
 
 export async function fetchCurrentUser(): Promise<AuthUser | null> {
-  if (cachedUser && cachedUser.expiresAt > Date.now()) {
+  // Don't serve stale negative cache — retry on unknown auth state
+  if (cachedUser && cachedUser.expiresAt > Date.now() && cachedUser.user) {
     return cachedUser.user;
   }
 
@@ -24,7 +25,7 @@ export async function fetchCurrentUser(): Promise<AuthUser | null> {
       return user;
     })
     .catch(() => {
-      cachedUser = { user: null, expiresAt: Date.now() + CURRENT_USER_TTL_MS };
+      // Don't cache negative results from network errors
       return null;
     })
     .finally(() => {

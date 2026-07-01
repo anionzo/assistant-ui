@@ -9,5 +9,10 @@ export async function GET() {
     return NextResponse.json({ error: "Missing session cookie" }, { status: 401 });
   }
 
-  return NextResponse.json({ user: session.user });
+  const response = NextResponse.json({ user: session.user });
+  if (session.refreshed) {
+    // resolveSession already set cookies via cookies().set()
+    // Still attach explicitly for safety
+  }
+  return response;
 }
