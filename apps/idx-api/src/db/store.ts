@@ -1,85 +1,34 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
-import { getDb } from "./client";
-import {
-  chatMessages,
-  chatThreads,
-  oauthAccounts,
-  passwordResetTokens,
-  permissions,
-  refreshTokens,
-  rolePermissions,
-  roles,
-  userRoles,
-  users,
-  type ChatMessageRecord,
-  type ChatThreadRecord,
-  type PermissionRecord,
-  type RoleRecord,
-  type UserRecord,
-} from "./schema";
+import { MongoAuthStore } from "./mongo/store";
+import type {
+  ChatMessageRecord,
+  ChatThreadRecord,
+  CreateChatThreadInput,
+  CreateOAuthAccountInput,
+  CreateRefreshTokenInput,
+  CreateUserInput,
+  OAuthAccountRecord,
+  PermissionRecord,
+  RefreshTokenRecord,
+  RoleRecord,
+  StoredThreadMessage,
+  UpdateChatThreadInput,
+  UserRecord,
+} from "./types";
 
-export type OAuthAccountRecord = {
-  id: string;
-  userId: string;
-  provider: string;
-  providerAccountId: string;
-  createdAt: Date;
-};
-
-export type CreateUserInput = {
-  email: string;
-  passwordHash?: string | null;
-  displayName?: string | null;
-  avatarUrl?: string | null;
-};
-
-export type CreateOAuthAccountInput = {
-  userId: string;
-  provider: string;
-  providerAccountId: string;
-};
-
-export type CreateRefreshTokenInput = {
-  userId: string;
-  tokenHash: string;
-  expiresAt: Date;
-};
-
-export type RefreshTokenRecord = {
-  id: string;
-  userId: string;
-  tokenHash: string;
-  expiresAt: Date;
-  revokedAt: Date | null;
-};
-
-export type CreateChatThreadInput = {
-  userId: string;
-  tenantId: string;
-  title: string;
-  conversationId: string;
-};
-
-export type UpdateChatThreadInput = {
-  title?: string;
-  archived?: boolean;
-  headMessageId?: string | null;
-};
-
-/**
- * StoredThreadMessage stores the full serialized ThreadMessage in `content`
- * to preserve fields such as `status`, `attachments`, and `metadata` without
- * needing a dedicated column for each one. The DB `content` column therefore
- * contains the complete message object, not only the `message.content` parts.
- */
-export type StoredThreadMessage = {
-  id: string;
-  parentId: string | null;
-  role: string;
-  /** The complete serialized ThreadMessage object (not just `message.content`). */
-  content: Record<string, unknown>;
-  runConfig?: Record<string, unknown> | undefined;
-  createdAt: Date;
+export type {
+  ChatMessageRecord,
+  ChatThreadRecord,
+  CreateChatThreadInput,
+  CreateOAuthAccountInput,
+  CreateRefreshTokenInput,
+  CreateUserInput,
+  OAuthAccountRecord,
+  PermissionRecord,
+  RefreshTokenRecord,
+  RoleRecord,
+  StoredThreadMessage,
+  UpdateChatThreadInput,
+  UserRecord,
 };
 
 export interface AuthStore {
@@ -102,7 +51,6 @@ export interface AuthStore {
     threadId: string,
     input: { headMessageId?: string | null; messages: StoredThreadMessage[] },
   ): Promise<number>;
-  // RBAC
   findUserRoles(userId: string): Promise<RoleRecord[]>;
   findUserPermissionCodes(userId: string): Promise<string[]>;
   findUserPermissionIds(userId: string): Promise<number[]>;
@@ -117,396 +65,18 @@ export interface AuthStore {
   setUserStatus(userId: string, status: string): Promise<void>;
   revokeAllUserTokens(userId: string): Promise<void>;
   deleteUserAccount(userId: string): Promise<boolean>;
-  listRoles(): Promise<RoleRecord[]>;
-  listPermissions(): Promise<PermissionRecord[]>;
-  // Reset password
   createResetToken(userId: string, tokenHash: string, expiresAt: Date): Promise<void>;
   findValidResetToken(tokenHash: string): Promise<{ id: string; userId: string } | null>;
   consumeResetToken(tokenId: string): Promise<void>;
-}
-
-class PostgresAuthStore implements AuthStore {
-  async findUserById(id: string) {
-    const db = getDb();
-    return (await db.select().from(users).where(eq(users.id, id)).limit(1))[0] ?? null;
-  }
-
-  async findUserByEmail(email: string) {
-    const db = getDb();
-    return (await db.select().from(users).where(eq(users.email, email)).limit(1))[0] ?? null;
-  }
-
-  async createUser(input: CreateUserInput) {
-    const db = getDb();
-    const createdUsers = await db
-      .insert(users)
-      .values({
-        email: input.email,
-        passwordHash: input.passwordHash ?? null,
-        displayName: input.displayName ?? null,
-        avatarUrl: input.avatarUrl ?? null,
-      })
-      .returning();
-    return createdUsers[0];
-  }
-
-  async findOAuthAccount(provider: string, providerAccountId: string) {
-    const db = getDb();
-    return (
-      await db
-        .select()
-        .from(oauthAccounts)
-        .where(
-          and(
-            eq(oauthAccounts.provider, provider),
-            eq(oauthAccounts.providerAccountId, providerAccountId),
-          ),
-        )
-        .limit(1)
-    )[0] ?? null;
-  }
-
-  async createOAuthAccount(input: CreateOAuthAccountInput) {
-    const db = getDb();
-    await db.insert(oauthAccounts).values(input);
-  }
-
-  async createRefreshToken(input: CreateRefreshTokenInput) {
-    const db = getDb();
-    await db.insert(refreshTokens).values(input);
-  }
-
-  async findValidRefreshToken(tokenHash: string) {
-    const db = getDb();
-    const row =
-      (
-        await db
-          .select()
-          .from(refreshTokens)
-          .where(eq(refreshTokens.tokenHash, tokenHash))
-          .limit(1)
-      )[0] ?? null;
-
-    if (!row || row.revokedAt || row.expiresAt <= new Date()) return null;
-    return row;
-  }
-
-  async revokeRefreshToken(tokenHash: string) {
-    const db = getDb();
-    await db
-      .update(refreshTokens)
-      .set({ revokedAt: new Date() })
-      .where(eq(refreshTokens.tokenHash, tokenHash));
-  }
-
-  async listThreads(userId: string, tenantId?: string) {
-    const db = getDb();
-    return db
-      .select()
-      .from(chatThreads)
-      .where(
-        tenantId
-          ? and(eq(chatThreads.userId, userId), eq(chatThreads.tenantId, tenantId))
-          : eq(chatThreads.userId, userId),
-      )
-      .orderBy(desc(chatThreads.updatedAt));
-  }
-
-  async findThreadById(userId: string, threadId: string) {
-    const db = getDb();
-    return (
-      await db
-        .select()
-        .from(chatThreads)
-        .where(and(eq(chatThreads.id, threadId), eq(chatThreads.userId, userId)))
-        .limit(1)
-    )[0] ?? null;
-  }
-
-  async createThread(input: CreateChatThreadInput) {
-    const db = getDb();
-    const rows = await db
-      .insert(chatThreads)
-      .values(input)
-      .returning();
-    return rows[0];
-  }
-
-  async updateThread(userId: string, threadId: string, input: UpdateChatThreadInput) {
-    const db = getDb();
-    const values: Partial<typeof chatThreads.$inferInsert> = {
-      updatedAt: new Date(),
-    };
-
-    if (input.title !== undefined) values.title = input.title;
-    if (input.archived !== undefined) values.archivedAt = input.archived ? new Date() : null;
-    if (input.headMessageId !== undefined) values.headMessageId = input.headMessageId;
-
-    const rows = await db
-      .update(chatThreads)
-      .set(values)
-      .where(and(eq(chatThreads.id, threadId), eq(chatThreads.userId, userId)))
-      .returning();
-    return rows[0] ?? null;
-  }
-
-  async deleteThread(userId: string, threadId: string) {
-    const db = getDb();
-    const rows = await db
-      .delete(chatThreads)
-      .where(and(eq(chatThreads.id, threadId), eq(chatThreads.userId, userId)))
-      .returning({ id: chatThreads.id });
-    return rows.length > 0;
-  }
-
-  async listThreadMessages(userId: string, threadId: string) {
-    const db = getDb();
-    const thread = await this.findThreadById(userId, threadId);
-    if (!thread) return [];
-
-    const rows = await db
-      .select()
-      .from(chatMessages)
-      .where(eq(chatMessages.threadId, thread.id))
-      .orderBy(chatMessages.createdAt);
-
-    return rows.map((row) => ({
-      id: row.id,
-      parentId: row.parentId,
-      role: row.role,
-      content: row.content as Record<string, unknown>,
-      runConfig: (row.runConfig ?? undefined) as Record<string, unknown> | undefined,
-      createdAt: row.createdAt,
-    }));
-  }
-
-  async replaceThreadMessages(
-    userId: string,
-    threadId: string,
-    input: { headMessageId?: string | null; messages: StoredThreadMessage[] },
-  ) {
-    const db = getDb();
-    const thread = await this.findThreadById(userId, threadId);
-    if (!thread) return 0;
-
-    await db.transaction(async (tx) => {
-      await tx.delete(chatMessages).where(eq(chatMessages.threadId, thread.id));
-
-      if (input.messages.length > 0) {
-        await tx.insert(chatMessages).values(
-          input.messages.map((message) => ({
-            id: message.id,
-            threadId: thread.id,
-            parentId: message.parentId,
-            role: message.role,
-            content: message.content,
-            runConfig: message.runConfig ?? null,
-            createdAt: message.createdAt,
-          })),
-        );
-      }
-
-      await tx
-        .update(chatThreads)
-        .set({
-          headMessageId: input.headMessageId ?? null,
-          updatedAt: new Date(),
-        })
-        .where(eq(chatThreads.id, thread.id));
-    });
-
-    return input.messages.length;
-  }
-
-  // ── RBAC ──────────────────────────────────────────────
-
-  async findUserRoles(userId: string) {
-    const db = getDb();
-    return db
-      .select({
-        id: roles.id,
-        name: roles.name,
-        description: roles.description,
-        createdAt: roles.createdAt,
-      })
-      .from(userRoles)
-      .innerJoin(roles, eq(roles.id, userRoles.roleId))
-      .where(eq(userRoles.userId, userId));
-  }
-
-  async findUserPermissionCodes(userId: string) {
-    const db = getDb();
-    const rows = await db
-      .select({ code: permissions.code })
-      .from(userRoles)
-      .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
-      .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-      .where(eq(userRoles.userId, userId));
-    return rows.map((r) => r.code);
-  }
-
-  async findUserPermissionIds(userId: string) {
-    const db = getDb();
-    const rows = await db
-      .select({ id: permissions.id })
-      .from(userRoles)
-      .innerJoin(rolePermissions, eq(rolePermissions.roleId, userRoles.roleId))
-      .innerJoin(permissions, eq(permissions.id, rolePermissions.permissionId))
-      .where(eq(userRoles.userId, userId));
-    return rows.map((r) => r.id);
-  }
-
-  async ensureUserRole(userId: string, roleName: string) {
-    const db = getDb();
-    const role = (await db.select().from(roles).where(eq(roles.name, roleName)).limit(1))[0];
-    if (!role) return;
-    await db
-      .insert(userRoles)
-      .values({ userId, roleId: role.id })
-      .onConflictDoNothing();
-  }
-
-  async revokeUserRole(userId: string, roleName: string) {
-    const db = getDb();
-    const role = (await db.select().from(roles).where(eq(roles.name, roleName)).limit(1))[0];
-    if (!role) return;
-    await db
-      .delete(userRoles)
-      .where(and(eq(userRoles.userId, userId), eq(userRoles.roleId, role.id)));
-  }
-
-  // ── Role permissions ──────────────────────────────────
-
-  async getRolePermissions(roleId: number) {
-    const db = getDb();
-    return db
-      .select({
-        id: permissions.id,
-        code: permissions.code,
-        name: permissions.name,
-        description: permissions.description,
-        resource: permissions.resource,
-        action: permissions.action,
-        createdAt: permissions.createdAt,
-      })
-      .from(permissions)
-      .innerJoin(rolePermissions, eq(rolePermissions.permissionId, permissions.id))
-      .where(eq(rolePermissions.roleId, roleId))
-      .orderBy(permissions.id);
-  }
-
-  async assignRolePermission(roleId: number, permissionId: number) {
-    const db = getDb();
-    await db
-      .insert(rolePermissions)
-      .values({ roleId, permissionId })
-      .onConflictDoNothing();
-  }
-
-  async revokeRolePermission(roleId: number, permissionId: number) {
-    const db = getDb();
-    await db
-      .delete(rolePermissions)
-      .where(and(eq(rolePermissions.roleId, roleId), eq(rolePermissions.permissionId, permissionId)));
-  }
-
-  async listAllUsers() {
-    const db = getDb();
-    return db.select().from(users).orderBy(users.createdAt);
-  }
-
-  async updateUser(userId: string, input: { displayName?: string }) {
-    const db = getDb();
-    const rows = await db
-      .update(users)
-      .set({
-        ...(input.displayName !== undefined ? { displayName: input.displayName } : {}),
-        updatedAt: new Date(),
-      })
-      .where(eq(users.id, userId))
-      .returning();
-    return rows[0] ?? null;
-  }
-
-  async setUserPassword(userId: string, passwordHash: string) {
-    const db = getDb();
-    await db
-      .update(users)
-      .set({ passwordHash, updatedAt: new Date() })
-      .where(eq(users.id, userId));
-  }
-
-  async setUserStatus(userId: string, status: string) {
-    const db = getDb();
-    await db
-      .update(users)
-      .set({ status, updatedAt: new Date() })
-      .where(eq(users.id, userId));
-  }
-
-  async revokeAllUserTokens(userId: string) {
-    const db = getDb();
-    await db
-      .update(refreshTokens)
-      .set({ revokedAt: new Date() })
-      .where(and(eq(refreshTokens.userId, userId), isNull(refreshTokens.revokedAt)));
-  }
-
-  async deleteUserAccount(userId: string) {
-    const db = getDb();
-    const rows = await db.delete(users).where(eq(users.id, userId)).returning({ id: users.id });
-    return rows.length > 0;
-  }
-
-  // ── Reset password ────────────────────────────────────
-
-  async createResetToken(userId: string, tokenHash: string, expiresAt: Date) {
-    const db = getDb();
-    await db.insert(passwordResetTokens).values({ userId, tokenHash, expiresAt });
-  }
-
-  async findValidResetToken(tokenHash: string) {
-    const db = getDb();
-    const row = (await db
-      .select({ id: passwordResetTokens.id, userId: passwordResetTokens.userId })
-      .from(passwordResetTokens)
-      .where(eq(passwordResetTokens.tokenHash, tokenHash))
-      .limit(1))[0] ?? null;
-    if (!row) return null;
-    // Check validity inline instead of where clause to avoid timezone issues
-    const full = (await db
-      .select()
-      .from(passwordResetTokens)
-      .where(eq(passwordResetTokens.id, row.id))
-      .limit(1))[0];
-    if (!full || full.usedAt || full.expiresAt <= new Date()) return null;
-    return row;
-  }
-
-  async consumeResetToken(tokenId: string) {
-    const db = getDb();
-    await db
-      .update(passwordResetTokens)
-      .set({ usedAt: new Date() })
-      .where(eq(passwordResetTokens.id, tokenId));
-  }
-
-  async listRoles() {
-    const db = getDb();
-    return db.select().from(roles).orderBy(roles.id);
-  }
-
-  async listPermissions() {
-    const db = getDb();
-    return db.select().from(permissions).orderBy(permissions.id);
-  }
+  listRoles(): Promise<RoleRecord[]>;
+  listPermissions(): Promise<PermissionRecord[]>;
 }
 
 let defaultStore: AuthStore | null = null;
 
 export function getAuthStore(): AuthStore {
   if (!defaultStore) {
-    defaultStore = new PostgresAuthStore();
+    defaultStore = new MongoAuthStore();
   }
 
   return defaultStore;

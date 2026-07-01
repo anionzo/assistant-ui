@@ -1,17 +1,13 @@
 services:
-  postgres:
-    image: postgres:16
+  mongo:
+    image: mongo:7
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: idx_auth
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "27017:27017"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mongodata:/data/db
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d idx_auth"]
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -20,27 +16,23 @@ services:
     build:
       context: .
       dockerfile: apps/idx-api/Dockerfile
+    env_file:
+      - apps/idx-api/.env
     command: >
-      sh -lc "corepack enable &&
+      sh -lc "export CI=true &&
+      corepack enable &&
       pnpm install --filter @idx/idx-api &&
+      pnpm --filter @idx/idx-api db:bootstrap &&
       pnpm --filter @idx/idx-api dev"
     environment:
       PORT: 4000
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/idx_auth
-      JWT_SECRET: replace-me-in-compose
-      JWT_ACCESS_TTL: 3600
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      MONGODB_URI: mongodb://mongo:27017/idx_api
       GOOGLE_CALLBACK_URL: http://localhost:4000/auth/google/callback
       FRONTEND_URL: http://localhost:3001
-      MODULAR_RAG_GATEWAY_URL: http://host.docker.internal:8030
-      USER_API_KEY: demo-api-key
-      ADMIN_API_KEY: demo-admin-key
-      IDX_SERVICE_SECRET: dev-service-secret
     ports:
       - "4000:4000"
     depends_on:
-      postgres:
+      mongo:
         condition: service_healthy
     healthcheck:
       test:
@@ -63,20 +55,19 @@ services:
     build:
       context: .
       dockerfile: apps/user-chat/Dockerfile
+    env_file:
+      - apps/user-chat/.env.local
     command: >
-      sh -lc "corepack enable &&
+      sh -lc "export CI=true &&
+      corepack enable &&
       pnpm install --filter @idx/user-chat... &&
       pnpm --filter @idx/user-chat dev"
     environment:
-      PORT: 3000
+      NODE_ENV: development
       IDX_API_URL: http://idx-api:4000
-      IDX_SERVICE_SECRET: dev-service-secret
-      TENANT_ID: huit_admission_chatbot
-      JWT_SECRET: replace-me-in-compose
-      AUTH_REQUIRED: "false"
       FRONTEND_URL: http://localhost:3001
     ports:
-      - "3001:3000"
+      - "3001:3001"
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -88,5 +79,33 @@ services:
       - /app/apps/user-chat/node_modules
       - /app/packages
 
+  idx-chat-admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile
+    env_file:
+      - apps/admin/.env.local
+    command: >
+      sh -lc "export CI=true &&
+      corepack enable &&
+      pnpm install --filter @idx/admin... &&
+      rm -rf apps/admin/.next &&
+      pnpm --filter @idx/admin dev"
+    environment:
+      NODE_ENV: development
+      IDX_API_URL: http://idx-api:4000
+      FRONTEND_URL: http://localhost:3002
+      ADMIN_IP_ALLOWLIST: 127.0.0.1,10.0.0.0/8,172.16.0.0/12
+    ports:
+      - "3002:3002"
+    depends_on:
+      idx-api:
+        condition: service_healthy
+    volumes:
+      - ./:/app
+      - /app/node_modules
+      - /app/apps/admin/node_modules
+      - /app/packages
+
 volumes:
-  pgdata:
+  mongodata:

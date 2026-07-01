@@ -4,6 +4,7 @@ import { createAuthRoutes } from "./routes/auth";
 import { createAdminRoutes } from "./routes/admin";
 import { createRagRoutes } from "./routes/rag";
 import { createThreadRoutes } from "./routes/threads";
+import { ensureMongoBootstrap } from "./db/mongo/bootstrap";
 import { type AuthStore, getAuthStore } from "./db/store";
 import { ensureAdminSeed } from "./services/rbac";
 import { ErrorCode } from "./utils/errors";
@@ -62,5 +63,6 @@ export function createApp(store: AuthStore = getAuthStore()) {
 }
 
 export async function onAppReady(store: AuthStore = getAuthStore()) {
+  await ensureMongoBootstrap();
   await ensureAdminSeed(store);
 }
