@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authThreadFetch, requireSessionUser } from "@/lib/server/thread-api";
 import { getServerConfig } from "@/lib/server/config";
+import { getResolvedServerConfig } from "@/lib/server/resolved-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,7 +16,8 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  const tenantId = url.searchParams.get("tenantId") ?? getServerConfig().tenantId;
+  const resolved = await getResolvedServerConfig();
+  const tenantId = url.searchParams.get("tenantId") ?? resolved.tenantId;
   const page = url.searchParams.get("page") ?? "1";
   const limit = url.searchParams.get("limit") ?? "50";
   const upstream = new URLSearchParams({
@@ -50,12 +52,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Request body must be valid JSON" }, { status: 400 });
   }
 
-  const config = getServerConfig();
+  const resolved = await getResolvedServerConfig();
   const payload = {
     tenantId:
       typeof (body as Record<string, unknown>).tenantId === "string"
         ? (body as Record<string, unknown>).tenantId
-        : config.tenantId,
+        : resolved.tenantId,
     title:
       typeof (body as Record<string, unknown>).title === "string"
         ? (body as Record<string, unknown>).title

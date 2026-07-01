@@ -1,4 +1,5 @@
 import { getServerConfig } from "@/lib/server/config";
+import { getResolvedServerConfig } from "@/lib/server/resolved-config";
 
 export const IDX_SERVICE_AUTH_HEADER = "x-idx-service-token";
 
@@ -18,8 +19,8 @@ export function idxRagUrl(path: string) {
   return `${base}${normalized}`;
 }
 
-export function idxRagHeaders(requestId: string, extra: Record<string, string> = {}) {
-  const config = getServerConfig();
+export async function idxRagHeaders(requestId: string, extra: Record<string, string> = {}) {
+  const config = await getResolvedServerConfig();
   return {
     [IDX_SERVICE_AUTH_HEADER]: config.idxServiceSecret,
     "X-Request-ID": requestId,
@@ -31,7 +32,7 @@ export function idxRagHeaders(requestId: string, extra: Record<string, string> =
 export async function fetchIdxRag(options: FetchIdxRagOptions) {
   return fetch(idxRagUrl(options.path), {
     method: options.method ?? "GET",
-    headers: idxRagHeaders(options.requestId, options.headers),
+    headers: await idxRagHeaders(options.requestId, options.headers),
     body: options.body,
     signal: options.signal,
     cache: "no-store",

@@ -1,16 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DEFAULT_LOGO_URL } from "@/lib/branding-defaults";
+import { APP_CONFIG_FALLBACKS } from "@/lib/app-config-fallbacks";
 
-const FALLBACK = {
-  logoUrl: DEFAULT_LOGO_URL,
-  appName: "Idx Chat",
-  tagline: "Trợ lý tuyển sinh HUIT",
+type BrandingState = {
+  logoUrl: string;
+  appName: string;
+  tagline: string;
+};
+
+const FALLBACK: BrandingState = {
+  logoUrl: APP_CONFIG_FALLBACKS.branding.logoUrl,
+  appName: APP_CONFIG_FALLBACKS.branding.user.appName,
+  tagline: APP_CONFIG_FALLBACKS.branding.user.tagline,
 };
 
 export function useBranding() {
-  const [branding, setBranding] = useState(FALLBACK);
+  const [branding, setBranding] = useState<BrandingState>(FALLBACK);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

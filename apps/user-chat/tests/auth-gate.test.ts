@@ -3,6 +3,7 @@ import { POST as chatStream } from "../app/api/chat/stream/route";
 import { POST as voiceStream } from "../app/api/voice/stream/route";
 import { GET as listThreads } from "../app/api/threads/route";
 import * as sessionResolve from "../lib/auth/session-resolve";
+import { mockResolvedServerConfig } from "./helpers/resolved-config";
 
 const sessionUser = {
   id: "user-abc",
@@ -17,6 +18,7 @@ describe("AUTH_REQUIRED gateway gate", () => {
     vi.stubEnv("IDX_SERVICE_SECRET", "service-secret");
     vi.stubEnv("AUTH_REQUIRED", "true");
     vi.stubEnv("JWT_SECRET", "test-secret");
+    mockResolvedServerConfig({ authRequired: true, allowGuestChat: false });
   });
 
   afterEach(() => {
@@ -105,6 +107,7 @@ describe("AUTH_REQUIRED gateway gate", () => {
 
   it("allows chat stream as guest when ALLOW_GUEST_CHAT=true even if AUTH_REQUIRED=true", async () => {
     vi.stubEnv("ALLOW_GUEST_CHAT", "true");
+    mockResolvedServerConfig({ authRequired: true, allowGuestChat: true });
     vi.spyOn(sessionResolve, "resolveSession").mockResolvedValue(null);
 
     const encoder = new TextEncoder();

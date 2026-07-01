@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../app/api/chat/stream/route";
 import { IDX_SERVICE_AUTH_HEADER } from "../lib/server/idx-api-rag";
+import { mockResolvedServerConfig } from "./helpers/resolved-config";
 
 const requestBody = {
   message: "Xin chào",
@@ -19,6 +20,7 @@ describe("POST /api/chat/stream", () => {
   beforeEach(() => {
     vi.stubEnv("IDX_API_URL", "http://localhost:4000");
     vi.stubEnv("IDX_SERVICE_SECRET", "service-secret");
+    mockResolvedServerConfig();
   });
 
   afterEach(() => {

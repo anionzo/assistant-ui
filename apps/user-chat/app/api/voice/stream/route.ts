@@ -6,7 +6,7 @@ import {
   readIdxRagErrorMessage,
 } from "@/lib/server/idx-api-rag";
 import { requireGatewaySession } from "@/lib/server/require-gateway-session";
-import { getServerConfig } from "@/lib/server/config";
+import { getResolvedServerConfig } from "@/lib/server/resolved-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
     if (!gatewaySession.ok) return gatewaySession.response;
 
     const { conversationId, userId } = gatewaySession;
-    const config = getServerConfig();
+    const config = await getResolvedServerConfig();
     const corpusId = typeof form.get("corpus_id") === "string" ? (form.get("corpus_id") as string) : config.defaultCorpusId;
     const pipeline = typeof form.get("pipeline") === "string" ? (form.get("pipeline") as string) : config.defaultVoicePipeline;
 
