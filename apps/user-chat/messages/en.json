@@ -1,0 +1,39 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "language": "Language"
+  },
+  "nav": {
+    "chat": "Chat",
+    "voiceForm": "Voice forms",
+    "settings": "Settings",
+    "login": "Sign in",
+    "loginHint": "Save chat history",
+    "guestChat": "Guest mode — chats are not saved.",
+    "guestLogin": "to save your history.",
+    "guestVoiceForm": "to save form progress."
+  },
+  "thread": {
+    "new": "New conversation",
+    "loadingList": "Loading conversations",
+    "options": "Options",
+    "archive": "Archive",
+    "delete": "Delete",
+    "newChat": "New conversation",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "older": "Earlier"
+  },
+  "sidebar": {
+    "show": "Show sidebar",
+    "hide": "Hide sidebar"
+  },
+  "voiceForm": {
+    "title": "Voice form filling",
+    "newSession": "New form session",
+    "noSessions": "No sessions yet.",
+    "rename": "Rename",
+    "renameSession": "Rename session",
+    "delete": "Delete session"
+  }
+}

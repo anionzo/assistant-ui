@@ -9,9 +9,11 @@ import {
 } from "@/components/ui/tooltip";
 import { useBranding } from "@/hooks/use-branding";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 import { PlusIcon } from "lucide-react";
 
 export function ChatMainHeader() {
+  const t = useT();
   const { branding } = useBranding();
   const { state, isMobile } = useSidebar();
   const sidebarCollapsed = state === "collapsed" && !isMobile;
@@ -29,12 +31,12 @@ export function ChatMainHeader() {
           render={
             <SidebarTrigger
               className="size-8 shrink-0"
-              aria-label={sidebarCollapsed ? "Hiện thanh bên" : "Ẩn thanh bên"}
+              aria-label={sidebarCollapsed ? t("sidebar.show") : t("sidebar.hide")}
             />
           }
         />
         <TooltipContent side="bottom">
-          {sidebarCollapsed ? "Hiện thanh bên" : "Ẩn thanh bên"}
+          {sidebarCollapsed ? t("sidebar.show") : t("sidebar.hide")}
         </TooltipContent>
       </Tooltip>
       <span className="truncate text-sm font-semibold tracking-wide md:hidden">
@@ -53,13 +55,13 @@ export function ChatMainHeader() {
                 <ThreadListNew
                   size="icon-sm"
                   className="size-8 shrink-0 px-0"
-                  aria-label="Cuộc trò chuyện mới"
+                  aria-label={t("thread.newChat")}
                 >
                   <PlusIcon className="size-4" />
                 </ThreadListNew>
               }
             />
-            <TooltipContent side="bottom">Cuộc trò chuyện mới</TooltipContent>
+            <TooltipContent side="bottom">{t("thread.newChat")}</TooltipContent>
           </Tooltip>
         </div>
       ) : null}

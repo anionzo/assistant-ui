@@ -18,6 +18,7 @@ import {
   TrashIcon,
 } from "lucide-react";
 import { useMinimumLoading } from "@/lib/use-minimum-loading";
+import { useT } from "@idx/i18n";
 import {
   forwardRef,
   Fragment,
@@ -88,15 +89,17 @@ const DAY_IN_MS = 86_400_000;
 const dateGroupLabel = (
   date: Date | undefined,
   startOfToday: number,
+  t: (key: string) => string,
 ): string => {
-  if (!date || date.getTime() >= startOfToday) return "Hôm nay";
-  if (date.getTime() >= startOfToday - DAY_IN_MS) return "Hôm qua";
-  return "Trước đó";
+  if (!date || date.getTime() >= startOfToday) return t("thread.today");
+  if (date.getTime() >= startOfToday - DAY_IN_MS) return t("thread.yesterday");
+  return t("thread.older");
 };
 
 type ThreadListGroup = { label: string; indices: number[] };
 
 const ThreadListItemGroups: FC = () => {
+  const t = useT();
   const threadIds = useAuiState((s) => s.threads.threadIds);
   const threadItems = useAuiState((s) => s.threads.threadItems);
 
@@ -119,7 +122,7 @@ const ThreadListItemGroups: FC = () => {
 
     const result: ThreadListGroup[] = [];
     for (const index of indices) {
-      const label = dateGroupLabel(dates[index], startOfToday);
+      const label = dateGroupLabel(dates[index], startOfToday, t);
       const lastGroup = result[result.length - 1];
       if (lastGroup?.label === label) {
         lastGroup.indices.push(index);
@@ -128,7 +131,7 @@ const ThreadListItemGroups: FC = () => {
       }
     }
     return result;
-  }, [threadIds, threadItems]);
+  }, [threadIds, threadItems, t]);
 
   if (!groups) {
     return (
@@ -161,6 +164,7 @@ export const ThreadListNew = forwardRef<
   HTMLButtonElement,
   ComponentPropsWithoutRef<typeof Button> & { labelClassName?: string }
 >(({ className, labelClassName, children, onClick, ...props }, ref) => {
+  const t = useT();
   const aui = useAui();
   const isMain = useAuiState(
     (s) => s.threads.newThreadId === s.threads.mainThreadId,
@@ -200,7 +204,7 @@ export const ThreadListNew = forwardRef<
             data-slot="aui_thread-list-new-label"
             className={cn("whitespace-nowrap", labelClassName)}
           >
-            Cuộc trò chuyện mới
+            {t("thread.new")}
           </span>
         </>
       )}
@@ -211,13 +215,14 @@ export const ThreadListNew = forwardRef<
 ThreadListNew.displayName = "ThreadListNew";
 
 const ThreadListSkeleton: FC = () => {
+  const t = useT();
   return (
     <div className="flex flex-col gap-0.5">
       {Array.from({ length: 5 }, (_, i) => (
         <div
           key={i}
           role="status"
-          aria-label="Đang tải cuộc trò chuyện"
+          aria-label={t("thread.loadingList")}
           data-slot="aui_thread-list-skeleton-wrapper"
           className="flex h-8 items-center px-2.5"
         >
@@ -232,6 +237,7 @@ const ThreadListSkeleton: FC = () => {
 };
 
 export const ThreadListItem: FC = () => {
+  const t = useT();
   return (
     <ThreadListItemPrimitive.Root
       data-slot="aui_thread-list-item"
@@ -245,7 +251,7 @@ export const ThreadListItem: FC = () => {
           data-slot="aui_thread-list-item-title"
           className="min-w-0 flex-1 truncate"
         >
-          <ThreadListItemPrimitive.Title fallback="Cuộc trò chuyện mới" />
+          <ThreadListItemPrimitive.Title fallback={t("thread.new")} />
         </span>
       </ThreadListItemPrimitive.Trigger>
       <ThreadListItemMore />
@@ -254,6 +260,7 @@ export const ThreadListItem: FC = () => {
 };
 
 const ThreadListItemMore: FC = () => {
+  const t = useT();
   return (
     <ThreadListItemMorePrimitive.Root>
       <ThreadListItemMorePrimitive.Trigger asChild>
@@ -264,7 +271,7 @@ const ThreadListItemMore: FC = () => {
           className="data-[state=open]:bg-accent absolute end-1.5 top-1/2 size-6 -translate-y-1/2 p-0 opacity-0 group-hover:opacity-100 group-has-focus-visible:opacity-100 group-data-active:opacity-100 data-[state=open]:opacity-100"
         >
           <MoreHorizontalIcon className="size-3.5" />
-          <span className="sr-only">Tùy chọn</span>
+          <span className="sr-only">{t("thread.options")}</span>
         </Button>
       </ThreadListItemMorePrimitive.Trigger>
       <ThreadListItemMorePrimitive.Content
@@ -280,7 +287,7 @@ const ThreadListItemMore: FC = () => {
             className="hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none"
           >
             <ArchiveIcon className="size-4" />
-            Lưu trữ
+            {t("thread.archive")}
           </ThreadListItemMorePrimitive.Item>
         </ThreadListItemPrimitive.Archive>
         <ThreadListItemPrimitive.Delete asChild>
@@ -289,7 +296,7 @@ const ThreadListItemMore: FC = () => {
             className="text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive flex cursor-pointer items-center gap-2 rounded-lg px-2.5 py-1.5 text-sm outline-none select-none"
           >
             <TrashIcon className="size-4" />
-            Xóa
+            {t("thread.delete")}
           </ThreadListItemMorePrimitive.Item>
         </ThreadListItemPrimitive.Delete>
       </ThreadListItemMorePrimitive.Content>

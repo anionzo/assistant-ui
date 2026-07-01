@@ -8,6 +8,7 @@ import { voiceFormPath } from "@/lib/voice-form/routes";
 import { formatConvLabel } from "@/lib/voice-form/sessions";
 import { useVoiceFormSession } from "@/lib/voice-form/session-context";
 import type { ConversationStub } from "@/lib/voice-form/types";
+import { useT } from "@idx/i18n";
 import { Loader2, PencilIcon, PlusIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -37,6 +38,7 @@ function VoiceFormSessionListItem({
   onRename: (id: string, title: string) => Promise<void>;
   onDelete: (id: string) => void;
 }) {
+  const t = useT();
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
@@ -80,7 +82,7 @@ function VoiceFormSessionListItem({
           disabled={sessionBusy}
           data-slot="aui_voice-form-session-list-item-rename"
           className="h-7 min-w-0 flex-1 rounded-md px-2.5 text-sm"
-          aria-label="Đổi tên phiên"
+          aria-label={t("voiceForm.renameSession")}
           onChange={(e) => setDraft(e.target.value)}
           onBlur={() => void commitRename()}
           onKeyDown={(e) => {
@@ -119,14 +121,14 @@ function VoiceFormSessionListItem({
         <>
           <TooltipIconButton
             type="button"
-            tooltip="Đổi tên"
+            tooltip={t("voiceForm.rename")}
             side="right"
             variant="ghost"
             size="icon"
             disabled={sessionBusy}
             data-slot="aui_voice-form-session-list-item-rename-trigger"
             className={cn(SESSION_LIST_ITEM_ACTION_CLASS, "end-8")}
-            aria-label="Đổi tên phiên"
+            aria-label={t("voiceForm.renameSession")}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -137,14 +139,14 @@ function VoiceFormSessionListItem({
           </TooltipIconButton>
           <TooltipIconButton
             type="button"
-            tooltip="Xóa phiên"
+            tooltip={t("voiceForm.delete")}
             side="right"
             variant="ghost"
             size="icon"
             disabled={sessionBusy}
             data-slot="aui_voice-form-session-list-item-delete"
             className={cn(SESSION_LIST_ITEM_ACTION_CLASS, "end-1.5 hover:text-destructive")}
-            aria-label="Xóa phiên"
+            aria-label={t("voiceForm.delete")}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -160,6 +162,7 @@ function VoiceFormSessionListItem({
 }
 
 export function VoiceFormSessionSidebar() {
+  const t = useT();
   const {
     initialAuth,
     urlSessionId,
@@ -192,14 +195,14 @@ export function VoiceFormSessionSidebar() {
             <PlusIcon data-slot="aui_voice-form-session-list-new-icon" className="size-4 shrink-0" />
           )}
           <span data-slot="aui_voice-form-session-list-new-label" className="whitespace-nowrap">
-            Phiên điền mẫu mới
+            {t("voiceForm.newSession")}
           </span>
         </Button>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto px-1">
         {conversations.length === 0 ? (
-          <p className="text-muted-foreground px-2.5 py-2 text-xs">Chưa có phiên nào.</p>
+          <p className="text-muted-foreground px-2.5 py-2 text-xs">{t("voiceForm.noSessions")}</p>
         ) : (
           <ul className="flex flex-col gap-0.5" data-slot="aui_voice-form-session-list-items">
             {conversations.map((c) => (

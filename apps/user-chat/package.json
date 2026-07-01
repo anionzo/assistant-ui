@@ -14,6 +14,7 @@
     "@assistant-ui/react": "0.14.24",
     "@assistant-ui/react-markdown": "^0.14.5",
     "@base-ui/react": "^1.6.0",
+    "@idx/i18n": "workspace:*",
     "@idx/modular-rag-sdk": "workspace:*",
     "@idx/voice-input": "workspace:*",
     "class-variance-authority": "^0.7.1",

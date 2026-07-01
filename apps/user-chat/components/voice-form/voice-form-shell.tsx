@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useBranding } from "@/hooks/use-branding";
 import { voiceFormPath } from "@/lib/voice-form/routes";
+import { useT } from "@idx/i18n";
 import { VoiceFormSessionProvider } from "@/lib/voice-form/session-context";
 import { FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
@@ -35,6 +36,8 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
     typeof params?.sessionId === "string" && params.sessionId.length > 0
       ? decodeURIComponent(params.sessionId)
       : undefined;
+
+  const t = useT();
 
   const handleSessionIdChange = useCallback(
     (sessionId: string) => {
@@ -85,7 +88,7 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
                   <SidebarMenuButton asChild isActive={pathname?.startsWith("/chat") ?? false}>
                     <Link href="/chat">
                       <MessageSquare className="size-4" />
-                      <span>Trò chuyện</span>
+                      <span>{t("nav.chat")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -93,7 +96,7 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
                   <SidebarMenuButton asChild isActive={pathname?.startsWith("/voice-form") ?? false}>
                     <Link href={voiceFormPath()}>
                       <FileText className="size-4" />
-                      <span>Điền biểu mẫu</span>
+                      <span>{t("nav.voiceForm")}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -105,7 +108,7 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
 
               {!initialAuth && (
                 <p className="text-muted-foreground shrink-0 px-2 py-1 text-[10px]">
-                  <Link href="/login" className="underline">Đăng nhập</Link> để lưu tiến trình điền mẫu.
+                  <Link href="/login" className="underline">{t("nav.login")}</Link> {t("nav.guestVoiceForm")}
                 </p>
               )}
             </SidebarContent>
@@ -118,7 +121,7 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
 
           <SidebarInset className="min-w-0">
             <header className="flex h-12 shrink-0 items-center border-b px-4">
-              <h1 className="text-sm font-semibold">Điền biểu mẫu bằng giọng nói</h1>
+              <h1 className="text-sm font-semibold">{t("voiceForm.title")}</h1>
             </header>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <VoiceFormView />

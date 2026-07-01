@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { BrandLogo } from "@/components/brand-logo";
 import { useBranding } from "@/hooks/use-branding";
+import { useT } from "@idx/i18n";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import type { ComponentProps } from "react";
@@ -23,6 +24,7 @@ export function ThreadListSidebar({
   ...props
 }: ComponentProps<typeof Sidebar> & { initialAuth?: boolean }) {
   const { branding } = useBranding();
+  const t = useT();
 
   return (
     <Sidebar {...props}>
@@ -59,7 +61,7 @@ export function ThreadListSidebar({
             <SidebarMenuButton asChild>
               <Link href="/voice-form">
                 <FileText className="size-4" />
-                <span>Điền biểu mẫu</span>
+                <span>{t("nav.voiceForm")}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -69,8 +71,8 @@ export function ThreadListSidebar({
         </div>
         {!initialAuth && (
           <div className="text-muted-foreground px-2 py-1 text-[10px]">
-            Chế độ khách — trò chuyện không được lưu.{" "}
-            <Link href="/login" className="underline">Đăng nhập</Link> để lưu lại.
+            {t("nav.guestChat")}{" "}
+            <Link href="/login" className="underline">{t("nav.login")}</Link> {t("nav.guestLogin")}
           </div>
         )}
         <div className="aui-sidebar-thread-list min-h-0 flex-1 overflow-auto">

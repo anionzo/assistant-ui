@@ -13,9 +13,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { LanguageSwitcher } from "@/components/language-switcher";
 import { fetchCurrentUser, type AuthUser } from "@/lib/auth/current-user";
 import { userInitials } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 import { SettingsIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -36,9 +38,17 @@ function UserAvatar({ user }: { user: AuthUser }) {
 }
 
 export function SidebarUserFooter() {
+  const t = useT();
   const { state, isMobile } = useSidebar();
   const collapsed = state === "collapsed" && !isMobile;
   const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
+
+  const languageRow = !collapsed ? (
+    <div className="mb-2 flex items-center justify-between gap-2 px-1">
+      <span className="text-[11px] text-muted-foreground">{t("common.language")}</span>
+      <LanguageSwitcher />
+    </div>
+  ) : null;
 
   useEffect(() => {
     let cancelled = false;
@@ -58,27 +68,32 @@ export function SidebarUserFooter() {
 
   if (user === undefined) {
     return (
-      <SidebarMenu>
+      <>
+        {languageRow}
+        <SidebarMenu>
         <SidebarMenuItem>
           <SidebarMenuButton size="lg" className="h-12" disabled>
             <div className="bg-muted size-8 shrink-0 rounded-full" />
             {!collapsed ? (
-              <span className="text-muted-foreground text-xs">Đang tải...</span>
+              <span className="text-muted-foreground text-xs">{t("common.loading")}</span>
             ) : null}
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
+      </>
     );
   }
 
   if (!user) {
     return (
-      <SidebarMenu>
+      <>
+        {languageRow}
+        <SidebarMenu>
         <SidebarMenuItem className="flex items-center gap-1">
           <SidebarMenuButton
             size="lg"
             className="min-w-0 flex-1"
-            tooltip={collapsed ? "Đăng nhập" : undefined}
+            tooltip={collapsed ? t("nav.login") : undefined}
             asChild
           >
             <Link href="/login">
@@ -87,9 +102,9 @@ export function SidebarUserFooter() {
               </Avatar>
               {!collapsed ? (
                 <div className="flex min-w-0 flex-1 flex-col gap-0.5 leading-none">
-                  <span className="truncate font-medium">Đăng nhập</span>
+                  <span className="truncate font-medium">{t("nav.login")}</span>
                   <span className="text-muted-foreground truncate text-xs font-normal">
-                    Lưu lịch sử trò chuyện
+                    {t("nav.loginHint")}
                   </span>
                 </div>
               ) : null}
@@ -101,7 +116,7 @@ export function SidebarUserFooter() {
                 render={
                   <Link
                     href="/settings"
-                    aria-label="Cài đặt"
+                    aria-label={t("nav.settings")}
                     className={cn(
                       buttonVariants({ variant: "ghost", size: "icon-sm" }),
                       "text-muted-foreground hover:text-foreground me-1 shrink-0",
@@ -111,18 +126,21 @@ export function SidebarUserFooter() {
                   </Link>
                 }
               />
-              <TooltipContent side="top">Cài đặt</TooltipContent>
+              <TooltipContent side="top">{t("nav.settings")}</TooltipContent>
             </Tooltip>
           ) : null}
         </SidebarMenuItem>
       </SidebarMenu>
+      </>
     );
   }
 
   const displayName = user.displayName ?? user.email.split("@")[0];
 
   return (
-    <SidebarMenu>
+    <>
+      {languageRow}
+      <SidebarMenu>
       <SidebarMenuItem className="flex items-center gap-1">
         <SidebarMenuButton
           size="lg"
@@ -148,7 +166,7 @@ export function SidebarUserFooter() {
               render={
                 <Link
                   href="/settings"
-                  aria-label="Cài đặt"
+                  aria-label={t("nav.settings")}
                   className={cn(
                     buttonVariants({ variant: "ghost", size: "icon-sm" }),
                     "text-muted-foreground hover:text-foreground me-1 shrink-0",
@@ -158,10 +176,11 @@ export function SidebarUserFooter() {
                 </Link>
               }
             />
-            <TooltipContent side="top">Cài đặt</TooltipContent>
+            <TooltipContent side="top">{t("nav.settings")}</TooltipContent>
           </Tooltip>
         ) : null}
       </SidebarMenuItem>
     </SidebarMenu>
+    </>
   );
 }

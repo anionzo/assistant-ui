@@ -1,0 +1,39 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "language": "Ngôn ngữ"
+  },
+  "nav": {
+    "chat": "Trò chuyện",
+    "voiceForm": "Điền biểu mẫu",
+    "settings": "Cài đặt",
+    "login": "Đăng nhập",
+    "loginHint": "Lưu lịch sử trò chuyện",
+    "guestChat": "Chế độ khách — trò chuyện không được lưu.",
+    "guestLogin": "để lưu lại.",
+    "guestVoiceForm": "để lưu tiến trình điền mẫu."
+  },
+  "thread": {
+    "new": "Cuộc trò chuyện mới",
+    "loadingList": "Đang tải cuộc trò chuyện",
+    "options": "Tùy chọn",
+    "archive": "Lưu trữ",
+    "delete": "Xóa",
+    "newChat": "Cuộc trò chuyện mới",
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "older": "Trước đó"
+  },
+  "sidebar": {
+    "show": "Hiện thanh bên",
+    "hide": "Ẩn thanh bên"
+  },
+  "voiceForm": {
+    "title": "Điền biểu mẫu bằng giọng nói",
+    "newSession": "Phiên điền mẫu mới",
+    "noSessions": "Chưa có phiên nào.",
+    "rename": "Đổi tên",
+    "renameSession": "Đổi tên phiên",
+    "delete": "Xóa phiên"
+  }
+}
