@@ -20,6 +20,7 @@ import {
   useRuntimeChatOptionsRef,
 } from "./runtime-chat-options";
 import { VoicePlaybackProvider } from "./voice-playback-provider";
+import { useT } from "@idx/i18n";
 
 function createChatRuntime() {
   const fallbackConversationId = crypto.randomUUID();
@@ -72,7 +73,8 @@ function ChatRuntime({
     [fallbackConversationId, getConversationId, getRuntimeOptions],
   );
 
-  const threadAdapter = useRemotePersistenceAdapter(setConversationId, initialAuth);
+  const t = useT();
+  const threadAdapter = useRemotePersistenceAdapter(setConversationId, initialAuth, t("thread.new"));
 
   const chatAdapterRef = useRef(chatAdapter);
   chatAdapterRef.current = chatAdapter;

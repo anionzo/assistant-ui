@@ -79,7 +79,8 @@
     "newPassword": "Mật khẩu mới",
     "resetFailed": "Đặt lại mật khẩu thất bại.",
     "resetPassword": "Đặt lại mật khẩu",
-    "resetSuccess": "Mật khẩu đã được đặt lại thành công."
+    "resetSuccess": "Mật khẩu đã được đặt lại thành công.",
+    "passwordResetDisabled": "Tính năng tự đặt lại mật khẩu qua email hiện chưa được bật. Vui lòng đăng nhập bằng Google hoặc liên hệ quản trị viên để được hỗ trợ."
   },
   "settings": {
     "title": "Cài đặt",
@@ -125,6 +126,16 @@
     "delete": "Xóa",
     "hintPrefix": "Để lưu trữ cuộc trò chuyện mới, dùng menu {menu} bên cạnh từng mục trong ",
     "sidebarLink": "thanh bên chat"
+  },
+  "attachment": {
+    "preview": "Xem trước tệp đính kèm",
+    "imagePreview": "Xem trước ảnh đính kèm",
+    "image": "Ảnh",
+    "document": "Tài liệu",
+    "file": "Tệp",
+    "attachment": "tệp đính kèm",
+    "remove": "Xóa tệp",
+    "add": "Thêm tệp đính kèm"
   },
   "voice": {
     "recording": "Đang ghi âm...",

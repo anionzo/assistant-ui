@@ -79,7 +79,8 @@
     "newPassword": "New password",
     "resetFailed": "Password reset failed.",
     "resetPassword": "Reset password",
-    "resetSuccess": "Your password has been reset successfully."
+    "resetSuccess": "Your password has been reset successfully.",
+    "passwordResetDisabled": "Self-service email password reset is not enabled. Please sign in with Google or contact an administrator."
   },
   "settings": {
     "title": "Settings",
@@ -125,6 +126,16 @@
     "delete": "Delete",
     "hintPrefix": "To archive a conversation, use the {menu} menu next to each item in the ",
     "sidebarLink": "chat sidebar"
+  },
+  "attachment": {
+    "preview": "Attachment preview",
+    "imagePreview": "Image attachment preview",
+    "image": "Image",
+    "document": "Document",
+    "file": "File",
+    "attachment": "attachment",
+    "remove": "Remove file",
+    "add": "Add attachment"
   },
   "voice": {
     "recording": "Recording...",

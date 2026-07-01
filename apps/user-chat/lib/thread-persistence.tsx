@@ -21,9 +21,12 @@ import {
   type ThreadDto,
 } from "./thread-api-client";
 
-function firstUserMessageTitle(messages: readonly ThreadMessage[]) {
+function firstUserMessageTitle(
+  messages: readonly ThreadMessage[],
+  defaultTitle: string,
+) {
   const firstUser = messages.find((message) => message.role === "user");
-  if (!firstUser) return "Cuộc trò chuyện mới";
+  if (!firstUser) return defaultTitle;
 
   const text = firstUser.content
     .filter((part): part is Extract<(typeof firstUser.content)[number], { type: "text" }> => part.type === "text")
@@ -31,7 +34,7 @@ function firstUserMessageTitle(messages: readonly ThreadMessage[]) {
     .join(" ")
     .trim();
 
-  return text ? text.slice(0, 40) : "Cuộc trò chuyện mới";
+  return text ? text.slice(0, 40) : defaultTitle;
 }
 
 function toMetadata(thread: ThreadDto) {
@@ -203,6 +206,7 @@ function ThreadHistoryProvider({ children }: PropsWithChildren) {
 export function useRemotePersistenceAdapter(
   onConversationId: (threadId: string, conversationId: string) => void,
   serverThreads: boolean = true,
+  defaultThreadTitle: string = "New conversation",
 ) {
   const allowServer = serverThreads;
 
@@ -278,7 +282,7 @@ export function useRemotePersistenceAdapter(
       if (!allowServer) {
         return new ReadableStream<never>({ start(c) { c.close(); } });
       }
-      const title = firstUserMessageTitle(messages);
+      const title = firstUserMessageTitle(messages, defaultThreadTitle);
       await mutateThreadApi(`/api/threads/${remoteId}`, {
         method: "PATCH",
         body: JSON.stringify({ title }),
@@ -310,5 +314,5 @@ export function useRemotePersistenceAdapter(
       return toMetadata(thread);
     },
     unstable_Provider: ThreadHistoryProvider,
-  }), [onConversationId, allowServer]);
+  }), [onConversationId, allowServer, defaultThreadTitle]);
 }

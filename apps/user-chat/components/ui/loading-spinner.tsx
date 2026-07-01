@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 import { Loader2Icon } from "lucide-react";
 
 type LoadingSpinnerProps = {
@@ -18,6 +21,8 @@ export function LoadingSpinner({
   className,
   size = "md",
 }: LoadingSpinnerProps) {
+  const t = useT();
+
   return (
     <div
       role="status"
@@ -32,19 +37,21 @@ export function LoadingSpinner({
       {label ? (
         <span className="text-muted-foreground text-sm">{label}</span>
       ) : (
-        <span className="sr-only">Đang tải</span>
+        <span className="sr-only">{t("loading.default")}</span>
       )}
     </div>
   );
 }
 
 export function LoadingCenter({
-  label = "Đang tải...",
+  label,
   className,
 }: {
   label?: string;
   className?: string;
 }) {
+  const t = useT();
+
   return (
     <div
       className={cn(
@@ -52,7 +59,7 @@ export function LoadingCenter({
         className,
       )}
     >
-      <LoadingSpinner label={label} size="lg" />
+      <LoadingSpinner label={label ?? t("loading.default")} size="lg" />
     </div>
   );
 }
