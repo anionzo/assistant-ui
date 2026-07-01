@@ -1,6 +1,6 @@
 import { SignJWT } from "jose";
 import { describe, expect, it } from "vitest";
-import { verifySessionToken } from "../lib/auth/session";
+import { tryVerifySessionToken, verifySessionToken } from "../lib/auth/session";
 
 const encoder = new TextEncoder();
 
@@ -22,5 +22,16 @@ describe("verifySessionToken", () => {
       email: "user@example.com",
       displayName: "Idx User",
     });
+  });
+
+  it("returns null when the signature does not match", async () => {
+    const token = await new SignJWT({ email: "user@example.com" })
+      .setProtectedHeader({ alg: "HS256" })
+      .setSubject("user-1")
+      .setIssuedAt()
+      .setExpirationTime("1h")
+      .sign(encoder.encode("old-secret"));
+
+    await expect(tryVerifySessionToken(token, "new-secret")).resolves.toBeNull();
   });
 });

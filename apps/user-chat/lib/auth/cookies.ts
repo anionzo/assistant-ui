@@ -36,10 +36,14 @@ export async function setSessionCookie(token: string) {
 }
 
 export async function clearAuthCookies() {
-  const cookieStore = await cookies();
-  const cleared = { ...cookieBase, expires: new Date(0) };
-  cookieStore.set(SESSION_COOKIE_NAME, "", cleared);
-  cookieStore.set(REFRESH_COOKIE_NAME, "", cleared);
+  try {
+    const cookieStore = await cookies();
+    const cleared = { ...cookieBase, expires: new Date(0) };
+    cookieStore.set(SESSION_COOKIE_NAME, "", cleared);
+    cookieStore.set(REFRESH_COOKIE_NAME, "", cleared);
+  } catch {
+    // Cookie write not allowed (e.g. in Server Components).
+  }
 }
 
 export async function clearSessionCookie() {

@@ -28,3 +28,14 @@ export async function verifySessionToken(token: string, secret?: string): Promis
     avatarUrl: typeof payload.avatarUrl === "string" ? payload.avatarUrl : null,
   };
 }
+
+export async function tryVerifySessionToken(
+  token: string,
+  secret?: string,
+): Promise<SessionUser | null> {
+  try {
+    return await verifySessionToken(token, secret);
+  } catch {
+    return null;
+  }
+}

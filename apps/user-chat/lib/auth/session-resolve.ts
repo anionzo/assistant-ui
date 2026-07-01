@@ -4,7 +4,7 @@ import {
   getSessionCookie,
   setAuthCookies,
 } from "@/lib/auth/cookies";
-import { verifySessionToken, type SessionUser } from "@/lib/auth/session";
+import { tryVerifySessionToken, type SessionUser } from "@/lib/auth/session";
 import { getServerConfig } from "@/lib/server/config";
 
 type RefreshResponse = {
@@ -46,12 +46,11 @@ export async function resolveSession(): Promise<ResolvedSession | null> {
   const accessToken = await getSessionCookie();
 
   if (accessToken) {
-    try {
-      const user = await verifySessionToken(accessToken, config.jwtSecret);
+    const user = await tryVerifySessionToken(accessToken, config.jwtSecret);
+    if (user) {
       return { user, accessToken, refreshed: false };
-    } catch {
-      // Access token expired or invalid — fall through to refresh.
     }
+    // Access token expired or invalid — fall through to refresh.
   }
 
   const refreshToken = await getRefreshCookie();
@@ -70,12 +69,8 @@ export async function resolveSession(): Promise<ResolvedSession | null> {
 }
 
 export async function checkSession(): Promise<SessionUser | null> {
-  try {
-    const config = getServerConfig();
-    const accessToken = await getSessionCookie();
-    if (!accessToken) return null;
-    return verifySessionToken(accessToken, config.jwtSecret);
-  } catch {
-    return null;
-  }
+  const config = getServerConfig();
+  const accessToken = await getSessionCookie();
+  if (!accessToken) return null;
+  return tryVerifySessionToken(accessToken, config.jwtSecret);
 }
