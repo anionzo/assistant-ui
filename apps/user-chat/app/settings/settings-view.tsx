@@ -10,13 +10,16 @@ import {
 } from "@/lib/auth/current-user";
 import { userInitials } from "@/lib/user-display";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 import { ArrowLeftIcon, LogOutIcon, SaveIcon, Trash2Icon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export function SettingsView() {
+  const t = useT();
   const router = useRouter();
+  const deleteWord = t("settings.deleteConfirmWord");
   const [user, setUser] = useState<AuthUser | null | undefined>(undefined);
 
   const [displayName, setDisplayName] = useState("");
@@ -72,13 +75,13 @@ export function SettingsView() {
       });
       const data = await r.json().catch(() => ({}));
       if (r.ok) {
-        setProfileMsg("Đã cập nhật.");
+        setProfileMsg(t("settings.updated"));
         invalidateCurrentUser();
       } else {
-        setProfileMsg(typeof data.error === "string" ? data.error : "Lỗi.");
+        setProfileMsg(typeof data.error === "string" ? data.error : t("common.error"));
       }
     } catch {
-      setProfileMsg("Lỗi kết nối.");
+      setProfileMsg(t("common.connectionError"));
     } finally {
       setSavingProfile(false);
     }
@@ -87,13 +90,13 @@ export function SettingsView() {
   async function handlePasswordSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (newPassword.length < 8) {
-      setPwMsg("Mật khẩu tối thiểu 8 ký tự.");
+      setPwMsg(t("settings.passwordMin8"));
       return;
     }
 
     const hasPassword = user?.hasPassword ?? true;
     if (hasPassword && !oldPassword) {
-      setPwMsg("Nhập mật khẩu hiện tại.");
+      setPwMsg(t("settings.enterCurrentPassword"));
       return;
     }
 
@@ -112,24 +115,24 @@ export function SettingsView() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setPwMsg(hasPassword ? "Đã đổi mật khẩu." : "Đã đặt mật khẩu.");
+        setPwMsg(hasPassword ? t("settings.passwordChanged") : t("settings.passwordSet"));
         setOldPassword("");
         setNewPassword("");
         invalidateCurrentUser();
         setUser((prev) => (prev ? { ...prev, hasPassword: true } : prev));
       } else {
-        setPwMsg(typeof data.error === "string" ? data.error : "Lỗi.");
+        setPwMsg(typeof data.error === "string" ? data.error : t("common.error"));
       }
     } catch {
-      setPwMsg("Lỗi kết nối.");
+      setPwMsg(t("common.connectionError"));
     } finally {
       setChangingPw(false);
     }
   }
 
   async function handleDeleteAccount() {
-    if (deleteConfirm !== "XÓA") {
-      setDeleteMsg('Gõ "XÓA" để xác nhận.');
+    if (deleteConfirm !== deleteWord) {
+      setDeleteMsg(t("settings.deleteConfirmHint"));
       return;
     }
 
@@ -144,9 +147,9 @@ export function SettingsView() {
         router.refresh();
         return;
       }
-      setDeleteMsg(typeof data.error === "string" ? data.error : "Không thể xóa tài khoản.");
+      setDeleteMsg(typeof data.error === "string" ? data.error : t("settings.deleteFailed"));
     } catch {
-      setDeleteMsg("Lỗi kết nối.");
+      setDeleteMsg(t("common.connectionError"));
     } finally {
       setDeleting(false);
     }
@@ -161,17 +164,15 @@ export function SettingsView() {
         className="text-muted-foreground hover:text-foreground mb-8 inline-flex items-center gap-2 text-sm transition-colors"
       >
         <ArrowLeftIcon className="size-4" />
-        Quay lại
+        {t("common.back")}
       </Link>
 
-      <h1 className="text-2xl font-semibold">Cài đặt</h1>
-      <p className="text-muted-foreground mt-2 text-sm">
-        Quản lý tài khoản của bạn.
-      </p>
+      <h1 className="text-2xl font-semibold">{t("settings.title")}</h1>
+      <p className="text-muted-foreground mt-2 text-sm">{t("settings.subtitle")}</p>
 
       {user === undefined ? (
         <div className="mt-8 rounded-xl border p-6 text-sm text-muted-foreground">
-          Đang tải...
+          {t("common.loading")}
         </div>
       ) : user ? (
         <section className="mt-8 grid gap-6 lg:grid-cols-2">
@@ -189,9 +190,9 @@ export function SettingsView() {
           </div>
 
           <form onSubmit={(e) => void handleSaveProfile(e)} className="rounded-xl border p-5 space-y-3">
-            <h2 className="text-sm font-medium">Cập nhật thông tin</h2>
+            <h2 className="text-sm font-medium">{t("settings.profile")}</h2>
             <label className="flex flex-col gap-1 text-sm">
-              <span>Tên hiển thị</span>
+              <span>{t("settings.displayName")}</span>
               <input
                 className="w-full rounded-md border border-border px-3 py-2"
                 value={displayName}
@@ -201,20 +202,18 @@ export function SettingsView() {
             {profileMsg ? <p className="text-xs text-muted-foreground">{profileMsg}</p> : null}
             <Button type="submit" variant="outline" size="sm" disabled={savingProfile}>
               <SaveIcon className="size-3.5" />
-              {savingProfile ? "Đang lưu..." : "Lưu"}
+              {savingProfile ? t("common.saving") : t("common.save")}
             </Button>
           </form>
 
           <form onSubmit={(e) => void handlePasswordSubmit(e)} className="rounded-xl border p-5 space-y-3">
-            <h2 className="text-sm font-medium">Mật khẩu</h2>
+            <h2 className="text-sm font-medium">{t("settings.password")}</h2>
             {!hasPassword ? (
-              <p className="text-xs text-muted-foreground">
-                Tài khoản Google — đặt mật khẩu để đăng nhập bằng email.
-              </p>
+              <p className="text-xs text-muted-foreground">{t("settings.googleHint")}</p>
             ) : null}
             {hasPassword ? (
               <label className="flex flex-col gap-1 text-sm">
-                <span>Mật khẩu hiện tại</span>
+                <span>{t("settings.currentPassword")}</span>
                 <input
                   className="w-full rounded-md border border-border px-3 py-2"
                   type="password"
@@ -225,7 +224,7 @@ export function SettingsView() {
               </label>
             ) : null}
             <label className="flex flex-col gap-1 text-sm">
-              <span>{hasPassword ? "Mật khẩu mới" : "Mật khẩu"}</span>
+              <span>{hasPassword ? t("settings.newPassword") : t("common.password")}</span>
               <input
                 className="w-full rounded-md border border-border px-3 py-2"
                 type="password"
@@ -237,17 +236,19 @@ export function SettingsView() {
             </label>
             {pwMsg ? <p className="text-xs text-muted-foreground">{pwMsg}</p> : null}
             <Button type="submit" variant="outline" size="sm" disabled={changingPw}>
-              {changingPw ? "Đang xử lý..." : hasPassword ? "Đổi mật khẩu" : "Đặt mật khẩu"}
+              {changingPw
+                ? t("common.processing")
+                : hasPassword
+                  ? t("settings.changePassword")
+                  : t("settings.setPassword")}
             </Button>
           </form>
 
           <ArchivedThreadsSection />
 
           <div className="rounded-xl border p-5">
-            <h2 className="text-sm font-medium">Phiên đăng nhập</h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Lịch sử chat được đồng bộ trên mọi thiết bị.
-            </p>
+            <h2 className="text-sm font-medium">{t("settings.session")}</h2>
+            <p className="text-muted-foreground mt-1 text-sm">{t("settings.sessionHint")}</p>
             <Button
               variant="outline"
               className="mt-4"
@@ -255,22 +256,20 @@ export function SettingsView() {
               disabled={loggingOut}
             >
               <LogOutIcon />
-              {loggingOut ? "Đang đăng xuất..." : "Đăng xuất"}
+              {loggingOut ? t("settings.loggingOut") : t("settings.logout")}
             </Button>
           </div>
 
           <div className="rounded-xl border border-destructive/30 p-5 lg:col-span-full">
-            <h2 className="text-sm font-medium text-destructive">Vùng nguy hiểm</h2>
-            <p className="text-muted-foreground mt-1 text-sm">
-              Xóa tài khoản sẽ xóa vĩnh viễn lịch sử chat và không thể hoàn tác.
-            </p>
+            <h2 className="text-sm font-medium text-destructive">{t("settings.dangerZone")}</h2>
+            <p className="text-muted-foreground mt-1 text-sm">{t("settings.deleteWarning")}</p>
             <label className="mt-4 flex flex-col gap-1 text-sm">
-              <span>Gõ <strong>XÓA</strong> để xác nhận</span>
+              <span>{t("settings.deleteConfirmLabel", { word: deleteWord })}</span>
               <input
                 className="w-full max-w-xs rounded-md border border-border px-3 py-2"
                 value={deleteConfirm}
                 onChange={(e) => setDeleteConfirm(e.target.value)}
-                placeholder="XÓA"
+                placeholder={deleteWord}
               />
             </label>
             {deleteMsg ? <p className="mt-2 text-xs text-destructive">{deleteMsg}</p> : null}
@@ -281,15 +280,15 @@ export function SettingsView() {
               disabled={deleting}
             >
               <Trash2Icon />
-              {deleting ? "Đang xóa..." : "Xóa tài khoản"}
+              {deleting ? t("settings.deleting") : t("settings.deleteAccount")}
             </Button>
           </div>
         </section>
       ) : (
         <section className="mt-8 rounded-xl border p-6">
-          <p className="text-sm">Bạn chưa đăng nhập.</p>
+          <p className="text-sm">{t("settings.notSignedIn")}</p>
           <Link href="/login" className={cn(buttonVariants(), "mt-4 inline-flex")}>
-            Đăng nhập
+            {t("auth.login")}
           </Link>
         </section>
       )}

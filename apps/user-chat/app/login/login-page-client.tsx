@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { useBranding } from "@/hooks/use-branding";
+import { useT } from "@idx/i18n";
 import { LoginForm } from "./login-form";
 
 export function LoginPageClient({ showForgotPassword }: { showForgotPassword: boolean }) {
   const { branding } = useBranding();
+  const t = useT();
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
@@ -18,14 +20,13 @@ export function LoginPageClient({ showForgotPassword }: { showForgotPassword: bo
             <p className="truncate text-sm text-muted-foreground">{branding.tagline}</p>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Đăng nhập để đồng bộ lịch sử trên mọi thiết bị.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("auth.loginTitle")}</p>
         <div className="mt-6">
           <LoginForm showForgotPassword={showForgotPassword} />
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
-          Chưa có tài khoản? <Link href="/register" className="text-primary underline">Đăng ký</Link>
+          {t("auth.noAccount")}{" "}
+          <Link href="/register" className="text-primary underline">{t("auth.register")}</Link>
         </p>
       </div>
     </main>

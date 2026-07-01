@@ -2,12 +2,14 @@
 
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { useMinimumLoading } from "@/lib/use-minimum-loading";
+import { useT } from "@idx/i18n";
 import { useAuiState, type AssistantState } from "@assistant-ui/react";
 
 const isThreadHydrating = (s: AssistantState) =>
   s.thread.isLoading && s.thread.messages.length === 0;
 
 export function ThreadLoadingOverlay() {
+  const t = useT();
   const hydrating = useAuiState(isThreadHydrating);
   const visible = useMinimumLoading(hydrating, 280);
 
@@ -20,7 +22,7 @@ export function ThreadLoadingOverlay() {
       aria-hidden={!hydrating}
     >
       <div className="bg-background/80 absolute inset-0 backdrop-blur-[1px]" />
-      <LoadingSpinner label="Đang tải cuộc trò chuyện..." size="lg" />
+      <LoadingSpinner label={t("loading.loadingThread")} size="lg" />
     </div>
   );
 }

@@ -8,16 +8,17 @@ import {
   unarchiveThread,
   type ThreadDto,
 } from "@/lib/thread-api-client";
+import { useLocale, useT } from "@idx/i18n";
 import { ArchiveRestoreIcon, TrashIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 
-function formatArchivedDate(iso: string) {
+function formatArchivedDate(iso: string, locale: string) {
   const date = new Date(iso);
   if (Number.isNaN(date.valueOf())) return "";
 
-  return date.toLocaleDateString("vi-VN", {
+  return date.toLocaleDateString(locale === "en" ? "en-US" : "vi-VN", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -25,6 +26,8 @@ function formatArchivedDate(iso: string) {
 }
 
 export function ArchivedThreadsSection() {
+  const t = useT();
+  const locale = useLocale();
   const router = useRouter();
   const [threads, setThreads] = useState<ThreadDto[] | undefined>(undefined);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -37,9 +40,9 @@ export function ArchivedThreadsSection() {
       setThreads(result.threads.filter((thread) => thread.archived));
     } catch {
       setThreads([]);
-      setError("Không thể tải danh sách đã lưu trữ.");
+      setError(t("archived.loadFailed"));
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadArchived();
@@ -53,16 +56,14 @@ export function ArchivedThreadsSection() {
       setThreads((current) => current?.filter((item) => item.id !== thread.id));
       router.push(chatPath(thread.id));
     } catch {
-      setError("Không thể mở lại cuộc trò chuyện. Vui lòng thử lại.");
+      setError(t("archived.unarchiveFailed"));
     } finally {
       setBusyId(null);
     }
   }
 
   async function handleDelete(thread: ThreadDto) {
-    const confirmed = window.confirm(
-      `Xóa vĩnh viễn "${thread.title}"? Hành động này không thể hoàn tác.`,
-    );
+    const confirmed = window.confirm(t("archived.deleteConfirm", { title: thread.title }));
     if (!confirmed) return;
 
     setBusyId(thread.id);
@@ -71,7 +72,7 @@ export function ArchivedThreadsSection() {
       await deleteThread(thread.id);
       setThreads((current) => current?.filter((item) => item.id !== thread.id));
     } catch {
-      setError("Không thể xóa cuộc trò chuyện. Vui lòng thử lại.");
+      setError(t("archived.deleteFailed"));
     } finally {
       setBusyId(null);
     }
@@ -80,18 +81,15 @@ export function ArchivedThreadsSection() {
   if (threads === undefined) {
     return (
       <div className="rounded-xl border p-5 text-sm text-muted-foreground">
-        Đang tải cuộc trò chuyện đã lưu trữ...
+        {t("archived.loading")}
       </div>
     );
   }
 
   return (
     <section className="rounded-xl border p-5">
-      <h2 className="text-sm font-medium">Đã lưu trữ</h2>
-      <p className="text-muted-foreground mt-1 text-sm">
-        Các cuộc trò chuyện đã lưu trữ từ thanh bên. Mở lại để tiếp tục hoặc xóa
-        vĩnh viễn.
-      </p>
+      <h2 className="text-sm font-medium">{t("archived.title")}</h2>
+      <p className="text-muted-foreground mt-1 text-sm">{t("archived.description")}</p>
 
       {error ? (
         <p className="text-destructive mt-3 text-sm" role="alert">
@@ -100,9 +98,7 @@ export function ArchivedThreadsSection() {
       ) : null}
 
       {threads.length === 0 ? (
-        <p className="text-muted-foreground mt-4 text-sm">
-          Chưa có cuộc trò chuyện nào được lưu trữ.
-        </p>
+        <p className="text-muted-foreground mt-4 text-sm">{t("archived.empty")}</p>
       ) : (
         <ul className="mt-4 divide-y rounded-lg border">
           {threads.map((thread) => {
@@ -116,7 +112,9 @@ export function ArchivedThreadsSection() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{thread.title}</p>
                   <p className="text-muted-foreground text-xs">
-                    Lưu trữ · {formatArchivedDate(thread.updatedAt)}
+                    {t("archived.archivedOn", {
+                      date: formatArchivedDate(thread.updatedAt, locale),
+                    })}
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
@@ -127,7 +125,7 @@ export function ArchivedThreadsSection() {
                     onClick={() => void handleUnarchive(thread)}
                   >
                     <ArchiveRestoreIcon />
-                    Mở lại
+                    {t("archived.restore")}
                   </Button>
                   <Button
                     variant="destructive"
@@ -136,7 +134,7 @@ export function ArchivedThreadsSection() {
                     onClick={() => void handleDelete(thread)}
                   >
                     <TrashIcon />
-                    Xóa
+                    {t("archived.delete")}
                   </Button>
                 </div>
               </li>
@@ -146,11 +144,9 @@ export function ArchivedThreadsSection() {
       )}
 
       <p className="text-muted-foreground mt-4 text-xs">
-        Để lưu trữ cuộc trò chuyện mới, dùng menu{" "}
-        <span className="text-foreground font-medium">⋯</span> bên cạnh từng mục
-        trong{" "}
+        {t("archived.hintPrefix", { menu: "⋯" })}
         <Link href="/chat" className="text-foreground underline-offset-4 hover:underline">
-          thanh bên chat
+          {t("archived.sidebarLink")}
         </Link>
         .
       </p>

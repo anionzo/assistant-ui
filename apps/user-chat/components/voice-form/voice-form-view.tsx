@@ -18,6 +18,7 @@ import { VoiceFormRecorder } from "@/lib/voice-form/recorder";
 import { useVoiceFormSession } from "@/lib/voice-form/session-context";
 import type { ChatTurn, FillResponse, FormField, FormSchema, FormSummary } from "@/lib/voice-form/types";
 import { cn } from "@/lib/utils";
+import { useT } from "@idx/i18n";
 import {
   ArrowUpIcon,
   Check,
@@ -39,12 +40,16 @@ function basename(path: string): string {
   return (path.split(/[\\/]/).pop() || "").split("?")[0];
 }
 
-function displayValue(field: FormField | null, raw: unknown): string {
+function displayValue(
+  field: FormField | null,
+  raw: unknown,
+  tr: (key: string) => string,
+): string {
   if (raw === undefined || raw === null || raw === "") return "";
   const ft = String(field?.field_type || "").toLowerCase();
   if (BOOL_TYPES.has(ft) || typeof raw === "boolean") {
-    if (raw === true || raw === "true") return "Có";
-    if (raw === false || raw === "false") return "Không";
+    if (raw === true || raw === "true") return tr("common.yes");
+    if (raw === false || raw === "false") return tr("common.no");
   }
   return String(raw);
 }
@@ -55,29 +60,31 @@ function nowHM(): string {
 }
 
 function SaveStatusBadge({ status }: { status: "idle" | "saving" | "saved" | "error" }) {
+  const t = useT();
   if (status === "idle") return null;
   if (status === "saving") {
     return (
       <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-        <Loader2 className="size-3 animate-spin" /> Đang lưu…
+        <Loader2 className="size-3 animate-spin" /> {t("voiceForm.saveStatus.saving")}
       </span>
     );
   }
   if (status === "saved") {
     return (
       <span className="text-muted-foreground inline-flex items-center gap-1 text-xs">
-        <Check className="size-3 text-green-600" /> Đã lưu
+        <Check className="size-3 text-green-600" /> {t("voiceForm.saveStatus.saved")}
       </span>
     );
   }
   return (
     <span className="text-destructive inline-flex items-center gap-1 text-xs">
-      <CloudOff className="size-3" /> Lỗi lưu
+      <CloudOff className="size-3" /> {t("voiceForm.saveStatus.error")}
     </span>
   );
 }
 
 export function VoiceFormView() {
+  const t = useT();
   const {
     initialAuth,
     gatewaySessionId,
@@ -100,7 +107,7 @@ export function VoiceFormView() {
   const [outputFile, setOutputFile] = useState("");
   const [lastAudioFile, setLastAudioFile] = useState("");
   const [busy, setBusy] = useState(false);
-  const [status, setStatus] = useState("Sẵn sàng");
+  const [status, setStatus] = useState(() => t("voiceForm.status.ready"));
   const [statusKind, setStatusKind] = useState<"" | "busy" | "error" | "rec">("");
   const [toast, setToast] = useState<{ msg: string; bad?: boolean } | null>(null);
   const [formSearch, setFormSearch] = useState("");
@@ -151,7 +158,7 @@ export function VoiceFormView() {
           } catch (err) {
             if (token !== previewTokenRef.current) return;
             setPreviewHtml(
-              `<p class="text-sm text-muted-foreground">Không tạo được bản xem trước: ${String(err instanceof Error ? err.message : err)}</p>`,
+              `<p class="text-sm text-muted-foreground">${t("voiceForm.errors.previewFailed", { error: String(err instanceof Error ? err.message : err) })}</p>`,
             );
           } finally {
             if (token === previewTokenRef.current) setPreviewLoading(false);
@@ -160,7 +167,7 @@ export function VoiceFormView() {
         immediate ? 60 : PREVIEW_DEBOUNCE_MS,
       );
     },
-    [formCode, fieldValues, gatewaySessionId],
+    [formCode, fieldValues, gatewaySessionId, t],
   );
 
   const clearWorkspace = useCallback(() => {
@@ -197,7 +204,7 @@ export function VoiceFormView() {
         const detail = await loadFormDetail(record.formCode);
         const formSchema = detail.form_schema;
         if (!formSchema?.need_to_fill?.length) {
-          throw new Error("Biểu mẫu này chưa có lược đồ trường (need_to_fill).");
+          throw new Error(t("voiceForm.errors.noSchema"));
         }
         setSchema(formSchema);
         setForms((prev) =>
@@ -206,15 +213,15 @@ export function VoiceFormView() {
             : [{ form_code: record.formCode, form_name: formSchema.form_name || record.formCode }, ...prev],
         );
         schedulePreview(true);
-        setStatus("Sẵn sàng");
+        setStatus(t("voiceForm.status.ready"));
         setStatusKind("");
       } else {
         clearWorkspace();
-        setStatus("Chọn biểu mẫu cho phiên này");
+        setStatus(t("voiceForm.status.pickForm"));
         setStatusKind("");
       }
     },
-    [schedulePreview, clearWorkspace],
+    [schedulePreview, clearWorkspace, t],
   );
 
   useEffect(() => {
@@ -258,19 +265,23 @@ export function VoiceFormView() {
       setHistory(trimmedHistory);
 
       if (mode === "chat") {
-        setStatus("Sẵn sàng");
+        setStatus(t("voiceForm.status.ready"));
         setStatusKind("");
       } else if (["ready", "confirm"].includes(data.decision || "") || data.output_file) {
-        setStatus(data.output_file ? "Đã tạo tờ khai — bấm “Tạo & tải tờ khai”" : "Đã đủ thông tin");
+        setStatus(
+          data.output_file
+            ? t("voiceForm.status.generateReadyHint")
+            : t("voiceForm.status.infoComplete"),
+        );
         setStatusKind("");
       } else if (data.decision === "invalid") {
-        setStatus("Cần đọc lại một mục");
+        setStatus(t("voiceForm.status.retryField"));
         setStatusKind("error");
       } else if (adopted) {
-        setStatus("Đã mở biểu mẫu");
+        setStatus(t("voiceForm.status.formOpened"));
         setStatusKind("");
       } else {
-        setStatus(transcript ? "Đã ghi nhận" : "Chưa nghe rõ — thử lại");
+        setStatus(transcript ? t("voiceForm.status.heard") : t("voiceForm.status.notClear"));
         setStatusKind("");
       }
 
@@ -302,6 +313,7 @@ export function VoiceFormView() {
       persistSession,
       workspaceSnapshot,
       setGuestGatewayId,
+      t,
     ],
   );
 
@@ -309,7 +321,11 @@ export function VoiceFormView() {
     async (extra: Record<string, string | Blob>, opts: { fromVoice?: boolean; echoedUserTurn?: string } = {}) => {
       if (busy || !gatewaySessionId) return;
       setBusy(true);
-      setStatus(opts.fromVoice ? "Đang nhận dạng & xử lý…" : "Đang xử lý…");
+      setStatus(
+        opts.fromVoice
+          ? t("voiceForm.status.processingVoice")
+          : t("voiceForm.status.processing"),
+      );
       setStatusKind("busy");
       try {
         const payload: Record<string, string | Blob> = {
@@ -322,26 +338,31 @@ export function VoiceFormView() {
         const data = await postFill(gatewaySessionId, payload);
         applyFillResponse(data, opts);
       } catch (err) {
-        setStatus("Lỗi");
+        setStatus(t("voiceForm.status.error"));
         setStatusKind("error");
-        showToast(`Không xử lý được: ${String(err instanceof Error ? err.message : err)}`, true);
+        showToast(
+          t("voiceForm.errors.processFailed", {
+            error: String(err instanceof Error ? err.message : err),
+          }),
+          true,
+        );
       } finally {
         setBusy(false);
       }
     },
-    [busy, gatewaySessionId, fieldValues, history, formCode, applyFillResponse, showToast],
+    [busy, gatewaySessionId, fieldValues, history, formCode, applyFillResponse, showToast, t],
   );
 
   const selectForm = useCallback(
     async (code: string) => {
       if (!code || busy) return;
-      setStatus("Đang tải biểu mẫu…");
+      setStatus(t("voiceForm.status.loadingForm"));
       setStatusKind("busy");
       try {
         const detail = await loadFormDetail(code);
         const formSchema = detail.form_schema;
         if (!formSchema?.need_to_fill?.length) {
-          throw new Error("Biểu mẫu này chưa có lược đồ trường (need_to_fill).");
+          throw new Error(t("voiceForm.errors.noSchema"));
         }
         setFormCode(code);
         setSchema(formSchema);
@@ -358,7 +379,7 @@ export function VoiceFormView() {
             ? prev
             : [{ form_code: code, form_name: formSchema.form_name || code }, ...prev],
         );
-        setStatus("Sẵn sàng");
+        setStatus(t("voiceForm.status.ready"));
         setStatusKind("");
         schedulePreview(true);
         void persistSession(workspaceSnapshot(), {
@@ -369,34 +390,34 @@ export function VoiceFormView() {
           decision: "incomplete",
         });
       } catch (err) {
-        setStatus("Lỗi");
+        setStatus(t("voiceForm.status.error"));
         setStatusKind("error");
         showToast(String(err instanceof Error ? err.message : err), true);
       }
     },
-    [busy, schedulePreview, persistSession, workspaceSnapshot, showToast],
+    [busy, schedulePreview, persistSession, workspaceSnapshot, showToast, t],
   );
 
   const sendText = useCallback(
     (text: string) => {
-      const t = text.trim();
-      if (!t || busy) return;
+      const trimmed = text.trim();
+      if (!trimmed || busy) return;
       setTextInput("");
-      const nextHistory = [...history, { role: "user" as const, text: t, time: nowHM() }].slice(-24);
+      const nextHistory = [...history, { role: "user" as const, text: trimmed, time: nowHM() }].slice(-24);
       setHistory(nextHistory);
-      void postTurn({ text: t }, { echoedUserTurn: t });
+      void postTurn({ text: trimmed }, { echoedUserTurn: trimmed });
     },
     [busy, postTurn, history],
   );
 
   const handleDownload = useCallback(async () => {
     if (!formCode || busy || !gatewaySessionId) return;
-    setStatus("Đang tạo tờ khai…");
+    setStatus(t("voiceForm.status.generating"));
     setStatusKind("busy");
     try {
       const data = await renderDocx(formCode, fieldValues, gatewaySessionId);
       const file = basename(data.output_file || data.file_path || "");
-      if (!file) throw new Error("không nhận được tên file");
+      if (!file) throw new Error(t("voiceForm.errors.noFilename"));
       setOutputFile(file);
       const a = document.createElement("a");
       a.href = outputDownloadUrl(file);
@@ -405,19 +426,24 @@ export function VoiceFormView() {
       document.body.appendChild(a);
       a.click();
       a.remove();
-      setStatus("Đã tạo tờ khai");
+      setStatus(t("voiceForm.status.generated"));
       setStatusKind("");
       showToast(
         !["ready", "confirm"].includes(decision)
-          ? "Đã tạo file — các mục còn trống được để trắng."
-          : "Đã tạo tờ khai.",
+          ? t("voiceForm.status.generatedPartial")
+          : t("voiceForm.status.generatedReady"),
       );
     } catch (err) {
-      setStatus("Lỗi tạo tờ khai");
+      setStatus(t("voiceForm.status.generateFailed"));
       setStatusKind("error");
-      showToast(`Không tạo được tờ khai: ${String(err instanceof Error ? err.message : err)}`, true);
+      showToast(
+        t("voiceForm.errors.generateFailed", {
+          error: String(err instanceof Error ? err.message : err),
+        }),
+        true,
+      );
     }
-  }, [formCode, busy, fieldValues, gatewaySessionId, decision, showToast]);
+  }, [formCode, busy, fieldValues, gatewaySessionId, decision, showToast, t]);
 
   useEffect(() => {
     setMicAvailable(!!navigator.mediaDevices?.getUserMedia);
@@ -454,17 +480,22 @@ export function VoiceFormView() {
     try {
       await recorderRef.current.start();
       setRecording(true);
-      setStatus("Đang nghe… (giữ nút)");
+      setStatus(t("voiceForm.status.listening"));
       setStatusKind("rec");
       setTimeout(() => {
         if (recorderRef.current.active) {
-          showToast("Đã ghi đủ dài — gửi đi.");
+          showToast(t("voiceForm.status.maxDuration"));
           void endRecording();
         }
       }, MAX_RECORD_MS);
     } catch (err) {
-      showToast(`Không truy cập được micro: ${String(err instanceof Error ? err.message : err)}`, true);
-      setStatus("Lỗi micro");
+      showToast(
+        t("voiceForm.errors.micFailed", {
+          error: String(err instanceof Error ? err.message : err),
+        }),
+        true,
+      );
+      setStatus(t("voiceForm.status.micError"));
       setStatusKind("error");
     }
   };
@@ -474,7 +505,7 @@ export function VoiceFormView() {
     setRecording(false);
     const blob = await recorderRef.current.stop();
     if (!blob) {
-      setStatus("Chưa nghe rõ — thử lại");
+      setStatus(t("voiceForm.status.notClear"));
       setStatusKind("");
       return;
     }
@@ -496,12 +527,12 @@ export function VoiceFormView() {
         onReady={(list) => {
           setForms(list);
           if (!initialAuth) {
-            setStatus("Đăng nhập để lưu phiên điền mẫu");
+            setStatus(t("voiceForm.status.loginToSave"));
             setStatusKind("");
           }
         }}
         onError={(err) => {
-          setStatus("Không tải được dữ liệu");
+          setStatus(t("voiceForm.status.loadFailed"));
           setStatusKind("error");
           showToast(String(err instanceof Error ? err.message : err), true);
         }}
@@ -521,7 +552,7 @@ export function VoiceFormView() {
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <Input
             type="search"
-            placeholder="Tìm biểu mẫu (vd: tạm trú, thuế thu nhập)…"
+            placeholder={t("voiceForm.searchPlaceholder")}
             className="min-w-0 flex-1"
             value={formSearch}
             disabled={workspaceDisabled}
@@ -538,9 +569,11 @@ export function VoiceFormView() {
             value={formCode}
             disabled={workspaceDisabled}
             onChange={(e) => void selectForm(e.target.value)}
-            aria-label="Chọn biểu mẫu"
+            aria-label={t("voiceForm.selectForm")}
           >
-            <option value="">{forms.length ? "— chọn biểu mẫu —" : "(không có biểu mẫu)"}</option>
+            <option value="">
+              {forms.length ? t("voiceForm.selectFormOption") : t("voiceForm.noForms")}
+            </option>
             {forms.map((f) => (
               <option key={f.form_code} value={f.form_code}>
                 {f.form_name} · {f.form_code}
@@ -572,13 +605,13 @@ export function VoiceFormView() {
                   ? "border-primary bg-primary/10 text-primary hover:bg-primary/10"
                   : "border-muted-foreground/30 hover:border-primary",
               )}
-              aria-label="Giữ để nói"
+              aria-label={t("voiceForm.holdToSpeak")}
             >
               <Mic className="size-8" />
             </Button>
             <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
               <p className="text-sm text-muted-foreground">
-                {micAvailable ? "Giữ để nói · hoặc nhắn tin bên dưới" : "Micro không khả dụng — dùng ô nhắn tin"}
+                {micAvailable ? t("voiceForm.micHint") : t("voiceForm.micUnavailable")}
               </p>
               <audio ref={audioRef} className="hidden" />
               {lastAudioFile && (
@@ -594,18 +627,18 @@ export function VoiceFormView() {
                     }
                   }}
                 >
-                  <Volume2 className="size-4" /> Nghe lại
+                  <Volume2 className="size-4" /> {t("voiceForm.replay")}
                 </Button>
               )}
             </div>
           </div>
 
           <div className="flex min-h-0 flex-1 flex-col rounded-xl border bg-card">
-            <div className="border-b px-3 py-2 text-sm font-medium">Hội thoại</div>
+            <div className="border-b px-3 py-2 text-sm font-medium">{t("voiceForm.conversation")}</div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {history.length === 0 && !busy && (
                 <p className="text-sm text-muted-foreground">
-                  Bắt đầu trò chuyện — nhắn tin hoặc giữ nút mic. Ví dụ: &quot;tôi muốn đăng ký tạm trú&quot;.
+                  {t("voiceForm.startHint")}
                 </p>
               )}
               <ul className="space-y-3">
@@ -624,7 +657,7 @@ export function VoiceFormView() {
                 {busy && (
                   <li className="flex gap-2">
                     <div className="rounded-2xl bg-muted px-3 py-2 text-sm">
-                      <Loader2 className="inline size-4 animate-spin" /> Đang xử lý…
+                      <Loader2 className="inline size-4 animate-spin" /> {t("voiceForm.status.processing")}
                     </div>
                   </li>
                 )}
@@ -643,17 +676,17 @@ export function VoiceFormView() {
                 value={textInput}
                 disabled={workspaceDisabled}
                 onChange={(e) => setTextInput(e.target.value)}
-                placeholder="Nhắn tin cho trợ lý…"
+                placeholder={t("voiceForm.messagePlaceholder")}
                 className="min-w-0 flex-1"
               />
               <TooltipIconButton
-                tooltip="Gửi tin nhắn"
+                tooltip={t("voiceForm.sendMessage")}
                 type="submit"
                 variant="default"
                 size="icon"
                 className="aui-composer-send size-7 shrink-0 rounded-full"
                 disabled={workspaceDisabled || !textInput.trim()}
-                aria-label="Gửi tin nhắn"
+                aria-label={t("voiceForm.sendMessage")}
               >
                 <ArrowUpIcon className="aui-composer-send-icon size-4.5" />
               </TooltipIconButton>
@@ -670,8 +703,11 @@ export function VoiceFormView() {
                 <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                   <span>
                     {progress.total
-                      ? `${progress.filled}/${progress.total} mục bắt buộc`
-                      : "không có mục bắt buộc"}
+                      ? t("voiceForm.requiredProgress", {
+                          filled: progress.filled,
+                          total: progress.total,
+                        })
+                      : t("voiceForm.noRequired")}
                   </span>
                   <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
                     <div className="h-full bg-primary transition-all" style={{ width: `${progress.pct}%` }} />
@@ -686,7 +722,7 @@ export function VoiceFormView() {
                     disabled={!formCode || workspaceDisabled}
                   >
                     <FileDown data-icon="inline-start" />
-                    Tạo & tải tờ khai
+                    {t("voiceForm.download")}
                   </Button>
                 </div>
               </div>
@@ -694,7 +730,7 @@ export function VoiceFormView() {
             <div className="min-h-0 flex-1 overflow-y-auto p-3">
               {!schema ? (
                 <p className="text-sm text-muted-foreground">
-                  Chọn một biểu mẫu, hoặc nhắn cho trợ lý điều bạn muốn làm.
+                  {t("voiceForm.selectOrChat")}
                 </p>
               ) : (
                 <div className="space-y-2">
@@ -718,8 +754,8 @@ export function VoiceFormView() {
                         <Input
                           type="text"
                           className="mt-1 h-8"
-                          value={displayValue(f, rawVal)}
-                          placeholder={f.hint || (isNext ? "Đọc giá trị này hoặc gõ tay…" : "")}
+                          value={displayValue(f, rawVal, t)}
+                          placeholder={f.hint || (isNext ? t("voiceForm.fieldPlaceholder") : "")}
                           onChange={(e) => {
                             const v = e.target.value.trim();
                             setFieldValues((prev) => {
@@ -737,7 +773,7 @@ export function VoiceFormView() {
                           }}
                         />
                         {isInvalid && (
-                          <p className="mt-1 text-xs text-destructive">{invalidFields[f.key] || "Giá trị chưa hợp lệ."}</p>
+                          <p className="mt-1 text-xs text-destructive">{invalidFields[f.key] || t("voiceForm.invalidValue")}</p>
                         )}
                       </div>
                     );
@@ -749,18 +785,18 @@ export function VoiceFormView() {
 
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border bg-card">
             <div className="flex items-center justify-between border-b px-3 py-2 text-sm font-medium">
-              <span>Xem trước tờ khai</span>
+              <span>{t("voiceForm.preview")}</span>
               {previewLoading && <RefreshCw className="size-4 animate-spin text-muted-foreground" />}
             </div>
             <div className="min-h-0 flex-1 overflow-y-auto p-3 text-sm">
               {!formCode ? (
-                <p className="text-muted-foreground">Chọn một biểu mẫu để xem trước nội dung.</p>
+                <p className="text-muted-foreground">{t("voiceForm.previewSelectForm")}</p>
               ) : previewHtml ? (
                 <div className="prose prose-sm max-w-none dark:prose-invert" dangerouslySetInnerHTML={{ __html: previewHtml }} />
               ) : previewLoading ? (
-                <p className="text-muted-foreground">Đang tạo bản xem trước từ tệp .docx…</p>
+                <p className="text-muted-foreground">{t("voiceForm.previewLoading")}</p>
               ) : (
-                <p className="text-muted-foreground">Chưa có nội dung xem trước.</p>
+                <p className="text-muted-foreground">{t("voiceForm.previewEmpty")}</p>
               )}
             </div>
           </div>

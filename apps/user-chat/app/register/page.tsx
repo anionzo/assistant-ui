@@ -3,10 +3,12 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { useBranding } from "@/hooks/use-branding";
+import { useT } from "@idx/i18n";
 import { RegisterForm } from "./register-form";
 
 export default function RegisterPage() {
   const { branding } = useBranding();
+  const t = useT();
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center px-6 py-12">
@@ -18,14 +20,13 @@ export default function RegisterPage() {
             <p className="truncate text-sm text-muted-foreground">{branding.tagline}</p>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          Tạo tài khoản để lưu và đồng bộ cuộc trò chuyện.
-        </p>
+        <p className="text-sm text-muted-foreground">{t("auth.registerSubtitle")}</p>
         <div className="mt-6">
           <RegisterForm />
         </div>
         <p className="mt-4 text-sm text-muted-foreground">
-          Đã có tài khoản? <Link href="/login" className="text-primary underline">Đăng nhập</Link>
+          {t("auth.hasAccount")}{" "}
+          <Link href="/login" className="text-primary underline">{t("auth.login")}</Link>
         </p>
       </div>
     </main>

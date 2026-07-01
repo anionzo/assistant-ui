@@ -4,10 +4,12 @@ import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useT } from "@idx/i18n";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function RegisterForm() {
+  const t = useT();
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -21,17 +23,16 @@ export function RegisterForm() {
     const confirm = String(formData.get("confirmPassword") ?? "");
     const displayName = String(formData.get("displayName") ?? "").trim();
 
-    // Client-side validation
     if (!EMAIL_RE.test(email)) {
-      setError("Email không hợp lệ.");
+      setError(t("auth.invalidEmail"));
       return;
     }
     if (password.length < 8) {
-      setError("Mật khẩu phải có ít nhất 8 ký tự.");
+      setError(t("auth.passwordMin8"));
       return;
     }
     if (password !== confirm) {
-      setError("Mật khẩu xác nhận không khớp.");
+      setError(t("auth.passwordMismatch"));
       return;
     }
 
@@ -45,7 +46,7 @@ export function RegisterForm() {
     setPending(false);
     if (!response.ok) {
       const payload = await response.json().catch(() => ({}));
-      setError(typeof payload.error === "string" ? payload.error : "Đăng ký thất bại");
+      setError(typeof payload.error === "string" ? payload.error : t("auth.registerFailed"));
       return;
     }
 
@@ -56,24 +57,27 @@ export function RegisterForm() {
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
       <label className="flex flex-col gap-2 text-sm">
-        <span>Tên hiển thị <span className="text-muted-foreground">(không bắt buộc)</span></span>
+        <span>
+          {t("auth.displayName")}{" "}
+          <span className="text-muted-foreground">{t("common.optional")}</span>
+        </span>
         <input className="rounded-md border border-border px-3 py-2" type="text" name="displayName" />
       </label>
       <label className="flex flex-col gap-2 text-sm">
-        <span>Email</span>
+        <span>{t("common.email")}</span>
         <input className="rounded-md border border-border px-3 py-2" type="email" name="email" required />
       </label>
       <label className="flex flex-col gap-2 text-sm">
-        <span>Mật khẩu</span>
+        <span>{t("common.password")}</span>
         <input className="rounded-md border border-border px-3 py-2" type="password" name="password" minLength={8} required />
       </label>
       <label className="flex flex-col gap-2 text-sm">
-        <span>Nhập lại mật khẩu</span>
+        <span>{t("auth.confirmPassword")}</span>
         <input className="rounded-md border border-border px-3 py-2" type="password" name="confirmPassword" required />
       </label>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <Button type="submit" size="lg" disabled={pending}>
-        {pending ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
+        {pending ? t("auth.creatingAccount") : t("auth.createAccount")}
       </Button>
     </form>
   );

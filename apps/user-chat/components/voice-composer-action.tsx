@@ -5,6 +5,7 @@ import { useActiveConversationId } from "@/lib/active-conversation-context";
 import { buildAssistantMetadata, extractVoiceAnswer } from "@/lib/voice-turn";
 import { useVoicePlaybackEnqueueRef } from "@/lib/voice-playback-provider";
 import { useAui, AuiIf, ComposerPrimitive } from "@assistant-ui/react";
+import { useT } from "@idx/i18n";
 import {
   useVoiceSession,
   VoiceMicButton,
@@ -27,11 +28,11 @@ const VOICE_BUSY_STATES: VoiceState[] = [
   "playing",
 ];
 
-const PHASE_LABELS: Partial<Record<VoiceState, string>> = {
-  recording: "Đang ghi âm...",
-  uploading: "Đang tải lên...",
-  processing: "Đang xử lý...",
-  playing: "Đang phát...",
+const PHASE_KEYS: Partial<Record<VoiceState, string>> = {
+  recording: "voice.recording",
+  uploading: "voice.uploading",
+  processing: "voice.processing",
+  playing: "voice.playing",
 };
 
 type VoiceComposerContextValue = {
@@ -124,8 +125,10 @@ export function VoiceMicControl() {
 }
 
 export function VoicePhaseLabel() {
+  const t = useT();
   const { state } = useVoiceComposerContext();
-  const label = PHASE_LABELS[state];
+  const key = PHASE_KEYS[state];
+  const label = key ? t(key) : null;
   if (!label) return null;
 
   return (
@@ -136,6 +139,7 @@ export function VoicePhaseLabel() {
 }
 
 export function VoiceComposerSendControls() {
+  const t = useT();
   const { isVoiceBusy } = useVoiceComposerContext();
 
   return (
@@ -146,13 +150,13 @@ export function VoiceComposerSendControls() {
           disabled={isVoiceBusy}
           render={
             <TooltipIconButton
-              tooltip="Send message"
+              tooltip={t("voice.sendMessage")}
               side="bottom"
               type="button"
               variant="default"
               size="icon"
               className="aui-composer-send size-7 rounded-full"
-              aria-label="Send message"
+              aria-label={t("voice.sendMessage")}
             />
           }
         >
@@ -163,13 +167,13 @@ export function VoiceComposerSendControls() {
         <ComposerPrimitive.Cancel
           render={
             <TooltipIconButton
-              tooltip="Stop generating"
+              tooltip={t("voice.stopGenerating")}
               side="bottom"
               type="button"
               variant="default"
               size="icon"
               className="aui-composer-cancel size-7 rounded-full"
-              aria-label="Stop generating"
+              aria-label={t("voice.stopGenerating")}
             />
           }
         >
