@@ -4,7 +4,7 @@
 
 **Idx Chat** là chatbot GPT-style trả lời câu hỏi dựa trên tài liệu được upload bằng RAG (Retrieval-Augmented Generation). Admin upload file (.docx, .pdf, .xlsx, .csv) → index → publish, người dùng chat và nhận câu trả lời có trích dẫn chính xác từ tài liệu gốc.
 
-Xây dựng trên [assistant-ui.com](https://www.assistant-ui.com/) UI primitives + Next.js 15, **idx-api** (auth + central RAG gateway), [ModularRAG](https://github.com/) upstream, **MongoDB**.
+Xây dựng trên [assistant-ui.com](https://www.assistant-ui.com/) UI primitives + Next.js 15, **idx-api** (auth + central RAG gateway), ModularRAG upstream, **MongoDB**.
 
 ## Ai dùng gì
 
@@ -16,7 +16,7 @@ Xây dựng trên [assistant-ui.com](https://www.assistant-ui.com/) UI primitive
 
 Cả `user-chat` và `admin` hỗ trợ **i18n vi/en** (`@idx/i18n`, cookie `idx_locale`).
 
-## Kiến trúc (E09)
+## Kiến trúc
 
 ```text
 Browser (user-chat :3001) ──→ BFF /api/chat/* ──→ idx-api /rag/* ──→ ModularRAG :8030
@@ -37,46 +37,87 @@ Frontend apps **không** chứa `MODULAR_RAG_GATEWAY_URL` hay API keys — chỉ
 | `apps/admin` | Next.js 15 | 3002 |
 | `apps/idx-api` | Hono + MongoDB driver | 4000 |
 
-## Cấu trúc thư mục
-
-Monorepo **pnpm** + **Turborepo**: apps chạy được, packages là thư viện dùng chung.
+## Cấu trúc monorepo
 
 ```text
 assistant-ui/
 ├── apps/                 # user-chat, admin, idx-api
 ├── packages/             # modular-rag-sdk, voice-input, i18n (@idx/*)
-├── docs/                 # Harness + product docs
-├── scripts/              # harness-cli, e2e smoke
-└── node_modules/         # dependency (pnpm) — không sửa tay
+├── scripts/dev/          # e2e smoke, mock gateway
+├── docker-compose.yml
+└── docker-compose.prod.yml
 ```
 
-| Thư mục | Làm gì |
-|---------|--------|
+| Thư mục | Mục đích |
+|---------|----------|
 | `apps/` | Ứng dụng deploy / `pnpm dev` |
-| `packages/` | Code share giữa apps (SSE parser, voice UI, i18n) |
-| `node_modules/` | Thư viện bên thứ 3 — sinh ra từ `pnpm install` |
-| `terminals/`, `agent-tools/` | Artifact agent/IDE — xóa được, đã gitignore |
+| `packages/` | Thư viện dùng chung (SSE parser, voice UI, i18n) |
 
-Chi tiết từng thư mục con, file nào xóa được: **[docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md)**.
+## Yêu cầu
+
+- Node.js 20+
+- pnpm 11 (`corepack enable`)
+- Docker Desktop (khuyên dùng cho stack đầy đủ)
+- Tuỳ chọn: ModularRAG gateway tại `http://localhost:8030` (chat RAG thật)
 
 ## Chạy local
 
-Hướng dẫn đầy đủ: **[docs/LOCAL_DEV.md](docs/LOCAL_DEV.md)** (setup env, Docker stack, native, test).
+### Bước 1 — Cài dependency & env
 
 ```powershell
 pnpm install
+
 Copy-Item apps\idx-api\.env.example apps\idx-api\.env
 Copy-Item apps\user-chat\.env.example apps\user-chat\.env.local
 Copy-Item apps\admin\.env.example apps\admin\.env.local
-# Đồng bộ IDX_SERVICE_SECRET giữa 3 file env
-
-pnpm dev:stack      # Docker: mongo + idx-api + user-chat + admin
-pnpm test:e2e       # smoke (cần stack đang chạy)
 ```
 
-Native từng app: `pnpm --filter @idx/idx-api dev` → `:4000`, `pnpm dev` → `:3001`, `pnpm dev:admin` → `:3002`.
+`IDX_SERVICE_SECRET` phải **giống nhau** ở cả 3 file env.
 
-MongoDB bootstrap (indexes + RBAC seed): `pnpm --filter @idx/idx-api db:bootstrap`.
+### Bước 2 — Docker stack (khuyên dùng)
+
+```powershell
+pnpm dev:stack      # mongo + idx-api + user-chat + admin
+```
+
+| URL | Service |
+|-----|---------|
+| http://localhost:3001 | User chat |
+| http://localhost:3002 | Admin |
+| http://localhost:4000 | idx-api |
+| http://localhost:27017 | MongoDB |
+
+```powershell
+pnpm dev:stack:logs    # xem log
+pnpm dev:stack:down    # tắt stack
+pnpm test:e2e          # smoke (stack đang chạy)
+```
+
+### Bước 3 — Native (tuỳ chọn)
+
+```powershell
+docker compose up -d mongo
+pnpm --filter @idx/idx-api db:bootstrap
+pnpm --filter @idx/idx-api dev    # :4000
+pnpm dev                          # user-chat :3001
+pnpm dev:admin                    # admin :3002
+```
+
+### Admin đầu tiên (tuỳ chọn)
+
+1. Set `ADMIN_SEED_EMAIL=admin@huit.edu.vn` trong `apps/idx-api/.env`
+2. Đăng ký bằng email đó (user-chat)
+3. idx-api tự gán role `super_admin`
+
+### Chat RAG thật (tuỳ chọn)
+
+Trong `apps/idx-api/.env`:
+
+```env
+MODULAR_RAG_GATEWAY_URL=http://localhost:8030
+USER_API_KEY=demo-api-key
+ADMIN_API_KEY=demo-admin-key
+```
 
 ## RBAC
 
@@ -99,10 +140,10 @@ pnpm --filter @idx/user-chat test
 pnpm --filter @idx/admin test
 ```
 
-## Docs
+## Production
 
-- [docs/LOCAL_DEV.md](docs/LOCAL_DEV.md) — **chạy local & test**
-- [docs/DOC_MAP.md](docs/DOC_MAP.md) — đọc trước khi code
-- [docs/REPO_LAYOUT.md](docs/REPO_LAYOUT.md) — giải thích từng thư mục trong repo
-- [docs/stories/backlog.md](docs/stories/backlog.md)
-- [docs/decisions/0022-central-idx-api-gateway.md](docs/decisions/0022-central-idx-api-gateway.md)
+```powershell
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Biến bắt buộc: `IDX_JWT_SECRET`, `IDX_SERVICE_SECRET`, `USER_API_KEY`, `ADMIN_API_KEY` — xem `.env.prod.example`.
