@@ -17,6 +17,8 @@ export type ResolvedServerConfig = ServerConfig & {
   defaultTopK: number;
 };
 
+import { isSelfServicePasswordResetEnabled } from "@/lib/server/password-reset-policy";
+
 export function getServerConfig(
   env: Record<string, string | undefined> = process.env,
 ): ServerConfig {
@@ -56,5 +58,6 @@ export function publicConfig(
     authRequired: config.authRequired,
     allowGuestChat: config.allowGuestChat,
     showRuntimeToolbar: env.SHOW_RUNTIME_TOOLBAR === "true",
+    selfServicePasswordReset: isSelfServicePasswordResetEnabled(env),
   };
 }

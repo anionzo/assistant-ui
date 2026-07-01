@@ -37,6 +37,8 @@ services:
       USER_API_KEY: ${USER_API_KEY:?USER_API_KEY is required}
       ADMIN_API_KEY: ${ADMIN_API_KEY:?ADMIN_API_KEY is required}
       IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required}
+      NODE_ENV: production
+      SELF_SERVICE_PASSWORD_RESET_ENABLED: ${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}
     ports:
       - "4000:4000"
     depends_on:
@@ -74,6 +76,8 @@ services:
       JWT_SECRET: ${IDX_JWT_SECRET:?IDX_JWT_SECRET is required}
       AUTH_REQUIRED: "true"
       FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}
+      NODE_ENV: production
+      SELF_SERVICE_PASSWORD_RESET_ENABLED: ${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}
     ports:
       - "3001:3000"
     depends_on:

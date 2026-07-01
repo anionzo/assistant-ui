@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function LoginForm() {
+export function LoginForm({ showForgotPassword = false }: { showForgotPassword?: boolean }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -56,9 +56,11 @@ export function LoginForm() {
       <label className="flex flex-col gap-2 text-sm">
         <div className="flex items-center justify-between">
           <span>Mật khẩu</span>
-          <Link href="/quen-mat-khau" className="text-xs text-primary hover:underline">
-            Quên mật khẩu?
-          </Link>
+          {showForgotPassword ? (
+            <Link href="/quen-mat-khau" className="text-xs text-primary hover:underline">
+              Quên mật khẩu?
+            </Link>
+          ) : null}
         </div>
         <input className="w-full rounded-md border border-border px-3 py-2" type="password" name="password" required />
       </label>
