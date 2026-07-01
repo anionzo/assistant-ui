@@ -29,10 +29,34 @@ export async function idxRagHeaders(requestId: string, extra: Record<string, str
   };
 }
 
-export async function fetchIdxRag(options: FetchIdxRagOptions) {
+/** Runtime headers from MongoDB app_config (same source as /api/config). */
+export async function idxRagRuntimeHeaders(
+  requestId: string,
+  extra: Record<string, string> = {},
+  pipelineKind: "chat" | "voice" = "chat",
+) {
+  const config = await getResolvedServerConfig();
+  const pipeline =
+    pipelineKind === "voice" ? config.defaultVoicePipeline : config.defaultChatPipeline;
+  return idxRagHeaders(requestId, {
+    "X-Corpus-ID": config.defaultCorpusId,
+    "X-Chat-Pipeline": pipeline,
+    ...extra,
+  });
+}
+
+type FetchIdxRagOptionsWithRuntime = FetchIdxRagOptions & {
+  pipelineKind?: "chat" | "voice";
+};
+
+export async function fetchIdxRag(options: FetchIdxRagOptionsWithRuntime) {
+  const headerFn = options.pipelineKind
+    ? () => idxRagRuntimeHeaders(options.requestId, options.headers, options.pipelineKind)
+    : () => idxRagHeaders(options.requestId, options.headers);
+
   return fetch(idxRagUrl(options.path), {
     method: options.method ?? "GET",
-    headers: await idxRagHeaders(options.requestId, options.headers),
+    headers: await headerFn(),
     body: options.body,
     signal: options.signal,
     cache: "no-store",

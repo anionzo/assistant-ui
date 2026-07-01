@@ -67,12 +67,6 @@ services:
     environment:
       IDX_API_URL: http://idx-api:4000
       IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required}
-      TENANT_ID: ${TENANT_ID:-huit_admission_chatbot}
-      TENANT_DISPLAY_NAME: ${TENANT_DISPLAY_NAME:-HUIT Admission Chatbot}
-      DEFAULT_CORPUS_ID: ${DEFAULT_CORPUS_ID:-admission-chatbot-corpus}
-      DEFAULT_CHAT_PIPELINE: ${DEFAULT_CHAT_PIPELINE:-huit_chat_multi_query_prod}
-      DEFAULT_VOICE_PIPELINE: ${DEFAULT_VOICE_PIPELINE:-huit_voice_multi_query_prod}
-      DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
       JWT_SECRET: ${IDX_JWT_SECRET:?IDX_JWT_SECRET is required}
       AUTH_REQUIRED: "true"
       FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}

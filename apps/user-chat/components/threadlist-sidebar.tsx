@@ -15,6 +15,7 @@ import {
 import { BrandLogo } from "@/components/brand-logo";
 import { useBranding } from "@/hooks/use-branding";
 import Link from "next/link";
+import { FileText } from "lucide-react";
 import type { ComponentProps } from "react";
 
 export function ThreadListSidebar({
@@ -53,6 +54,16 @@ export function ThreadListSidebar({
       </SidebarHeader>
 
       <SidebarContent className="aui-sidebar-content flex min-h-0 flex-col gap-1 px-2">
+        <SidebarMenu className="shrink-0 pt-1">
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild>
+              <Link href="/voice-form">
+                <FileText className="size-4" />
+                <span>Điền biểu mẫu</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
         <div className="aui-sidebar-new-thread shrink-0 pt-1">
           <ThreadListNew className="w-full" />
         </div>
