@@ -213,6 +213,47 @@ export class RbacTestStore implements AuthStore {
     const set = this.rolePermMap.get(roleId);
     if (set) set.delete(permissionId);
   }
+  async listVoiceFormSessionsPage() {
+    return {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 1,
+      hasNext: false,
+      hasPrev: false,
+      items: [],
+    };
+  }
+  async findVoiceFormSessionById() {
+    return null;
+  }
+  async createVoiceFormSession(input: {
+    id?: string;
+    userId: string;
+    tenantId: string;
+    formCode?: string;
+    formName?: string;
+  }) {
+    const now = new Date();
+    return {
+      id: input.id?.trim() || crypto.randomUUID(),
+      userId: input.userId,
+      tenantId: input.tenantId,
+      formCode: input.formCode?.trim() || "",
+      formName: input.formName?.trim() || "",
+      fieldValues: {},
+      history: [],
+      decision: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+  }
+  async updateVoiceFormSession() {
+    return null;
+  }
+  async deleteVoiceFormSession() {
+    return false;
+  }
   async setUserStatus() {}
   async revokeAllUserTokens() {}
   async deleteUserAccount() {

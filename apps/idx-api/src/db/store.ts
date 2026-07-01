@@ -13,6 +13,9 @@ import type {
   RoleRecord,
   StoredThreadMessage,
   UpdateChatThreadInput,
+  UpdateVoiceFormSessionInput,
+  CreateVoiceFormSessionInput,
+  VoiceFormSessionRecord,
   UserRecord,
 } from "./types";
 
@@ -29,6 +32,9 @@ export type {
   RoleRecord,
   StoredThreadMessage,
   UpdateChatThreadInput,
+  UpdateVoiceFormSessionInput,
+  CreateVoiceFormSessionInput,
+  VoiceFormSessionRecord,
   UserRecord,
 };
 
@@ -72,6 +78,19 @@ export interface AuthStore {
     tenantId: string | undefined,
     input: { page: number; limit: number },
   ): Promise<PaginatedResult<ChatThreadRecord>>;
+  listVoiceFormSessionsPage(
+    userId: string,
+    tenantId: string | undefined,
+    input: { page: number; limit: number },
+  ): Promise<PaginatedResult<VoiceFormSessionRecord>>;
+  findVoiceFormSessionById(userId: string, sessionId: string): Promise<VoiceFormSessionRecord | null>;
+  createVoiceFormSession(input: CreateVoiceFormSessionInput): Promise<VoiceFormSessionRecord>;
+  updateVoiceFormSession(
+    userId: string,
+    sessionId: string,
+    input: UpdateVoiceFormSessionInput,
+  ): Promise<VoiceFormSessionRecord | null>;
+  deleteVoiceFormSession(userId: string, sessionId: string): Promise<boolean>;
   updateUser(userId: string, input: { displayName?: string }): Promise<UserRecord | null>;
   setUserPassword(userId: string, passwordHash: string): Promise<void>;
   setUserStatus(userId: string, status: string): Promise<void>;

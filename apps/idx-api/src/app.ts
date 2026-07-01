@@ -6,6 +6,7 @@ import { createRagRoutes } from "./routes/rag";
 import { createInternalRoutes } from "./routes/internal";
 import { createPublicRoutes } from "./routes/public";
 import { createThreadRoutes } from "./routes/threads";
+import { createVoiceFormSessionRoutes } from "./routes/voice-form-sessions";
 import { ensureMongoBootstrap } from "./db/mongo/bootstrap";
 import { type AuthStore, getAuthStore } from "./db/store";
 import { ensureAdminSeed } from "./services/rbac";
@@ -60,6 +61,7 @@ export function createApp(store: AuthStore = getAuthStore()) {
   app.route("/admin", createAdminRoutes(store));
   app.route("/rag", createRagRoutes(store));
   app.route("/threads", createThreadRoutes(store));
+  app.route("/voice-form/sessions", createVoiceFormSessionRoutes(store));
   app.route("/internal", createInternalRoutes());
   app.route("/public", createPublicRoutes());
 

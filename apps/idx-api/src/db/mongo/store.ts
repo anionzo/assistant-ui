@@ -11,6 +11,10 @@ import type {
   RoleRecord,
   StoredThreadMessage,
   UpdateChatThreadInput,
+  UpdateVoiceFormSessionInput,
+  CreateVoiceFormSessionInput,
+  VoiceFormHistoryTurn,
+  VoiceFormSessionRecord,
   UserRecord,
 } from "../types";
 import { buildPaginationMeta, type PaginatedResult } from "../../utils/pagination";
@@ -67,6 +71,20 @@ type ChatThreadDoc = {
   messages: StoredThreadMessage[];
 };
 
+type VoiceFormSessionDoc = {
+  _id: string;
+  userId: string;
+  tenantId: string;
+  title: string;
+  formCode: string;
+  formName: string;
+  fieldValues: Record<string, unknown>;
+  history: VoiceFormHistoryTurn[];
+  decision: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 type RoleDoc = {
   _id: number;
   name: string;
@@ -92,6 +110,22 @@ function toUserRecord(doc: UserDoc): UserRecord {
     displayName: doc.displayName,
     avatarUrl: doc.avatarUrl,
     status: doc.status,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
+  };
+}
+
+function toVoiceFormSessionRecord(doc: VoiceFormSessionDoc): VoiceFormSessionRecord {
+  return {
+    id: doc._id,
+    userId: doc.userId,
+    tenantId: doc.tenantId,
+    title: doc.title ?? "",
+    formCode: doc.formCode,
+    formName: doc.formName,
+    fieldValues: doc.fieldValues ?? {},
+    history: doc.history ?? [],
+    decision: doc.decision ?? "",
     createdAt: doc.createdAt,
     updatedAt: doc.updatedAt,
   };
@@ -306,6 +340,76 @@ export class MongoAuthStore {
     }));
   }
 
+  async listVoiceFormSessionsPage(
+    userId: string,
+    tenantId: string | undefined,
+    input: { page: number; limit: number },
+  ): Promise<PaginatedResult<VoiceFormSessionRecord>> {
+    const filter = tenantId ? { userId, tenantId } : { userId };
+    const coll = await collection<VoiceFormSessionDoc>(COLLECTIONS.voiceFormSessions);
+    const skip = (input.page - 1) * input.limit;
+    const [docs, total] = await Promise.all([
+      coll.find(filter).sort({ updatedAt: -1 }).skip(skip).limit(input.limit).toArray(),
+      coll.countDocuments(filter),
+    ]);
+    const meta = buildPaginationMeta(total, input.page, input.limit);
+    return { ...meta, items: docs.map(toVoiceFormSessionRecord) };
+  }
+
+  async findVoiceFormSessionById(userId: string, sessionId: string) {
+    const doc = await (await collection<VoiceFormSessionDoc>(COLLECTIONS.voiceFormSessions)).findOne({
+      _id: sessionId,
+      userId,
+    });
+    return doc ? toVoiceFormSessionRecord(doc) : null;
+  }
+
+  async createVoiceFormSession(input: CreateVoiceFormSessionInput) {
+    const now = new Date();
+    const doc: VoiceFormSessionDoc = {
+      _id: input.id?.trim() || crypto.randomUUID(),
+      userId: input.userId,
+      tenantId: input.tenantId,
+      title: input.title?.trim() || "",
+      formCode: input.formCode?.trim() || "",
+      formName: input.formName?.trim() || "",
+      fieldValues: {},
+      history: [],
+      decision: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    await (await collection<VoiceFormSessionDoc>(COLLECTIONS.voiceFormSessions)).insertOne(doc);
+    return toVoiceFormSessionRecord(doc);
+  }
+
+  async updateVoiceFormSession(
+    userId: string,
+    sessionId: string,
+    input: UpdateVoiceFormSessionInput,
+  ) {
+    const updates: Partial<VoiceFormSessionDoc> = { updatedAt: new Date() };
+    if (input.title !== undefined) updates.title = input.title;
+    if (input.formCode !== undefined) updates.formCode = input.formCode;
+    if (input.formName !== undefined) updates.formName = input.formName;
+    if (input.fieldValues !== undefined) updates.fieldValues = input.fieldValues;
+    if (input.history !== undefined) updates.history = input.history.slice(-24);
+    if (input.decision !== undefined) updates.decision = input.decision;
+
+    const result = await (
+      await collection<VoiceFormSessionDoc>(COLLECTIONS.voiceFormSessions)
+    ).findOneAndUpdate({ _id: sessionId, userId }, { $set: updates }, { returnDocument: "after" });
+    return result ? toVoiceFormSessionRecord(result) : null;
+  }
+
+  async deleteVoiceFormSession(userId: string, sessionId: string) {
+    const result = await (await collection<VoiceFormSessionDoc>(COLLECTIONS.voiceFormSessions)).deleteOne({
+      _id: sessionId,
+      userId,
+    });
+    return result.deletedCount > 0;
+  }
+
   async replaceThreadMessages(
     userId: string,
     threadId: string,
@@ -476,6 +580,7 @@ export class MongoAuthStore {
     const db = await getMongoDb();
     await Promise.all([
       db.collection(COLLECTIONS.chatThreads).deleteMany({ userId }),
+      db.collection(COLLECTIONS.voiceFormSessions).deleteMany({ userId }),
       db.collection(COLLECTIONS.oauthAccounts).deleteMany({ userId }),
       db.collection(COLLECTIONS.refreshTokens).deleteMany({ userId }),
       db.collection(COLLECTIONS.passwordResetTokens).deleteMany({ userId }),

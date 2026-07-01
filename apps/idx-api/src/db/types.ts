@@ -96,6 +96,43 @@ export type UpdateChatThreadInput = {
   headMessageId?: string | null;
 };
 
+export type VoiceFormHistoryTurn = {
+  role: string;
+  text: string;
+};
+
+export type VoiceFormSessionRecord = {
+  id: string;
+  userId: string;
+  tenantId: string;
+  title: string;
+  formCode: string;
+  formName: string;
+  fieldValues: Record<string, unknown>;
+  history: VoiceFormHistoryTurn[];
+  decision: string;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+export type CreateVoiceFormSessionInput = {
+  id?: string;
+  userId: string;
+  tenantId: string;
+  title?: string;
+  formCode?: string;
+  formName?: string;
+};
+
+export type UpdateVoiceFormSessionInput = {
+  title?: string;
+  formCode?: string;
+  formName?: string;
+  fieldValues?: Record<string, unknown>;
+  history?: VoiceFormHistoryTurn[];
+  decision?: string;
+};
+
 /**
  * StoredThreadMessage stores the full serialized ThreadMessage in `content`
  * to preserve fields such as `status`, `attachments`, and `metadata` without

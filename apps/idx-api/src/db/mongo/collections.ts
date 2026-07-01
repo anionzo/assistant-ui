@@ -7,6 +7,7 @@ export const COLLECTIONS = {
   refreshTokens: "refresh_tokens",
   passwordResetTokens: "password_reset_tokens",
   chatThreads: "chat_threads",
+  voiceFormSessions: "voice_form_sessions",
   roles: "roles",
   permissions: "permissions",
   rolePermissions: "role_permissions",

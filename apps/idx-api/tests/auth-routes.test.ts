@@ -10,6 +10,9 @@ import type {
   RefreshTokenRecord,
   StoredThreadMessage,
   UpdateChatThreadInput,
+  CreateVoiceFormSessionInput,
+  UpdateVoiceFormSessionInput,
+  VoiceFormSessionRecord,
 } from "../src/db/store";
 import type { ChatThreadRecord, PermissionRecord, RoleRecord, UserRecord } from "../src/db/schema";
 
@@ -19,6 +22,7 @@ class MemoryAuthStore implements AuthStore {
   private refreshTokenRecords = new Map<string, RefreshTokenRecord>();
   private threads = new Map<string, ChatThreadRecord>();
   private messages = new Map<string, StoredThreadMessage[]>();
+  private voiceFormSessions = new Map<string, VoiceFormSessionRecord>();
 
   async findUserById(id: string) {
     return this.users.get(id) ?? null;
@@ -158,6 +162,81 @@ class MemoryAuthStore implements AuthStore {
       updatedAt: new Date(),
     });
     return input.messages.length;
+  }
+
+  async listVoiceFormSessionsPage(
+    userId: string,
+    tenantId: string | undefined,
+    input: { page: number; limit: number },
+  ) {
+    const all = [...this.voiceFormSessions.values()]
+      .filter((session) => session.userId === userId && (!tenantId || session.tenantId === tenantId))
+      .sort((a, b) => b.updatedAt.valueOf() - a.updatedAt.valueOf());
+    const skip = (input.page - 1) * input.limit;
+    const items = all.slice(skip, skip + input.limit);
+    const total = all.length;
+    const totalPages = Math.max(1, Math.ceil(total / input.limit));
+    return {
+      page: Math.min(input.page, totalPages),
+      limit: input.limit,
+      total,
+      totalPages,
+      hasNext: input.page < totalPages,
+      hasPrev: input.page > 1,
+      items,
+    };
+  }
+
+  async findVoiceFormSessionById(userId: string, sessionId: string) {
+    const session = this.voiceFormSessions.get(sessionId);
+    return session && session.userId === userId ? session : null;
+  }
+
+  async createVoiceFormSession(input: CreateVoiceFormSessionInput) {
+    const now = new Date();
+    const session: VoiceFormSessionRecord = {
+      id: input.id?.trim() || crypto.randomUUID(),
+      userId: input.userId,
+      tenantId: input.tenantId,
+      title: input.title?.trim() || "",
+      formCode: input.formCode?.trim() || "",
+      formName: input.formName?.trim() || "",
+      fieldValues: {},
+      history: [],
+      decision: "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.voiceFormSessions.set(session.id, session);
+    return session;
+  }
+
+  async updateVoiceFormSession(
+    userId: string,
+    sessionId: string,
+    input: UpdateVoiceFormSessionInput,
+  ) {
+    const session = await this.findVoiceFormSessionById(userId, sessionId);
+    if (!session) return null;
+    const updated: VoiceFormSessionRecord = {
+      ...session,
+      title: input.title ?? session.title,
+      formCode: input.formCode ?? session.formCode,
+      formName: input.formName ?? session.formName,
+      fieldValues: input.fieldValues ?? session.fieldValues,
+      history: input.history ? input.history.slice(-24) : session.history,
+      decision: input.decision ?? session.decision,
+      updatedAt: new Date(),
+    };
+    this.voiceFormSessions.set(sessionId, updated);
+    return updated;
+  }
+
+  async deleteVoiceFormSession(userId: string, sessionId: string) {
+    const session = await this.findVoiceFormSessionById(userId, sessionId);
+    if (!session) return false;
+    this.voiceFormSessions.delete(sessionId);
+    return true;
   }
 
   // ── RBAC (test stubs) ──────────────────────────────
@@ -690,5 +769,89 @@ describe("auth routes", () => {
     expect(response.status).toBe(401);
     const payload = await response.json();
     expectError(payload, "UNAUTHORIZED");
+  });
+
+  it("supports voice-form session CRUD and isolates by bearer user", async () => {
+    const store = new MemoryAuthStore();
+    const app = createApp(store);
+
+    const ownerSession = await app.request("/auth/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: "vf-owner@example.com",
+        password: "Secret123!",
+        displayName: "VF Owner",
+      }),
+    });
+    const ownerAccessToken = sessionData(await ownerSession.json()).accessToken as string;
+
+    const otherSession = await app.request("/auth/register", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        email: "vf-other@example.com",
+        password: "Secret123!",
+        displayName: "VF Other",
+      }),
+    });
+    const otherAccessToken = sessionData(await otherSession.json()).accessToken as string;
+
+    const createResponse = await app.request("/voice-form/sessions", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ownerAccessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ tenantId: "tenant-a", formCode: "DK01", formName: "Đăng ký" }),
+    });
+
+    expect(createResponse.status).toBe(201);
+    const createPayload = await createResponse.json();
+    expectSuccess(createPayload);
+    const sessionId = (sessionData(createPayload).session as { id: string }).id;
+
+    const patchResponse = await app.request(`/voice-form/sessions/${sessionId}`, {
+      method: "PATCH",
+      headers: {
+        authorization: `Bearer ${ownerAccessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        fieldValues: { ho_ten: "Nguyễn A" },
+        history: [{ role: "user", text: "Tôi là Nguyễn A" }],
+        decision: "incomplete",
+      }),
+    });
+    expect(patchResponse.status).toBe(200);
+    const patchPayload = await patchResponse.json();
+    expect(sessionData(patchPayload).session).toMatchObject({
+      id: sessionId,
+      formCode: "DK01",
+      fieldCount: 1,
+      decision: "incomplete",
+    });
+
+    const listResponse = await app.request("/voice-form/sessions?tenantId=tenant-a", {
+      headers: { authorization: `Bearer ${ownerAccessToken}` },
+    });
+    expect(listResponse.status).toBe(200);
+    const listPayload = await listResponse.json();
+    const listed = sessionData(listPayload).sessions as Array<Record<string, unknown>>;
+    expect(listed.length).toBe(1);
+    expect(listed[0]).toMatchObject({ id: sessionId, fieldCount: 1 });
+    expect(listed[0]).not.toHaveProperty("history");
+    expect(listed[0]).not.toHaveProperty("fieldValues");
+
+    const forbidden = await app.request(`/voice-form/sessions/${sessionId}`, {
+      headers: { authorization: `Bearer ${otherAccessToken}` },
+    });
+    expect(forbidden.status).toBe(404);
+
+    const deleteResponse = await app.request(`/voice-form/sessions/${sessionId}`, {
+      method: "DELETE",
+      headers: { authorization: `Bearer ${ownerAccessToken}` },
+    });
+    expect(deleteResponse.status).toBe(200);
   });
 });
