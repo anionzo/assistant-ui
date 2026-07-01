@@ -31,10 +31,10 @@ export default function RoleDetailPage() {
         fetch("/api/admin/permissions"),
         fetch(`/api/admin/roles/${roleId}/permissions`),
       ]);
-      const roles = ((await rRes.json() as any)?.roles ?? []);
+      const roles = ((await rRes.json() as any)?.data?.roles ?? []);
       setRole(roles.find((r: RoleInfo) => r.id === roleId) ?? null);
-      setAllPermissions((await pRes.json() as any)?.permissions ?? []);
-      setRolePerms((await rpRes.json() as any)?.permissions ?? []);
+      setAllPermissions((await pRes.json() as any)?.data?.permissions ?? []);
+      setRolePerms((await rpRes.json() as any)?.data?.permissions ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load");
     } finally { setLoading(false); }

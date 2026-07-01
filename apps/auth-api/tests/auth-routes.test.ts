@@ -38,6 +38,7 @@ class MemoryAuthStore implements AuthStore {
       passwordHash: input.passwordHash ?? null,
       displayName: input.displayName ?? null,
       avatarUrl: input.avatarUrl ?? null,
+      status: "active",
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -388,9 +389,9 @@ describe("auth routes", () => {
     expect(createResponse.status).toBe(201);
     const createPayload = await createResponse.json();
     expectSuccess(createPayload);
-    expect(createPayload.thread.conversationId).toContain(`${ownerUserId}:`);
+    expect(createPayload.data.thread.conversationId).toContain(`${ownerUserId}:`);
 
-    const threadId = createPayload.thread.id as string;
+    const threadId = createPayload.data.thread.id as string;
     const putMessages = await app.request(`/threads/${threadId}/messages`, {
       method: "PUT",
       headers: {
@@ -445,7 +446,7 @@ describe("auth routes", () => {
     expect(getMessages.status).toBe(200);
     const msgPayload = await getMessages.json();
     expectSuccess(msgPayload);
-    expect(msgPayload).toMatchObject({
+      expect(msgPayload.data).toMatchObject({
       headId: "msg-2",
       messages: [
         {
@@ -492,7 +493,7 @@ describe("auth routes", () => {
       },
       body: JSON.stringify({ tenantId: "tenant-a" }),
     });
-    const threadId = ((await createResponse.json()).thread as { id: string }).id;
+    const threadId = ((await createResponse.json()).data.thread as { id: string }).id;
 
     const putMessages = await app.request(`/threads/${threadId}/messages`, {
       method: "PUT",
@@ -521,7 +522,7 @@ describe("auth routes", () => {
     expect(putMessages.status).toBe(200);
     const putPayload = await putMessages.json();
     expectSuccess(putPayload);
-    expect(putPayload.count).toBe(1);
+      expect(putPayload.data.count).toBe(1);
   });
 
   it("accepts messages without an explicit parentId on the root item", async () => {
@@ -547,7 +548,7 @@ describe("auth routes", () => {
       },
       body: JSON.stringify({ tenantId: "tenant-a" }),
     });
-    const threadId = ((await createResponse.json()).thread as { id: string }).id;
+    const threadId = ((await createResponse.json()).data.thread as { id: string }).id;
 
     const putMessages = await app.request(`/threads/${threadId}/messages`, {
       method: "PUT",
@@ -576,7 +577,7 @@ describe("auth routes", () => {
     expect(putMessages.status).toBe(200);
     const putPayload = await putMessages.json();
     expectSuccess(putPayload);
-    expect(putPayload.count).toBe(1);
+      expect(putPayload.data.count).toBe(1);
   });
 
   it("has standardized health endpoint", async () => {
@@ -585,7 +586,7 @@ describe("auth routes", () => {
     expect(response.status).toBe(200);
     const payload = await response.json();
     expectSuccess(payload);
-    expect(payload.status).toBe("ok");
+    expect(payload.data.status).toBe("ok");
   });
 
   it("returns standardized error for missing bearer token", async () => {

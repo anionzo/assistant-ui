@@ -50,10 +50,10 @@ export default function AdminUserDetailPage() {
       const res = await fetch(`/api/admin/users/${encodeURIComponent(userId)}`);
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d?.error === "string" ? d.error : `HTTP ${res.status}`);
+        throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
       const body = await res.json() as any;
-      setDetail(body ?? null);
+      setDetail((body as any)?.data ?? null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load user");
       setDetail(null);
@@ -69,7 +69,7 @@ export default function AdminUserDetailPage() {
       const res = await fetch("/api/admin/roles");
       if (res.ok) {
         const body = await res.json() as any;
-        setAllRoles(body?.roles ?? []);
+        setAllRoles(body?.data?.roles ?? []);
       }
     } catch { /* ignore */ }
   }
@@ -88,7 +88,7 @@ export default function AdminUserDetailPage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d?.error === "string" ? d.error : `HTTP ${res.status}`);
+        throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
       await loadUser();
     } catch (e) {
@@ -111,7 +111,7 @@ export default function AdminUserDetailPage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d?.error === "string" ? d.error : `HTTP ${res.status}`);
+        throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
       setPwResult("Mật khẩu đã được đặt lại.");
       setNewPw("");
@@ -134,7 +134,7 @@ export default function AdminUserDetailPage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d?.error === "string" ? d.error : `HTTP ${res.status}`);
+        throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
       await loadUser();
       setSelectedRole("");
@@ -156,7 +156,7 @@ export default function AdminUserDetailPage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d?.error === "string" ? d.error : `HTTP ${res.status}`);
+        throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
       await loadUser();
     } catch (e) {
@@ -176,7 +176,7 @@ export default function AdminUserDetailPage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d?.error === "string" ? d.error : `HTTP ${res.status}`);
+        throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
       setError("");
     } catch (e) {
@@ -196,7 +196,7 @@ export default function AdminUserDetailPage() {
       });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
-        throw new Error(typeof d?.error === "string" ? d.error : `HTTP ${res.status}`);
+        throw new Error(typeof d?.error?.message === "string" ? d.error.message : `HTTP ${res.status}`);
       }
       router.push("/users");
     } catch (e) {

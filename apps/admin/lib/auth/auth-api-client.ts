@@ -29,12 +29,14 @@ export async function authApiFetch<T>(
 
   const payload = await parseJson(response);
   if (!response.ok) {
-    return {
-      ok: false,
-      status: response.status,
-      error: typeof payload.error === "string" ? payload.error : "Auth API request failed",
-    };
+    const errMsg =
+      typeof (payload as any)?.error?.message === "string" ? (payload as any).error.message :
+      typeof payload?.error === "string" ? payload.error as string :
+      "Auth API request failed";
+    return { ok: false, status: response.status, error: errMsg };
   }
 
-  return { ok: true, data: payload as T };
+  // Unwrap wrapper format: { success: true, data: {...} }
+  const data = (payload as any).success === true && "data" in payload ? (payload as any).data : payload;
+  return { ok: true, data: data as T };
 }
