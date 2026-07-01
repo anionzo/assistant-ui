@@ -38,6 +38,10 @@ export const PERMISSIONS = {
 
   // security (58)
   SECURITY_IP_ALLOWLIST: "security.ip_allowlist",
+
+  // settings (59-60)
+  SETTINGS_BRANDING:      "settings.branding",
+  SETTINGS_BRANDING_READ: "settings.branding.read",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -50,6 +54,7 @@ export const ROLES = {
   VIEWER:      4,
   USER:           5,
   SECURITY_ADMIN: 6,
+  BRANDING_ADMIN: 7,
 } as const;
 
 export type RoleId = (typeof ROLES)[keyof typeof ROLES];

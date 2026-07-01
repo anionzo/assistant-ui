@@ -1,8 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { CONFIG_DEFAULTS, CONFIG_KEYS } from "../src/db/config-types";
+import { CONFIG_DEFAULTS, CONFIG_KEYS, DEFAULT_LOGO_URL } from "../src/db/config-types";
 import { normalizeLegacyAppConfigDoc } from "../src/db/mongo/config-store";
 
 describe("app_config", () => {
+  it("defines JSON defaults for system branding", () => {
+    const defaults = CONFIG_DEFAULTS[CONFIG_KEYS.systemBranding];
+    expect(defaults.value.logoUrl).toBe(DEFAULT_LOGO_URL);
+    expect(defaults.value.admin.appName).toBeTruthy();
+    expect(defaults.value.user.appName).toBeTruthy();
+  });
+
   it("defines JSON defaults for admin IP allowlist", () => {
     const defaults = CONFIG_DEFAULTS[CONFIG_KEYS.adminIpAllowlist];
     expect(defaults.scope).toBe("admin");

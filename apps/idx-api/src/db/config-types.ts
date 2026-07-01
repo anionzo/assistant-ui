@@ -1,5 +1,8 @@
+export const DEFAULT_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";
+
 export const CONFIG_KEYS = {
   adminIpAllowlist: "admin.ip_allowlist",
+  systemBranding: "system.branding",
 } as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];
@@ -21,8 +24,20 @@ export type IpAllowlistConfigValue = {
   ips: string[];
 };
 
+export type BrandingSurfaceValue = {
+  appName: string;
+  tagline: string;
+};
+
+export type BrandingConfigValue = {
+  logoUrl: string;
+  admin: BrandingSurfaceValue;
+  user: BrandingSurfaceValue;
+};
+
 export type ConfigValueMap = {
   [CONFIG_KEYS.adminIpAllowlist]: IpAllowlistConfigValue;
+  [CONFIG_KEYS.systemBranding]: BrandingConfigValue;
 };
 
 export const CONFIG_DEFAULTS: {
@@ -38,6 +53,21 @@ export const CONFIG_DEFAULTS: {
     value: {
       enabled: false,
       ips: [],
+    },
+  },
+  [CONFIG_KEYS.systemBranding]: {
+    scope: "system",
+    schemaVersion: 2,
+    value: {
+      logoUrl: DEFAULT_LOGO_URL,
+      admin: {
+        appName: "Idx Admin",
+        tagline: "Operator console",
+      },
+      user: {
+        appName: "Idx Chat",
+        tagline: "Trợ lý tuyển sinh HUIT",
+      },
     },
   },
 };

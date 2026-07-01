@@ -51,6 +51,23 @@ export function requirePermission(code: string) {
   });
 }
 
+export function requireAnyPermission(codes: string[]) {
+  return createMiddleware<{ Variables: { auth: AuthContext } }>(async (c, next) => {
+    const auth = c.get("auth");
+    if (!auth?.session) {
+      return unauthorized(c);
+    }
+
+    const store = resolveStore(c);
+    const permissions = await resolveUserPermissions(auth.session.id, store);
+    if (!codes.some((code) => permissions.includes(code))) {
+      return forbidden(c, `missing permission: ${codes.join(" | ")}`, ErrorCode.MISSING_PERMISSION);
+    }
+
+    await next();
+  });
+}
+
 export function requireSuperAdmin() {
   return createMiddleware<{ Variables: { auth: AuthContext } }>(async (c, next) => {
     const auth = c.get("auth");

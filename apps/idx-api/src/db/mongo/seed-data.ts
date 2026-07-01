@@ -9,6 +9,7 @@ export const SEED_ROLES = [
   { _id: ROLES.VIEWER, name: "viewer", description: "Read-only access — view collections, documents, forms, and status", createdAt: now() },
   { _id: ROLES.USER, name: "user", description: "Default chat user — no admin panel access", createdAt: now() },
   { _id: ROLES.SECURITY_ADMIN, name: "security_admin", description: "Security operator — manage admin IP allowlist and access control", createdAt: now() },
+  { _id: ROLES.BRANDING_ADMIN, name: "branding_admin", description: "Branding operator — manage logo and app names for admin and user chat", createdAt: now() },
 ] as const;
 
 export const SEED_PERMISSIONS = [
@@ -37,6 +38,8 @@ export const SEED_PERMISSIONS = [
   { _id: 56, code: "users.delete", name: "Delete user", description: "Permanently delete a user account", resource: "users", action: "delete", createdAt: now() },
   { _id: 57, code: "users.force_logout", name: "Force logout", description: "Revoke all sessions for a user", resource: "users", action: "force_logout", createdAt: now() },
   { _id: 58, code: "security.ip_allowlist", name: "Manage IP allowlist", description: "View and update admin API IP allowlist settings", resource: "security", action: "ip_allowlist", createdAt: now() },
+  { _id: 59, code: "settings.branding", name: "Manage branding", description: "Update logo and app branding shown in admin and chat", resource: "settings", action: "branding", createdAt: now() },
+  { _id: 60, code: "settings.branding.read", name: "Read branding", description: "View logo and branding settings without editing", resource: "settings", action: "read", createdAt: now() },
 ] as const;
 
 const ALL_PERMISSION_IDS = SEED_PERMISSIONS.map((p) => p._id);
@@ -65,6 +68,8 @@ export function buildRolePermissionPairs(): Array<{ roleId: number; permissionId
   }
 
   pairs.push({ roleId: ROLES.SECURITY_ADMIN, permissionId: 58 });
+  pairs.push({ roleId: ROLES.BRANDING_ADMIN, permissionId: 59 });
+  pairs.push({ roleId: ROLES.BRANDING_ADMIN, permissionId: 60 });
 
   for (const permission of SEED_PERMISSIONS) {
     if ((ADMIN_RESOURCES as readonly string[]).includes(permission.resource)) {

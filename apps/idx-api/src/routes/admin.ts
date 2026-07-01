@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { type AuthStore, getAuthStore } from "../db/store";
-import { requireAuth, requirePermission } from "../middleware/auth";
+import { requireAnyPermission, requireAuth, requirePermission } from "../middleware/auth";
 import { normalizeClientIp } from "../utils/ip-allowlist";
 import {
   getAdminIpAllowlistSettings,
   updateAdminIpAllowlistSettings,
 } from "../services/admin-ip-allowlist-config";
+import { getBrandingSettings, updateBrandingSettings } from "../services/branding-config";
 import { PERMISSIONS } from "../services/permissions";
 import { hashPassword } from "../services/password";
 import { ErrorCode } from "../utils/errors";
@@ -254,6 +255,45 @@ export function createAdminRoutes(store: AuthStore = getAuthStore()) {
       if (message === "client_ip_not_allowed") {
         return badRequest(c, "your current IP must be in the allowlist before enabling");
       }
+      throw error;
+    }
+  });
+
+  // GET /admin/settings/branding
+  adminRoutes.get(
+    "/settings/branding",
+    requireAnyPermission([PERMISSIONS.SETTINGS_BRANDING_READ, PERMISSIONS.SETTINGS_BRANDING]),
+    async (c) => {
+    const branding = await getBrandingSettings();
+    return ok(c, { branding });
+    },
+  );
+
+  // PATCH /admin/settings/branding
+  adminRoutes.patch("/settings/branding", requirePermission(PERMISSIONS.SETTINGS_BRANDING), async (c) => {
+    const auth = c.get("auth");
+    const body = await c.req.json<{
+      logoUrl?: string;
+      admin?: { appName?: string; tagline?: string };
+      user?: { appName?: string; tagline?: string };
+    }>().catch(() => null);
+    if (!body) return badRequest(c, "invalid body");
+
+    try {
+      const branding = await updateBrandingSettings({
+        logoUrl: body.logoUrl,
+        admin: body.admin,
+        user: body.user,
+        updatedBy: auth.session.id,
+      });
+      return ok(c, { branding });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "update failed";
+      if (message === "invalid_logo_url") return badRequest(c, "invalid logo URL");
+      if (message === "invalid_admin_app_name") return badRequest(c, "invalid admin app name");
+      if (message === "invalid_admin_tagline") return badRequest(c, "invalid admin tagline");
+      if (message === "invalid_user_app_name") return badRequest(c, "invalid user app name");
+      if (message === "invalid_user_tagline") return badRequest(c, "invalid user tagline");
       throw error;
     }
   });

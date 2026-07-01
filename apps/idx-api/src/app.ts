@@ -4,6 +4,7 @@ import { createAuthRoutes } from "./routes/auth";
 import { createAdminRoutes } from "./routes/admin";
 import { createRagRoutes } from "./routes/rag";
 import { createInternalRoutes } from "./routes/internal";
+import { createPublicRoutes } from "./routes/public";
 import { createThreadRoutes } from "./routes/threads";
 import { ensureMongoBootstrap } from "./db/mongo/bootstrap";
 import { type AuthStore, getAuthStore } from "./db/store";
@@ -60,6 +61,7 @@ export function createApp(store: AuthStore = getAuthStore()) {
   app.route("/rag", createRagRoutes(store));
   app.route("/threads", createThreadRoutes(store));
   app.route("/internal", createInternalRoutes());
+  app.route("/public", createPublicRoutes());
 
   return app;
 }

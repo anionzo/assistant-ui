@@ -26,6 +26,7 @@ export class RbacTestStore implements AuthStore {
       { id: 4, name: "viewer", description: null, createdAt: new Date() },
       { id: 5, name: "user", description: null, createdAt: new Date() },
       { id: 6, name: "security_admin", description: null, createdAt: new Date() },
+      { id: 7, name: "branding_admin", description: null, createdAt: new Date() },
     ];
     for (const role of roles) this.roleStore.set(role.id, role);
 
