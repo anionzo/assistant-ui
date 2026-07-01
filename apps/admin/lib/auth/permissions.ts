@@ -39,15 +39,19 @@ export const P = {
   // security (58)
   SECURITY_IP_ALLOWLIST: 58,
 
-  // settings (59-60)
+  // settings (59-62)
   SETTINGS_BRANDING:      59,
   SETTINGS_BRANDING_READ: 60,
+  SETTINGS_RUNTIME:       61,
+  SETTINGS_RUNTIME_READ:  62,
 } as const;
 
 export const PERMISSION_CODES = {
   SECURITY_IP_ALLOWLIST: "security.ip_allowlist",
   SETTINGS_BRANDING: "settings.branding",
   SETTINGS_BRANDING_READ: "settings.branding.read",
+  SETTINGS_RUNTIME: "settings.runtime",
+  SETTINGS_RUNTIME_READ: "settings.runtime.read",
 } as const;
 
 export function hasPermissionCode(permissions: string[], code: string): boolean {

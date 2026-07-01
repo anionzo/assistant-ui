@@ -40,6 +40,23 @@ export function useAdminMe() {
         PERMISSION_CODES.SETTINGS_BRANDING,
       ])
     : false;
+  const canManageRuntime = me
+    ? hasPermissionCode(me.permissions, PERMISSION_CODES.SETTINGS_RUNTIME)
+    : false;
+  const canReadRuntime = me
+    ? hasAnyPermissionCode(me.permissions, [
+        PERMISSION_CODES.SETTINGS_RUNTIME_READ,
+        PERMISSION_CODES.SETTINGS_RUNTIME,
+      ])
+    : false;
 
-  return { me, loading, canManageIpAllowlist, canManageBranding, canReadBranding };
+  return {
+    me,
+    loading,
+    canManageIpAllowlist,
+    canManageBranding,
+    canReadBranding,
+    canManageRuntime,
+    canReadRuntime,
+  };
 }

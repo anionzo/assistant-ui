@@ -8,6 +8,7 @@ import {
   ImageIcon,
   LayoutDashboard,
   Lock,
+  SlidersHorizontal,
   PanelRightOpen,
   Shield,
   Users,
@@ -28,13 +29,15 @@ const baseNav = [
 
 const securityNav = { href: "/settings/security", label: "Security", icon: Lock } as const;
 const brandingNav = { href: "/settings/branding", label: "Branding", icon: ImageIcon } as const;
+const runtimeNav = { href: "/settings/runtime", label: "Chat Runtime", icon: SlidersHorizontal } as const;
 
 function Sidebar() {
   const pathname = usePathname();
-  const { canManageIpAllowlist, canReadBranding } = useAdminMe();
+  const { canManageIpAllowlist, canReadBranding, canReadRuntime } = useAdminMe();
   const { branding } = useBranding();
   const settingsNav = [
     ...(canReadBranding ? [brandingNav] : []),
+    ...(canReadRuntime ? [runtimeNav] : []),
     ...(canManageIpAllowlist ? [securityNav] : []),
   ];
   const nav = [...baseNav, ...settingsNav];

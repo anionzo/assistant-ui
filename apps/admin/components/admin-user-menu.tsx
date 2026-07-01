@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ImageIcon, LogOut, Settings } from "lucide-react";
+import { ImageIcon, LogOut, Settings, SlidersHorizontal } from "lucide-react";
 import { useAdminMe } from "@/hooks/use-admin-me";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ function displayLabel(user: { email: string; displayName: string | null }) {
 }
 
 export function AdminUserMenu({ className }: { className?: string }) {
-  const { me, loading, canManageIpAllowlist, canManageBranding } = useAdminMe();
+  const { me, loading, canManageIpAllowlist, canManageBranding, canManageRuntime } = useAdminMe();
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -107,6 +107,15 @@ export function AdminUserMenu({ className }: { className?: string }) {
           >
             <ImageIcon className="size-3" />
             Brand
+          </Link>
+        ) : null}
+        {canManageRuntime ? (
+          <Link
+            href="/settings/runtime"
+            className="inline-flex h-7 min-w-[3.5rem] flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 text-[11px] font-medium hover:bg-muted"
+          >
+            <SlidersHorizontal className="size-3" />
+            Runtime
           </Link>
         ) : null}
         {canManageIpAllowlist ? (
