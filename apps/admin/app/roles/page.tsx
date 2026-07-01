@@ -22,7 +22,7 @@ export default function RolesPage() {
       const res = await fetch("/api/admin/roles");
       if (!res.ok) { const d = await res.json().catch(() => ({})); throw new Error(d?.error?.message ?? `HTTP ${res.status}`); }
       const body = await res.json() as any;
-      setRoles(body?.data?.roles ?? []);
+      setRoles(body?.roles ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load roles");
       setRoles([]);
