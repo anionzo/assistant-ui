@@ -12,7 +12,8 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { MessagesSquare } from "lucide-react";
+import { BrandLogo } from "@/components/brand-logo";
+import { useBranding } from "@/hooks/use-branding";
 import Link from "next/link";
 import type { ComponentProps } from "react";
 
@@ -20,6 +21,8 @@ export function ThreadListSidebar({
   initialAuth = true,
   ...props
 }: ComponentProps<typeof Sidebar> & { initialAuth?: boolean }) {
+  const { branding } = useBranding();
+
   return (
     <Sidebar {...props}>
       <SidebarHeader className="aui-sidebar-header border-sidebar-border mb-2 border-b">
@@ -28,12 +31,20 @@ export function ThreadListSidebar({
             <SidebarMenuItem>
               <SidebarMenuButton size="lg" asChild>
                 <Link href="/chat">
-                  <div className="aui-sidebar-header-icon-wrapper bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                    <MessagesSquare className="aui-sidebar-header-icon size-4" />
+                  <BrandLogo
+                    src={branding.logoUrl}
+                    alt={branding.appName}
+                    size={32}
+                    className="aui-sidebar-header-icon-wrapper rounded-lg"
+                  />
+                  <div className="min-w-0 text-left">
+                    <span className="aui-sidebar-header-title block truncate font-semibold tracking-wide">
+                      {branding.appName}
+                    </span>
+                    <span className="block truncate text-xs font-normal text-muted-foreground">
+                      {branding.tagline}
+                    </span>
                   </div>
-                  <span className="aui-sidebar-header-title font-semibold tracking-wide uppercase">
-                    IDX CHAT
-                  </span>
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>

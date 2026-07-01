@@ -4,9 +4,12 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { BrandLogo } from "@/components/brand-logo";
 import { StatusBanner } from "@/components/status-banner";
+import { useBranding } from "@/hooks/use-branding";
 
 function LoginForm() {
+  const { branding } = useBranding();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -46,9 +49,12 @@ function LoginForm() {
       onSubmit={handleSubmit}
       className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6"
     >
-      <div>
-        <h1 className="text-xl font-semibold">Idx Admin</h1>
-        <p className="text-sm text-muted-foreground">Sign in to manage corpora and documents</p>
+      <div className="flex items-center gap-3">
+        <BrandLogo src={branding.logoUrl} alt={branding.appName} size={44} />
+        <div>
+          <h1 className="text-xl font-semibold">{branding.appName}</h1>
+          <p className="text-sm text-muted-foreground">{branding.tagline}</p>
+        </div>
       </div>
 
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}

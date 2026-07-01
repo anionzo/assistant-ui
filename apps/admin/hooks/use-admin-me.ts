@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { hasPermissionCode, PERMISSION_CODES } from "@/lib/auth/permissions";
+import { hasAnyPermissionCode, hasPermissionCode, PERMISSION_CODES } from "@/lib/auth/permissions";
 
 export type AdminMe = {
   user: {
@@ -31,6 +31,15 @@ export function useAdminMe() {
   const canManageIpAllowlist = me
     ? hasPermissionCode(me.permissions, PERMISSION_CODES.SECURITY_IP_ALLOWLIST)
     : false;
+  const canManageBranding = me
+    ? hasPermissionCode(me.permissions, PERMISSION_CODES.SETTINGS_BRANDING)
+    : false;
+  const canReadBranding = me
+    ? hasAnyPermissionCode(me.permissions, [
+        PERMISSION_CODES.SETTINGS_BRANDING_READ,
+        PERMISSION_CODES.SETTINGS_BRANDING,
+      ])
+    : false;
 
-  return { me, loading, canManageIpAllowlist };
+  return { me, loading, canManageIpAllowlist, canManageBranding, canReadBranding };
 }

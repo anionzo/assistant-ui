@@ -38,12 +38,22 @@ export const P = {
 
   // security (58)
   SECURITY_IP_ALLOWLIST: 58,
+
+  // settings (59-60)
+  SETTINGS_BRANDING:      59,
+  SETTINGS_BRANDING_READ: 60,
 } as const;
 
 export const PERMISSION_CODES = {
   SECURITY_IP_ALLOWLIST: "security.ip_allowlist",
+  SETTINGS_BRANDING: "settings.branding",
+  SETTINGS_BRANDING_READ: "settings.branding.read",
 } as const;
 
 export function hasPermissionCode(permissions: string[], code: string): boolean {
   return permissions.includes(code);
+}
+
+export function hasAnyPermissionCode(permissions: string[], codes: string[]): boolean {
+  return codes.some((code) => permissions.includes(code));
 }

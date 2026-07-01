@@ -1,0 +1,1 @@
+export const DEFAULT_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";

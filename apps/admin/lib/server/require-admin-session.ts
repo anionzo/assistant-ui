@@ -23,3 +23,12 @@ export async function requireAdminPermission(permissionId: number): Promise<Admi
   }
   return result;
 }
+
+export async function requireAdminAnyPermission(permissionIds: number[]): Promise<AdminSessionResult> {
+  const result = await requireAdminSession();
+  if (!result.ok) return result;
+  if (!permissionIds.some((id) => result.session.user.permissionIds.includes(id))) {
+    return { ok: false, error: `missing permission id: ${permissionIds.join(" | ")}`, status: 403 };
+  }
+  return result;
+}

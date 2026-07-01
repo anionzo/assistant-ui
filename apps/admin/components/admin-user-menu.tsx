@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LogOut, Settings } from "lucide-react";
+import { ImageIcon, LogOut, Settings } from "lucide-react";
 import { useAdminMe } from "@/hooks/use-admin-me";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,7 @@ function displayLabel(user: { email: string; displayName: string | null }) {
 }
 
 export function AdminUserMenu({ className }: { className?: string }) {
-  const { me, loading, canManageIpAllowlist } = useAdminMe();
+  const { me, loading, canManageIpAllowlist, canManageBranding } = useAdminMe();
 
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -59,7 +59,11 @@ export function AdminUserMenu({ className }: { className?: string }) {
 
   const label = displayLabel(me.user);
   const showEmail = me.user.displayName?.trim() && me.user.displayName.trim().toLowerCase() !== me.user.email.toLowerCase();
-  const primaryRole = me.roles.find((role) => role.id === 6) ?? me.roles.find((role) => role.id === 1) ?? me.roles[0];
+  const primaryRole =
+    me.roles.find((role) => role.id === 6)
+    ?? me.roles.find((role) => role.id === 7)
+    ?? me.roles.find((role) => role.id === 1)
+    ?? me.roles[0];
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -88,18 +92,27 @@ export function AdminUserMenu({ className }: { className?: string }) {
       {me.roles.length > 0 ? (
         <div className="flex flex-wrap gap-1">
           {me.roles.map((role) => (
-            <Badge key={role.id} tone={role.id === 1 || role.id === 6 ? "success" : "default"} className="text-[10px]">
+            <Badge key={role.id} tone={role.id === 1 || role.id === 6 || role.id === 7 ? "success" : "default"} className="text-[10px]">
               {formatRoleName(role.name)}
             </Badge>
           ))}
         </div>
       ) : null}
 
-      <div className="flex gap-1.5">
+      <div className="flex flex-wrap gap-1.5">
+        {canManageBranding ? (
+          <Link
+            href="/settings/branding"
+            className="inline-flex h-7 min-w-[3.5rem] flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 text-[11px] font-medium hover:bg-muted"
+          >
+            <ImageIcon className="size-3" />
+            Brand
+          </Link>
+        ) : null}
         {canManageIpAllowlist ? (
           <Link
             href="/settings/security"
-            className="inline-flex h-7 flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 text-[11px] font-medium hover:bg-muted"
+            className="inline-flex h-7 min-w-[3.5rem] flex-1 items-center justify-center gap-1 rounded-md border border-border px-2 text-[11px] font-medium hover:bg-muted"
           >
             <Settings className="size-3" />
             IP

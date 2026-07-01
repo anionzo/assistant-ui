@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   FileStack,
-  FolderOpen,
+  ImageIcon,
   LayoutDashboard,
   Lock,
   PanelRightOpen,
@@ -13,8 +13,10 @@ import {
   Users,
 } from "lucide-react";
 import { AdminUserMenu } from "@/components/admin-user-menu";
+import { BrandLogo } from "@/components/brand-logo";
 import { GatewayStatus } from "@/components/gateway-status";
 import { useAdminMe } from "@/hooks/use-admin-me";
+import { useBranding } from "@/hooks/use-branding";
 import { cn } from "@/lib/utils";
 
 const baseNav = [
@@ -25,21 +27,25 @@ const baseNav = [
 ] as const;
 
 const securityNav = { href: "/settings/security", label: "Security", icon: Lock } as const;
+const brandingNav = { href: "/settings/branding", label: "Branding", icon: ImageIcon } as const;
 
 function Sidebar() {
   const pathname = usePathname();
-  const { canManageIpAllowlist } = useAdminMe();
-  const nav = canManageIpAllowlist ? [...baseNav, securityNav] : baseNav;
+  const { canManageIpAllowlist, canReadBranding } = useAdminMe();
+  const { branding } = useBranding();
+  const settingsNav = [
+    ...(canReadBranding ? [brandingNav] : []),
+    ...(canManageIpAllowlist ? [securityNav] : []),
+  ];
+  const nav = [...baseNav, ...settingsNav];
 
   return (
     <aside className="flex w-60 flex-col border-r border-border bg-card">
       <Link href="/" className="flex items-center gap-3 border-b border-border px-5 py-4">
-        <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-          <FolderOpen className="size-4" />
-        </div>
-        <div>
-          <p className="text-sm font-semibold">Idx Admin</p>
-          <p className="text-xs text-muted-foreground">Operator console</p>
+        <BrandLogo src={branding.logoUrl} alt={branding.appName} size={36} className="rounded-md" />
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold">{branding.appName}</p>
+          <p className="truncate text-xs text-muted-foreground">{branding.tagline}</p>
         </div>
       </Link>
 

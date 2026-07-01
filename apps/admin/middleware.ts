@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { ipMatchesAllowlist } from "@/lib/ip-allowlist";
 import { fetchIpAllowlistSettings, resolveClientIp } from "@/lib/server/ip-allowlist";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/google", "/api/auth/callback", "/api/health"];
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/google", "/api/auth/callback", "/api/health", "/api/branding"];
 
 const IP_CHECK_EXEMPT = [
   "/api/auth/me",

@@ -7,10 +7,12 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useBranding } from "@/hooks/use-branding";
 import { cn } from "@/lib/utils";
 import { PlusIcon } from "lucide-react";
 
 export function ChatMainHeader() {
+  const { branding } = useBranding();
   const { state, isMobile } = useSidebar();
   const sidebarCollapsed = state === "collapsed" && !isMobile;
   const showNewThread = isMobile || sidebarCollapsed;
@@ -35,12 +37,12 @@ export function ChatMainHeader() {
           {sidebarCollapsed ? "Hiện thanh bên" : "Ẩn thanh bên"}
         </TooltipContent>
       </Tooltip>
-      <span className="text-sm font-semibold tracking-wide uppercase md:hidden">
-        IDX CHAT
+      <span className="truncate text-sm font-semibold tracking-wide md:hidden">
+        {branding.appName}
       </span>
       {sidebarCollapsed ? (
-        <span className="text-muted-foreground hidden text-sm font-semibold tracking-wide uppercase md:inline">
-          IDX CHAT
+        <span className="text-muted-foreground hidden truncate text-sm font-semibold tracking-wide md:inline">
+          {branding.appName}
         </span>
       ) : null}
       {showNewThread ? (
