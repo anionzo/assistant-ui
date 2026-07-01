@@ -5,10 +5,12 @@ export function Table({
   headers,
   children,
   className,
+  footer,
 }: {
   headers: string[];
   children: ReactNode;
   className?: string;
+  footer?: ReactNode;
 }) {
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border bg-card", className)}>
@@ -24,6 +26,7 @@ export function Table({
         </thead>
         <tbody>{children}</tbody>
       </table>
+      {footer}
     </div>
   );
 }

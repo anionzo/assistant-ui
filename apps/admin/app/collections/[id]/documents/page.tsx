@@ -9,6 +9,9 @@ import { CollectionNav } from "@/components/collection-nav";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination";
+import { Table, TableRow, TableCell, TableEmpty, TableLoading } from "@/components/ui/table";
+import { useClientPagination } from "@/hooks/use-client-pagination";
 import { listDocuments, publishCollection } from "@/lib/api/collections";
 import type { CorpusDocument } from "@/lib/types/gateway";
 import { cn } from "@/lib/utils";
@@ -22,6 +25,14 @@ export default function DocumentsPage() {
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const {
+    items: pageDocuments,
+    meta,
+    rowOffset,
+    setPage,
+    pageSize,
+    setPageSize,
+  } = useClientPagination(documents);
 
   const loadDocuments = useCallback(async () => {
     setLoading(true);
@@ -66,7 +77,6 @@ export default function DocumentsPage() {
       }
       sidebarContent={<CollectionNav collectionId={collectionId} active="documents" />}
     >
-
       <div className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4">
         <div className="min-w-[220px] flex-1">
           <label className="mb-1 block text-sm font-medium">Publish to corpus ID</label>
@@ -80,49 +90,46 @@ export default function DocumentsPage() {
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {success ? <StatusBanner tone="success">{success}</StatusBanner> : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-border bg-muted/50 text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">File</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Chunks</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td className="px-4 py-6 text-muted-foreground" colSpan={4}>Loading documents…</td></tr>
-            ) : documents.length === 0 ? (
-              <tr><td className="px-4 py-6 text-muted-foreground" colSpan={4}>No documents indexed yet — upload files first.</td></tr>
-            ) : (
-              documents.map((doc, index) => {
-                const docId = String(doc.id ?? index);
-                return (
-                  <tr key={docId} className="border-b border-border/70 last:border-0">
-                    <td className="px-4 py-3">{String(doc.file_name ?? doc.title ?? "—")}</td>
-                    <td className={cn(
-                      "px-4 py-3",
-                      doc.status === "READY" ? "text-emerald-700" : doc.error ? "text-destructive" : "text-muted-foreground",
-                    )}>
-                      {doc.error ? `Error: ${doc.error}` : String(doc.status ?? "—")}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">{String(doc.chunk_count ?? 0)}</td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/collections/${encodeURIComponent(collectionId)}/documents/${encodeURIComponent(docId)}`}
-                        className="text-primary hover:underline"
-                      >
-                        View chunks
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        headers={["STT", "File", "Status", "Chunks", "Actions"]}
+        footer={
+          !loading && documents.length > 0 ? (
+            <PaginationBar meta={meta} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          ) : null
+        }
+      >
+        {loading ? (
+          <TableLoading colSpan={5} />
+        ) : documents.length === 0 ? (
+          <TableEmpty colSpan={5} message="No documents indexed yet — upload files first." />
+        ) : (
+          pageDocuments.map((doc, index) => {
+            const docId = String(doc.id ?? index);
+            return (
+              <TableRow key={docId}>
+                <TableCell className="w-12 text-muted-foreground">{rowOffset + index + 1}</TableCell>
+                <TableCell>{String(doc.file_name ?? doc.title ?? "—")}</TableCell>
+                <TableCell
+                  className={cn(
+                    doc.status === "READY" ? "text-emerald-700" : doc.error ? "text-destructive" : "text-muted-foreground",
+                  )}
+                >
+                  {doc.error ? `Error: ${doc.error}` : String(doc.status ?? "—")}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{String(doc.chunk_count ?? 0)}</TableCell>
+                <TableCell>
+                  <Link
+                    href={`/collections/${encodeURIComponent(collectionId)}/documents/${encodeURIComponent(docId)}`}
+                    className="text-primary hover:underline"
+                  >
+                    View chunks
+                  </Link>
+                </TableCell>
+              </TableRow>
+            );
+          })
+        )}
+      </Table>
     </AdminShell>
   );
 }

@@ -7,6 +7,9 @@ import { AdminShell } from "@/components/admin-shell";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination";
+import { Table, TableRow, TableCell, TableEmpty, TableLoading } from "@/components/ui/table";
+import { useClientPagination } from "@/hooks/use-client-pagination";
 import { asArray, bffJson } from "@/lib/api/bff";
 import type { FormSummary } from "@/lib/types/gateway";
 
@@ -14,12 +17,21 @@ export default function FormsListPage() {
   const [forms, setForms] = useState<FormSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  // Search
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<FormSummary[] | null>(null);
   const [searching, setSearching] = useState(false);
   const [searchError, setSearchError] = useState("");
+
+  const displayed = searchResults ?? forms;
+  const {
+    items: pageItems,
+    meta,
+    rowOffset,
+    setPage,
+    pageSize,
+    setPageSize,
+  } = useClientPagination(displayed);
+  const isSearchActive = searchResults !== null;
 
   const loadForms = useCallback(async () => {
     setLoading(true);
@@ -56,6 +68,7 @@ export default function FormsListPage() {
         body: JSON.stringify({ query: q }),
       });
       setSearchResults(asArray<FormSummary>(payload, ["forms", "items", "results", "data"]));
+      setPage(1);
     } catch (e) {
       setSearchError(e instanceof Error ? e.message : "Search failed");
       setSearchResults([]);
@@ -68,10 +81,10 @@ export default function FormsListPage() {
     setSearchQuery("");
     setSearchResults(null);
     setSearchError("");
+    setPage(1);
   }
 
-  const displayed = searchResults ?? forms;
-  const isSearchActive = searchResults !== null;
+  const tableLoading = loading || searching;
 
   return (
     <AdminShell
@@ -93,7 +106,6 @@ export default function FormsListPage() {
         </div>
       }
     >
-      {/* Search */}
       <form
         onSubmit={(e) => void handleSearch(e)}
         className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-card p-3"
@@ -126,47 +138,36 @@ export default function FormsListPage() {
         </StatusBanner>
       ) : null}
 
-      <div className="overflow-hidden rounded-xl border border-border bg-card">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-border bg-muted/50 text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Code</th>
-              <th className="px-4 py-3 font-medium">Title</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading || searching ? (
-              <tr>
-                <td className="px-4 py-6 text-muted-foreground" colSpan={3}>
-                  {searching ? "Searching…" : "Loading forms…"}
-                </td>
-              </tr>
-            ) : displayed.length === 0 ? (
-              <tr>
-                <td className="px-4 py-6 text-muted-foreground" colSpan={3}>
-                  {isSearchActive ? "No results found." : "No forms returned from gateway."}
-                </td>
-              </tr>
-            ) : (
-              displayed.map((form, index) => {
-                const code = String(form.form_code ?? form.code ?? index);
-                return (
-                  <tr key={code} className="border-b border-border/70 last:border-0">
-                    <td className="px-4 py-3 font-mono text-xs">{code}</td>
-                    <td className="px-4 py-3">{String(form.title ?? form.name ?? "—")}</td>
-                    <td className="px-4 py-3">
-                      <Link href={`/forms/${encodeURIComponent(code)}`} className="text-primary hover:underline">
-                        View
-                      </Link>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        headers={["STT", "Code", "Title", "Actions"]}
+        footer={
+          !tableLoading && displayed.length > 0 ? (
+            <PaginationBar meta={meta} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          ) : null
+        }
+      >
+        {tableLoading ? (
+          <TableLoading colSpan={4} message={searching ? "Searching…" : "Loading forms…"} />
+        ) : displayed.length === 0 ? (
+          <TableEmpty colSpan={4} message={isSearchActive ? "No results found." : "No forms returned from gateway."} />
+        ) : (
+          pageItems.map((form, index) => {
+            const code = String(form.form_code ?? form.code ?? index);
+            return (
+              <TableRow key={code}>
+                <TableCell className="w-12 text-muted-foreground">{rowOffset + index + 1}</TableCell>
+                <TableCell className="font-mono text-xs">{code}</TableCell>
+                <TableCell>{String(form.title ?? form.name ?? "—")}</TableCell>
+                <TableCell>
+                  <Link href={`/forms/${encodeURIComponent(code)}`} className="text-primary hover:underline">
+                    View
+                  </Link>
+                </TableCell>
+              </TableRow>
+            );
+          })
+        )}
+      </Table>
     </AdminShell>
   );
 }

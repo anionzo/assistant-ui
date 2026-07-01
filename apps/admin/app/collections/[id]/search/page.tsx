@@ -8,6 +8,8 @@ import { CollectionNav } from "@/components/collection-nav";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination";
+import { useClientPagination } from "@/hooks/use-client-pagination";
 import { asArray, bffJson } from "@/lib/api/bff";
 import type { ChunkHit } from "@/lib/types/gateway";
 
@@ -19,6 +21,14 @@ export default function SearchPage() {
   const [hits, setHits] = useState<ChunkHit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const {
+    items: pageHits,
+    meta,
+    rowOffset,
+    setPage,
+    pageSize,
+    setPageSize,
+  } = useClientPagination(hits, { pageSize: 5 });
 
   async function runSearch(event: React.FormEvent) {
     event.preventDefault();
@@ -37,6 +47,7 @@ export default function SearchPage() {
         }),
       });
       setHits(asArray<ChunkHit>(payload, ["chunks", "results", "hits", "items", "data"]));
+      setPage(1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Search failed");
       setHits([]);
@@ -51,7 +62,6 @@ export default function SearchPage() {
       description="Test chunk retrieval against this collection."
       sidebarContent={<CollectionNav collectionId={collectionId} active="search" />}
     >
-
       <StatusBanner tone="info">
         If search returns 404, use <strong>Documents → View chunks</strong> for preview on this gateway.
       </StatusBanner>
@@ -85,13 +95,13 @@ export default function SearchPage() {
         {hits.length === 0 && !loading ? (
           <StatusBanner tone="info">Run a query to preview retrieval chunks.</StatusBanner>
         ) : null}
-        {hits.map((hit, index) => (
+        {pageHits.map((hit, index) => (
           <article
-            key={String(hit.id ?? index)}
+            key={String(hit.id ?? rowOffset + index)}
             className="rounded-xl border border-border bg-card p-4 text-sm"
           >
             <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span>#{index + 1}</span>
+              <span>STT {rowOffset + index + 1}</span>
               {hit.score !== undefined ? <span>score {String(hit.score)}</span> : null}
             </div>
             <p className="whitespace-pre-wrap leading-relaxed">
@@ -100,6 +110,17 @@ export default function SearchPage() {
           </article>
         ))}
       </div>
+
+      {hits.length > 0 ? (
+        <PaginationBar
+          variant="standalone"
+          className="mt-4"
+          meta={meta}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      ) : null}
     </AdminShell>
   );
 }

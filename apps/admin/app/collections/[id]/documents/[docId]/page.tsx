@@ -8,6 +8,8 @@ import { AdminShell } from "@/components/admin-shell";
 import { CollectionNav } from "@/components/collection-nav";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
+import { PaginationBar } from "@/components/ui/pagination";
+import { useClientPagination } from "@/hooks/use-client-pagination";
 import {
   getDocument,
   listDocumentChunks,
@@ -26,6 +28,14 @@ export default function DocumentDetailPage() {
   const [reprocessing, setReprocessing] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const {
+    items: pageChunks,
+    meta,
+    rowOffset,
+    setPage,
+    pageSize,
+    setPageSize,
+  } = useClientPagination(chunks, { pageSize: 10 });
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,7 +94,6 @@ export default function DocumentDetailPage() {
       }
       sidebarContent={<CollectionNav collectionId={collectionId} active="documents" />}
     >
-
       <Link
         href={`/collections/${encodeURIComponent(collectionId)}/documents`}
         className="mb-4 inline-block text-sm text-primary hover:underline"
@@ -111,9 +120,11 @@ export default function DocumentDetailPage() {
         ) : chunks.length === 0 ? (
           <StatusBanner tone="info">No chunks yet — document may still be indexing.</StatusBanner>
         ) : (
-          chunks.map((chunk, index) => (
-            <article key={String(chunk.id ?? index)} className="rounded-xl border border-border bg-card p-4 text-sm">
-              <p className="mb-2 text-xs text-muted-foreground">Chunk {index + 1} · {String(chunk.id ?? "")}</p>
+          pageChunks.map((chunk, index) => (
+            <article key={String(chunk.id ?? rowOffset + index)} className="rounded-xl border border-border bg-card p-4 text-sm">
+              <p className="mb-2 text-xs text-muted-foreground">
+                STT {rowOffset + index + 1} · {String(chunk.id ?? "")}
+              </p>
               <p className="whitespace-pre-wrap leading-relaxed">
                 {String(chunk.content ?? chunk.text ?? "")}
               </p>
@@ -121,6 +132,17 @@ export default function DocumentDetailPage() {
           ))
         )}
       </div>
+
+      {!loading && chunks.length > 0 ? (
+        <PaginationBar
+          variant="standalone"
+          className="mt-4"
+          meta={meta}
+          pageSize={pageSize}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
+      ) : null}
     </AdminShell>
   );
 }

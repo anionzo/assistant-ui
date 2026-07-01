@@ -8,6 +8,9 @@ import { CollectionNav } from "@/components/collection-nav";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PaginationBar } from "@/components/ui/pagination";
+import { Table, TableRow, TableCell, TableEmpty, TableLoading } from "@/components/ui/table";
+import { useClientPagination } from "@/hooks/use-client-pagination";
 import {
   deleteFile,
   indexStatusForFile,
@@ -29,6 +32,14 @@ export default function FilesPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [autoRefresh, setAutoRefresh] = useState(false);
+  const {
+    items: pageFiles,
+    meta,
+    rowOffset,
+    setPage,
+    pageSize,
+    setPageSize,
+  } = useClientPagination(files);
 
   const loadAll = useCallback(async () => {
     setError("");
@@ -123,7 +134,6 @@ export default function FilesPage() {
       }
       sidebarContent={<CollectionNav collectionId={collectionId} active="files" />}
     >
-
       <form
         onSubmit={(e) => void handleUpload(e)}
         className="mb-6 flex flex-wrap items-end gap-3 rounded-xl border border-border bg-card p-4"
@@ -142,58 +152,55 @@ export default function FilesPage() {
       {error ? <StatusBanner tone="error">{error}</StatusBanner> : null}
       {success ? <StatusBanner tone="success">{success}</StatusBanner> : null}
 
-      <div className="mt-4 overflow-hidden rounded-xl border border-border bg-card">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b border-border bg-muted/50 text-muted-foreground">
-            <tr>
-              <th className="px-4 py-3 font-medium">Filename</th>
-              <th className="px-4 py-3 font-medium">Index status</th>
-              <th className="px-4 py-3 font-medium">Size</th>
-              <th className="px-4 py-3 font-medium">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr><td className="px-4 py-6 text-muted-foreground" colSpan={4}>Loading files…</td></tr>
-            ) : files.length === 0 ? (
-              <tr><td className="px-4 py-6 text-muted-foreground" colSpan={4}>No files yet — upload above.</td></tr>
-            ) : (
-              files.map((file, index) => {
-                const fileId = String(file.id ?? index);
-                const status = indexStatusForFile(fileId, documents);
-                return (
-                  <tr key={fileId} className="border-b border-border/70 last:border-0">
-                    <td className="px-4 py-3">{String(file.filename ?? file.name ?? "—")}</td>
-                    <td className={cn(
-                      "px-4 py-3",
-                      status.tone === "ready" && "text-emerald-700",
-                      status.tone === "error" && "text-destructive",
-                      status.tone === "indexing" && "text-amber-700",
-                      status.tone === "pending" && "text-muted-foreground",
-                    )}>
-                      {status.label}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground">
-                      {file.size_bytes ? `${Math.round(Number(file.size_bytes) / 1024)} KB` : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => void handleDelete(fileId, String(file.filename ?? "file"))}
-                        disabled={deletingId === fileId}
-                      >
-                        <Trash2 className="size-3.5" />
-                        {deletingId === fileId ? "…" : "Delete"}
-                      </Button>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Table
+        headers={["STT", "Filename", "Index status", "Size", "Actions"]}
+        footer={
+          !loading && files.length > 0 ? (
+            <PaginationBar meta={meta} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
+          ) : null
+        }
+      >
+        {loading ? (
+          <TableLoading colSpan={5} message="Loading files…" />
+        ) : files.length === 0 ? (
+          <TableEmpty colSpan={5} message="No files yet — upload above." />
+        ) : (
+          pageFiles.map((file, index) => {
+            const fileId = String(file.id ?? index);
+            const status = indexStatusForFile(fileId, documents);
+            return (
+              <TableRow key={fileId}>
+                <TableCell className="w-12 text-muted-foreground">{rowOffset + index + 1}</TableCell>
+                <TableCell>{String(file.filename ?? file.name ?? "—")}</TableCell>
+                <TableCell
+                  className={cn(
+                    status.tone === "ready" && "text-emerald-700",
+                    status.tone === "error" && "text-destructive",
+                    status.tone === "indexing" && "text-amber-700",
+                    status.tone === "pending" && "text-muted-foreground",
+                  )}
+                >
+                  {status.label}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  {file.size_bytes ? `${Math.round(Number(file.size_bytes) / 1024)} KB` : "—"}
+                </TableCell>
+                <TableCell>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => void handleDelete(fileId, String(file.filename ?? "file"))}
+                    disabled={deletingId === fileId}
+                  >
+                    <Trash2 className="size-3.5" />
+                    {deletingId === fileId ? "…" : "Delete"}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })
+        )}
+      </Table>
     </AdminShell>
   );
 }

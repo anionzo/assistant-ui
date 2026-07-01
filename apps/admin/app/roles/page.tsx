@@ -47,10 +47,11 @@ export default function RolesPage() {
         <p className="text-sm text-muted-foreground">Loading roles…</p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {roles.map((r) => (
+          {roles.map((r, index) => (
             <Link key={r.id} href={`/roles/${r.id}`} className="block">
               <Card className="h-full transition-colors hover:border-primary/50 cursor-pointer">
                 <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xs text-muted-foreground w-6">#{index + 1}</span>
                   <Shield className="size-4 text-muted-foreground shrink-0" />
                   <span className="text-sm font-medium">{r.name}</span>
                 </div>
