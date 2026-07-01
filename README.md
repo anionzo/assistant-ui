@@ -4,15 +4,17 @@
 
 **Idx Chat** là chatbot GPT-style trả lời câu hỏi dựa trên tài liệu được upload bằng RAG (Retrieval-Augmented Generation). Admin upload file (.docx, .pdf, .xlsx, .csv) → index → publish, người dùng chat và nhận câu trả lời có trích dẫn chính xác từ tài liệu gốc.
 
-Xây dựng trên [assistant-ui.com](https://www.assistant-ui.com/) UI primitives + Next.js 15, **idx-api** (auth + central RAG gateway), [ModularRAG](https://github.com/) upstream, PostgreSQL.
+Xây dựng trên [assistant-ui.com](https://www.assistant-ui.com/) UI primitives + Next.js 15, **idx-api** (auth + central RAG gateway), [ModularRAG](https://github.com/) upstream, **MongoDB**.
 
 ## Ai dùng gì
 
 | Surface | User | Chức năng |
 |---------|------|-----------|
-| `:3001` | Sinh viên / public | Chat + Google login + voice input |
+| `:3001` | Sinh viên / public | Chat + Google/email login + voice input |
 | `:3002` | Admin / operator | Upload tài liệu → index → publish corpus |
 | `:4000` | Internal | **idx-api** — auth, RBAC, RAG gateway boundary |
+
+Cả `user-chat` và `admin` hỗ trợ **i18n vi/en** (`@idx/i18n`, cookie `idx_locale`).
 
 ## Kiến trúc (E09)
 
@@ -22,7 +24,7 @@ Browser (admin :3002)     ──→ BFF /api/documents/* ──→ idx-api /rag/
        │                         │
        └──── idx-api :4000 ──────┘  (JWT, Google OAuth, RBAC, gateway keys)
                     │
-              PostgreSQL
+              MongoDB (idx_api)
 ```
 
 Frontend apps **không** chứa `MODULAR_RAG_GATEWAY_URL` hay API keys — chỉ `IDX_API_URL` + `IDX_SERVICE_SECRET`.
@@ -33,7 +35,7 @@ Frontend apps **không** chứa `MODULAR_RAG_GATEWAY_URL` hay API keys — chỉ
 |-----|-------|------|
 | `apps/user-chat` | Next.js 15 | 3001 |
 | `apps/admin` | Next.js 15 | 3002 |
-| `apps/idx-api` | Hono + Drizzle ORM | 4000 |
+| `apps/idx-api` | Hono + MongoDB driver | 4000 |
 
 ## Cấu trúc thư mục
 
@@ -42,7 +44,7 @@ Monorepo **pnpm** + **Turborepo**: apps chạy được, packages là thư việ
 ```text
 assistant-ui/
 ├── apps/                 # user-chat, admin, idx-api
-├── packages/             # modular-rag-sdk, voice-input (@idx/*)
+├── packages/             # modular-rag-sdk, voice-input, i18n (@idx/*)
 ├── docs/                 # Harness + product docs
 ├── scripts/              # harness-cli, e2e smoke
 └── node_modules/         # dependency (pnpm) — không sửa tay
@@ -51,7 +53,7 @@ assistant-ui/
 | Thư mục | Làm gì |
 |---------|--------|
 | `apps/` | Ứng dụng deploy / `pnpm dev` |
-| `packages/` | Code share giữa apps (SSE parser, voice UI) |
+| `packages/` | Code share giữa apps (SSE parser, voice UI, i18n) |
 | `node_modules/` | Thư viện bên thứ 3 — sinh ra từ `pnpm install` |
 | `terminals/`, `agent-tools/` | Artifact agent/IDE — xóa được, đã gitignore |
 
@@ -73,6 +75,8 @@ pnpm test:e2e       # smoke (cần stack đang chạy)
 ```
 
 Native từng app: `pnpm --filter @idx/idx-api dev` → `:4000`, `pnpm dev` → `:3001`, `pnpm dev:admin` → `:3002`.
+
+MongoDB bootstrap (indexes + RBAC seed): `pnpm --filter @idx/idx-api db:bootstrap`.
 
 ## RBAC
 

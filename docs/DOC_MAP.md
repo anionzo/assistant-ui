@@ -22,14 +22,14 @@ Browser (user-chat)
   → assistant-ui Thread + LocalRuntime + ModularRagAdapter
   → BFF /api/chat/* + /api/auth/*
   → idx-api (auth + /rag/*) → ModularRAG gateway — KHÔNG SỬA BE
-  → PostgreSQL chat_threads / chat_messages (cross-device UI)
+  → MongoDB chat_threads (embedded messages, cross-device UI)
 ```
 
 | Tầng | Công nghệ | Doc |
 | --- | --- | --- |
 | UI gốc | [assistant-ui.com](https://www.assistant-ui.com/) | [assistant-ui-guide.md](./product/assistant-ui-guide.md) |
 | User app | Next.js 15 `apps/user-chat` | [user-chat.md](./product/user-chat.md) |
-| Idx API | Hono `apps/idx-api` + Postgres + RAG gateway | [auth-backend.md](./product/auth-backend.md) |
+| Idx API | Hono `apps/idx-api` + MongoDB + RAG gateway | [auth-backend.md](./product/auth-backend.md) |
 | Admin | Next.js `apps/admin` (staff SSO) | [admin.md](./product/admin.md) |
 | LLM/RAG | ModularRAG `:8030` | [backend-contract.md](./product/backend-contract.md) |
 
@@ -90,7 +90,7 @@ E02 → E08 (email + Google) → E03 (server threads) → (E04|E05|E06) → E07
 | 0018 | BFF cookie proxy, stack chốt |
 | 0019 | Tên **Idx Chat**, naming convention |
 | 0020 | Auth **email + Google** (cả hai v1) |
-| 0021 | **Cross-device** thread storage (Postgres) |
+| 0021 | **Cross-device** thread storage (MongoDB) |
 | 0022 | Central `idx-api` gateway boundary (accepted) |
 
 ## Naming convention (0019)
@@ -101,9 +101,9 @@ E02 → E08 (email + Google) → E03 (server threads) → (E04|E05|E06) → E07
 | Monorepo package | `idx-chat` (root), `@idx/*` apps |
 | Compose | `idx-chat-user`, `idx-chat-admin` |
 | Cookie | `idx_session`, `idx_refresh` |
-| Thread DB | `chat_threads`, `chat_messages` in `idx_auth` |
+| Thread DB | `chat_threads` collection in MongoDB `idx_api` |
 | Optional cache | `idx-chat-cache` (IndexedDB) |
-| Auth DB | `idx_auth` |
+| App DB | MongoDB `idx_api` |
 
 ## Harness & proof
 

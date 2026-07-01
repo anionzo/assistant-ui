@@ -108,8 +108,8 @@ Docs gate **PASS** — see [E01 validation](./epics/E01-docs-bootstrap/validatio
 
 | # | Việc | File | Chi tiết |
 |---|------|------|----------|
-| B1.1 | Migration `0002_reset_tokens.sql` | `drizzle/` | Tạo bảng `password_reset_tokens(id UUID PK, user_id UUID FK, token_hash TEXT, expires_at TIMESTAMPTZ, used_at TIMESTAMPTZ?)` |
-| B1.2 | Schema + store | `db/schema.ts`, `db/store.ts` | Drizzle schema + `createResetToken`, `findValidResetToken`, `consumeResetToken` |
+| B1.1 | Collection + indexes | `db/mongo/bootstrap.ts` | `password_reset_tokens` collection + indexes (đã có nếu bootstrap chạy) |
+| B1.2 | Store | `db/mongo/store.ts` | `createResetToken`, `findValidResetToken`, `consumeResetToken` |
 | B1.3 | Service | `services/reset-password.ts` | `generateResetToken()`, `hashResetToken()`, `createResetTokenForEmail()` |
 | B1.4 | Route | `routes/auth.ts` | `POST /auth/forgot-password { email }` → tạo token, trả về (dev: trả token, prod: gửi email); `POST /auth/reset-password { token, password }` → verify token, đổi mk |
 | B1.5 | Tests | `tests/auth-routes.test.ts` | Test forgot → reset flow |
@@ -118,9 +118,9 @@ Docs gate **PASS** — see [E01 validation](./epics/E01-docs-bootstrap/validatio
 
 | # | Việc | File | Chi tiết |
 |---|------|------|----------|
-| B2.1 | Migration `0003_user_status.sql` | `drizzle/` | `ALTER TABLE users ADD COLUMN status TEXT DEFAULT 'active'`; thêm 4 permission mới (54-57) |
-| B2.2 | Schema | `db/schema.ts` | Thêm `status` vào users table |
-| B2.3 | Store | `db/store.ts` | `setUserStatus(userId, status)`, `revokeAllUserTokens(userId)`, `deleteUser(userId)`, `setUserPassword` (đã có) |
+| B2.1 | User status field | `db/mongo/store.ts` | `status` trên `users` documents (default `active`); thêm 4 permission mới (54-57) |
+| B2.2 | RBAC seed | `db/mongo/seed-data.ts` | Seed permissions 54-57 nếu chưa có |
+| B2.3 | Store | `db/mongo/store.ts` | `setUserStatus(userId, status)`, `revokeAllUserTokens(userId)`, `deleteUser(userId)`, `setUserPassword` (đã có) |
 | B2.4 | Admin routes | `routes/admin.ts` | `PATCH /admin/users/:id/ban { status }`, `POST /admin/users/:id/reset-password { password }`, `POST /admin/users/:id/force-logout`, `DELETE /admin/users/:id` |
 | B2.5 | Permissions | `services/permissions.ts` | Thêm `USERS_BAN: 54`, `USERS_RESET_PASSWORD: 55`, `USERS_DELETE: 56`, `USERS_FORCE_LOGOUT: 57` |
 | B2.6 | Constants | `apps/admin/lib/auth/permissions.ts` | Sync thêm 4 constants mới |
