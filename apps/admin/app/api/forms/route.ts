@@ -4,22 +4,18 @@ import { P } from "@/lib/auth/permissions";
 
 export const dynamic = "force-dynamic";
 
-async function ensurePermission(perm: number) {
-  const session = await requireAdminPermission(perm);
+export async function GET(req: Request) {
+  const session = await requireAdminPermission(P.FORMS_READ);
   if (!session.ok) {
     return Response.json({ error: session.error }, { status: session.status });
   }
-  return null;
-}
-
-export async function GET(req: Request) {
-  const err = await ensurePermission(P.FORMS_READ);
-  if (err) return err;
-  return proxyGatewayRequest(req, "/forms");
+  return proxyGatewayRequest(req, "/rag/admin/forms", session.session.accessToken);
 }
 
 export async function POST(req: Request) {
-  const err = await ensurePermission(P.FORMS_CREATE);
-  if (err) return err;
-  return proxyGatewayRequest(req, "/forms/ingest");
+  const session = await requireAdminPermission(P.FORMS_CREATE);
+  if (!session.ok) {
+    return Response.json({ error: session.error }, { status: session.status });
+  }
+  return proxyGatewayRequest(req, "/rag/admin/forms", session.session.accessToken);
 }

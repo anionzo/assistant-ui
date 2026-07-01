@@ -1,5 +1,5 @@
 {
-  "name": "@idx/auth-api",
+  "name": "@idx/idx-api",
   "version": "0.1.0",
   "private": true,
   "type": "module",

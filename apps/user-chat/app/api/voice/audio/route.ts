@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getServerConfig } from "@/lib/server/config";
+import { fetchIdxRag } from "@/lib/server/idx-api-rag";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,14 +10,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "ref query parameter is required" }, { status: 400 });
   }
 
+  const requestId = crypto.randomUUID();
+
   try {
-    const config = getServerConfig();
-    const upstream = await fetch(`${config.gatewayUrl}/voice/audio?ref=${encodeURIComponent(ref)}`, {
-      headers: {
-        "X-API-Key": config.userApiKey,
-        "X-Tenant-ID": config.tenantId,
-      },
-      cache: "no-store",
+    const upstream = await fetchIdxRag({
+      path: `/rag/voice/audio?ref=${encodeURIComponent(ref)}`,
+      requestId,
     });
 
     if (!upstream.ok) {
@@ -31,6 +29,7 @@ export async function GET(request: Request) {
         "Content-Type": upstream.headers.get("Content-Type") ?? "audio/webm",
         "Content-Length": String(audioBuffer.byteLength),
         "Cache-Control": "public, max-age=86400",
+        "X-Request-ID": upstream.headers.get("x-request-id") ?? requestId,
       },
     });
   } catch {

@@ -92,7 +92,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     try { profile = await exchangeGoogleCode(code, state); }
     catch (error) {
       const msg = error instanceof Error ? error.message : "Google OAuth callback failed";
-      console.error("[auth-api][google-callback][exchange]", msg);
+      console.error("[idx-api][google-callback][exchange]", msg);
       return badRequest(c, msg);
     }
 
@@ -100,7 +100,7 @@ export function createAuthRoutes(store: AuthStore = getAuthStore()) {
     try { existingOAuth = await store.findOAuthAccount("google", profile.sub); }
     catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to load Google account link";
-      console.error("[auth-api][google-callback][lookup-oauth]", msg);
+      console.error("[idx-api][google-callback][lookup-oauth]", msg);
       return badRequest(c, msg);
     }
 

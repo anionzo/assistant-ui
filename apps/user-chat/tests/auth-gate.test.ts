@@ -13,8 +13,8 @@ const sessionUser = {
 
 describe("AUTH_REQUIRED gateway gate", () => {
   beforeEach(() => {
-    vi.stubEnv("MODULAR_RAG_GATEWAY_URL", "http://localhost:8030");
-    vi.stubEnv("USER_API_KEY", "server-secret");
+    vi.stubEnv("IDX_API_URL", "http://localhost:4000");
+    vi.stubEnv("IDX_SERVICE_SECRET", "service-secret");
     vi.stubEnv("AUTH_REQUIRED", "true");
     vi.stubEnv("JWT_SECRET", "test-secret");
   });

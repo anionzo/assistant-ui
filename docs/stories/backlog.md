@@ -12,6 +12,7 @@
 | E06 | admin app + RBAC | implemented | [E06-admin-app](./epics/E06-admin-app/) |
 | E07 | JWT gate + compose cutover | implemented | [E07-sso-hardening](./epics/E07-sso-hardening/) *(folder tên cũ)* |
 | E08 | Auth API (email + Google) | implemented | [E08-auth-api](./epics/E08-auth-api/) |
+| E09 | Central Idx API gateway | implemented | [E09-central-api-gateway](./epics/E09-central-api-gateway/) |
 
 ## Dependency Graph
 
@@ -22,6 +23,7 @@ E01 (docs) ──► E02 (user-chat MVP, AUTH_DISABLED)
 E02 ──► E08 (email + Google + cookie)
          └──► E03 (server threads — requires userId) ──► E07 (AUTH_REQUIRED + prod)
 E01 ──► E06 (admin)     [parallel after E02 BFF pattern]
+E07 + E08 + E06 ──► E09 (centralize ModularRAG access behind idx-api)
 ```
 
 ## Implementation Order

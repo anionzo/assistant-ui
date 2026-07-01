@@ -1,6 +1,6 @@
 export type ServerConfig = {
-  gatewayUrl: string;
-  userApiKey: string;
+  idxApiUrl: string;
+  idxServiceSecret: string;
   tenantId: string;
   tenantDisplayName: string;
   defaultCorpusId: string;
@@ -17,10 +17,12 @@ export type ServerConfig = {
 export function getServerConfig(
   env: Record<string, string | undefined> = process.env,
 ): ServerConfig {
-  const gatewayUrl = env.MODULAR_RAG_GATEWAY_URL?.replace(/\/$/, "");
-  const userApiKey = env.USER_API_KEY;
-  if (!gatewayUrl) throw new Error("MODULAR_RAG_GATEWAY_URL is required");
-  if (!userApiKey) throw new Error("USER_API_KEY is required");
+  const idxApiUrl =
+    env.IDX_API_URL?.replace(/\/$/, "") ??
+    env.AUTH_API_URL?.replace(/\/$/, "") ??
+    "http://localhost:4000";
+  const idxServiceSecret = env.IDX_SERVICE_SECRET;
+  if (!idxServiceSecret) throw new Error("IDX_SERVICE_SECRET is required");
 
   const defaultTopK = Number(env.DEFAULT_TOP_K ?? 5);
   if (!Number.isInteger(defaultTopK) || defaultTopK < 1) {
@@ -33,23 +35,20 @@ export function getServerConfig(
     throw new Error("JWT_SECRET is required when AUTH_REQUIRED=true");
   }
 
-  // ALLOW_GUEST_CHAT controls whether users can chat without being logged in.
-  // Default: follow !authRequired (backward compatible).
-  // Explicit override: ALLOW_GUEST_CHAT=true/false
   const allowGuestChat =
     env.ALLOW_GUEST_CHAT === "true" ||
     (env.ALLOW_GUEST_CHAT !== "false" && !authRequired);
 
   return {
-    gatewayUrl,
-    userApiKey,
+    idxApiUrl,
+    idxServiceSecret,
     tenantId: env.TENANT_ID ?? "huit_admission_chatbot",
     tenantDisplayName: env.TENANT_DISPLAY_NAME ?? "HUIT Admission Chatbot",
     defaultCorpusId: env.DEFAULT_CORPUS_ID ?? "admission-chatbot-corpus",
     defaultChatPipeline: env.DEFAULT_CHAT_PIPELINE ?? "huit_chat_multi_query_prod",
     defaultVoicePipeline: env.DEFAULT_VOICE_PIPELINE ?? "huit_voice_multi_query_prod",
     defaultTopK,
-    authApiUrl: env.AUTH_API_URL?.replace(/\/$/, "") ?? "http://localhost:4000",
+    authApiUrl: idxApiUrl,
     authRequired,
     allowGuestChat,
     jwtSecret,

@@ -1,4 +1,5 @@
 import { errorResponse } from "@/lib/server/errors";
+import { fetchIdxRag } from "@/lib/server/idx-api-rag";
 import { getServerConfig, publicConfig } from "@/lib/server/config";
 
 export const dynamic = "force-dynamic";
@@ -10,13 +11,9 @@ export async function GET() {
     let pipelines: unknown[] = [];
 
     try {
-      const response = await fetch(`${config.gatewayUrl}/pipelines`, {
-        headers: {
-          "X-API-Key": config.userApiKey,
-          "X-Tenant-ID": config.tenantId,
-          "X-Request-ID": requestId,
-        },
-        cache: "no-store",
+      const response = await fetchIdxRag({
+        path: "/rag/pipelines",
+        requestId,
         signal: AbortSignal.timeout(3_000),
       });
       if (response.ok) {

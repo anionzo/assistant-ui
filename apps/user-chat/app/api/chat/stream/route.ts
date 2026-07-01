@@ -1,5 +1,10 @@
 import { logBffEvent } from "@/lib/server/bff-log";
 import { errorResponse } from "@/lib/server/errors";
+import {
+  fetchIdxRag,
+  passthroughSseResponse,
+  readIdxRagErrorMessage,
+} from "@/lib/server/idx-api-rag";
 import { requireGatewaySession } from "@/lib/server/require-gateway-session";
 import { getServerConfig } from "@/lib/server/config";
 
@@ -43,17 +48,15 @@ export async function POST(request: Request) {
     const pipeline = typeof body.pipeline === "string" ? body.pipeline : config.defaultChatPipeline;
     const topK = typeof body.topK === "number" ? body.topK : config.defaultTopK;
 
-    const upstream = await fetch(`${config.gatewayUrl}/chat/stream`, {
+    const upstream = await fetchIdxRag({
+      path: "/rag/chat/stream",
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Accept: "text/event-stream",
-        "X-API-Key": config.userApiKey,
-        "X-Tenant-ID": config.tenantId,
         "X-Corpus-ID": corpusId,
         "X-Chat-Pipeline": pipeline,
         "X-Conversation-ID": conversationId,
-        "X-Request-ID": requestId,
       },
       body: JSON.stringify({
         message: body.message.trim(),
@@ -62,8 +65,8 @@ export async function POST(request: Request) {
         pipeline,
         top_k: topK,
       }),
-      cache: "no-store",
       signal: request.signal,
+      requestId,
     });
 
     if (!upstream.ok || !upstream.body) {
@@ -76,7 +79,7 @@ export async function POST(request: Request) {
         duration_ms: Date.now() - startedAt,
         status_code: upstream.status,
       });
-      const details = await upstream.text().catch(() => undefined);
+      const details = await readIdxRagErrorMessage(upstream);
       return errorResponse("ModularRAG gateway rejected the request", "gateway_error", 502, requestId, details);
     }
 
@@ -90,16 +93,7 @@ export async function POST(request: Request) {
       status_code: 200,
     });
 
-    return new Response(upstream.body, {
-      status: 200,
-      headers: {
-        "Content-Type": "text/event-stream; charset=utf-8",
-        "Cache-Control": "no-cache, no-transform",
-        Connection: "keep-alive",
-        "X-Accel-Buffering": "no",
-        "X-Request-ID": requestId,
-      },
-    });
+    return passthroughSseResponse(upstream, requestId);
   } catch (error) {
     if (request.signal.aborted) return new Response(null, { status: 499 });
     logBffEvent({

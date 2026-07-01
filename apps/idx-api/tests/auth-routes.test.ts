@@ -265,11 +265,16 @@ class MemoryAuthStore implements AuthStore {
   }
 }
 
-function expectSuccess(payload: unknown) {
-  expect(payload).not.toHaveProperty("error");
+function sessionData(payload: Record<string, unknown>) {
+  return (payload.data ?? payload) as Record<string, unknown>;
 }
 
-function expectError(payload: unknown, code?: string) {
+function expectSuccess(payload: unknown) {
+  expect(payload).toMatchObject({ success: true });
+}
+
+function expectError(payload: unknown) {
+  expect(payload).toMatchObject({ success: false });
   expect(payload).toHaveProperty("error");
 }
 
@@ -296,12 +301,13 @@ describe("auth routes", () => {
     expect(registerResponse.status).toBe(201);
     const registerPayload = await registerResponse.json();
     expectSuccess(registerPayload);
-    expect(registerPayload.user).toMatchObject({
+    const registerSession = sessionData(registerPayload);
+    expect(registerSession.user).toMatchObject({
       email: "user@example.com",
       displayName: "Idx User",
     });
-    expect(registerPayload.accessToken).toEqual(expect.any(String));
-    expect(registerPayload.refreshToken).toEqual(expect.any(String));
+    expect(registerSession.accessToken).toEqual(expect.any(String));
+    expect(registerSession.refreshToken).toEqual(expect.any(String));
 
     const loginResponse = await app.request("/auth/login", {
       method: "POST",
@@ -315,31 +321,33 @@ describe("auth routes", () => {
     expect(loginResponse.status).toBe(200);
     const loginPayload = await loginResponse.json();
     expectSuccess(loginPayload);
-    expect(loginPayload.accessToken).toEqual(expect.any(String));
-    expect(loginPayload.refreshToken).toEqual(expect.any(String));
+    const loginSession = sessionData(loginPayload);
+    expect(loginSession.accessToken).toEqual(expect.any(String));
+    expect(loginSession.refreshToken).toEqual(expect.any(String));
 
     const refreshResponse = await app.request("/auth/refresh", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ refreshToken: loginPayload.refreshToken }),
+      body: JSON.stringify({ refreshToken: loginSession.refreshToken }),
     });
 
     expect(refreshResponse.status).toBe(200);
     const refreshPayload = await refreshResponse.json();
     expectSuccess(refreshPayload);
-    expect(refreshPayload.accessToken).toEqual(expect.any(String));
-    expect(refreshPayload.refreshToken).toEqual(expect.any(String));
+    const refreshSession = sessionData(refreshPayload);
+    expect(refreshSession.accessToken).toEqual(expect.any(String));
+    expect(refreshSession.refreshToken).toEqual(expect.any(String));
 
     const meResponse = await app.request("/auth/me", {
       headers: {
-        authorization: `Bearer ${refreshPayload.accessToken}`,
+        authorization: `Bearer ${refreshSession.accessToken}`,
       },
     });
 
     expect(meResponse.status).toBe(200);
     const mePayload = await meResponse.json();
     expectSuccess(mePayload);
-    expect(mePayload).toMatchObject({
+    expect(sessionData(mePayload)).toMatchObject({
       user: {
         email: "user@example.com",
         displayName: "Idx User",
@@ -361,8 +369,9 @@ describe("auth routes", () => {
       }),
     });
     const ownerPayload = await ownerSession.json();
-    const ownerAccessToken = ownerPayload.accessToken as string;
-    const ownerUserId = ownerPayload.user.id as string;
+    const ownerSessionData = sessionData(ownerPayload);
+    const ownerAccessToken = ownerSessionData.accessToken as string;
+    const ownerUserId = (ownerSessionData.user as { id: string }).id;
 
     const otherSession = await app.request("/auth/register", {
       method: "POST",
@@ -373,7 +382,7 @@ describe("auth routes", () => {
         displayName: "Other User",
       }),
     });
-    const otherAccessToken = (await otherSession.json()).accessToken as string;
+    const otherAccessToken = sessionData(await otherSession.json()).accessToken as string;
 
     const createResponse = await app.request("/threads", {
       method: "POST",
@@ -389,9 +398,11 @@ describe("auth routes", () => {
     expect(createResponse.status).toBe(201);
     const createPayload = await createResponse.json();
     expectSuccess(createPayload);
-    expect(createPayload.data.thread.conversationId).toContain(`${ownerUserId}:`);
+    expect(sessionData(createPayload).thread).toMatchObject({
+      conversationId: expect.stringContaining(`${ownerUserId}:`),
+    });
 
-    const threadId = createPayload.data.thread.id as string;
+    const threadId = (sessionData(createPayload).thread as { id: string }).id;
     const putMessages = await app.request(`/threads/${threadId}/messages`, {
       method: "PUT",
       headers: {
@@ -483,7 +494,7 @@ describe("auth routes", () => {
         displayName: "AUI Shape User",
       }),
     });
-    const accessToken = (await session.json()).accessToken as string;
+    const accessToken = sessionData(await session.json()).accessToken as string;
 
     const createResponse = await app.request("/threads", {
       method: "POST",
@@ -493,7 +504,7 @@ describe("auth routes", () => {
       },
       body: JSON.stringify({ tenantId: "tenant-a" }),
     });
-    const threadId = ((await createResponse.json()).data.thread as { id: string }).id;
+    const threadId = (sessionData(await createResponse.json()).thread as { id: string }).id;
 
     const putMessages = await app.request(`/threads/${threadId}/messages`, {
       method: "PUT",
@@ -538,7 +549,7 @@ describe("auth routes", () => {
         displayName: "Root Message User",
       }),
     });
-    const accessToken = (await session.json()).accessToken as string;
+    const accessToken = sessionData(await session.json()).accessToken as string;
 
     const createResponse = await app.request("/threads", {
       method: "POST",
@@ -548,7 +559,7 @@ describe("auth routes", () => {
       },
       body: JSON.stringify({ tenantId: "tenant-a" }),
     });
-    const threadId = ((await createResponse.json()).data.thread as { id: string }).id;
+    const threadId = (sessionData(await createResponse.json()).thread as { id: string }).id;
 
     const putMessages = await app.request(`/threads/${threadId}/messages`, {
       method: "PUT",
@@ -595,7 +606,7 @@ describe("auth routes", () => {
     expect(response.status).toBe(401);
     const payload = await response.json();
     expectError(payload);
-    expect(payload.error).toBe("missing bearer token");
+    expect(payload.error).toMatchObject({ message: "missing bearer token" });
   });
 
   it("returns standardized error for duplicate email", async () => {

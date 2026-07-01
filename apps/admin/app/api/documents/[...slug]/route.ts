@@ -47,7 +47,7 @@ async function handle(req: Request, context: RouteContext) {
   if (!session.ok) {
     return Response.json({ error: session.error }, { status: session.status });
   }
-  return proxyGatewayRequest(req, `/document-processing/compat/${path}`);
+  return proxyGatewayRequest(req, `/rag/admin/documents/${path}`, session.session.accessToken);
 }
 
 export const GET = handle;

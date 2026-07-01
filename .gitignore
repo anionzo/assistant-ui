@@ -19,9 +19,12 @@ coverage/
 .env.local
 *.tsbuildinfo
 
-# Auth-api dev process logs
+# Idx-api dev process logs
 tmp_auth_api.out.log
 tmp_auth_api.err.log
+
+# Orphan folder after auth-api -> idx-api rename (Windows lock may leave empty dir)
+apps/auth-api/
 
 # Local terminal session snapshots
 terminals/

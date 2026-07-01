@@ -19,8 +19,7 @@
 Browser (user-chat)
   → assistant-ui Thread + LocalRuntime + ModularRagAdapter
   → BFF /api/chat/* + /api/auth/*
-  → auth-api + PostgreSQL (user identity)
-  → ModularRAG gateway (SSE, X-API-Key) — KHÔNG SỬA
+  → idx-api (auth + /rag/*) → ModularRAG gateway — KHÔNG SỬA BE
   → PostgreSQL chat_threads / chat_messages (cross-device UI)
 ```
 
@@ -28,7 +27,7 @@ Browser (user-chat)
 | --- | --- | --- |
 | UI gốc | [assistant-ui.com](https://www.assistant-ui.com/) | [assistant-ui-guide.md](./product/assistant-ui-guide.md) |
 | User app | Next.js 15 `apps/user-chat` | [user-chat.md](./product/user-chat.md) |
-| Auth | Hono `apps/auth-api` + Postgres | [auth-backend.md](./product/auth-backend.md) |
+| Idx API | Hono `apps/idx-api` + Postgres + RAG gateway | [auth-backend.md](./product/auth-backend.md) |
 | Admin | Next.js `apps/admin` (staff SSO) | [admin.md](./product/admin.md) |
 | LLM/RAG | ModularRAG `:8030` | [backend-contract.md](./product/backend-contract.md) |
 
@@ -43,7 +42,7 @@ Browser (user-chat)
 | [bff-api.md](./product/bff-api.md) | Route handlers user + admin |
 | [modular-rag-integration.md](./product/modular-rag-integration.md) | SSE + adapter rules |
 | [auth-layer.md](./product/auth-layer.md) | Auth tóm tắt |
-| [auth-backend.md](./product/auth-backend.md) | auth-api API, Google, DB |
+| [auth-backend.md](./product/auth-backend.md) | idx-api API, Google, DB |
 | [storage-layer.md](./product/storage-layer.md) | Server thread sync (0021) |
 | [security.md](./product/security.md) | S1–S10, go-live checklist |
 | [constraints.md](./product/constraints.md) | Không sửa ModularRAG BE |
@@ -59,6 +58,7 @@ Browser (user-chat)
 | E01 | Docs bootstrap | **done** | [E01](./stories/epics/E01-docs-bootstrap/) |
 | E02 | Chat MVP | **implemented** | [E02](./stories/epics/E02-user-chat-mvp/) |
 | E08 | Email + Google + `idx_session` cookie | **implemented** | [E08](./stories/epics/E08-auth-api/) |
+| E09 | Central `idx-api` gateway boundary | **implemented** | [E09](./stories/epics/E09-central-api-gateway/) |
 | E03 | Server threads + sidebar | **implemented** | [E03](./stories/epics/E03-thread-persistence/) |
 | E07 | `AUTH_REQUIRED` + compose prod | **implemented** | [E07](./stories/epics/E07-sso-hardening/) * |
 | E04 | Voice input | implemented | [E04](./stories/epics/E04-voice-input/) |
@@ -89,6 +89,7 @@ E02 → E08 (email + Google) → E03 (server threads) → (E04|E05|E06) → E07
 | 0019 | Tên **Idx Chat**, naming convention |
 | 0020 | Auth **email + Google** (cả hai v1) |
 | 0021 | **Cross-device** thread storage (Postgres) |
+| 0022 | Central `idx-api` gateway boundary (accepted) |
 
 ## Naming convention (0019)
 

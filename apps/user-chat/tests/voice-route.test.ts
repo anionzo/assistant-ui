@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../app/api/voice/stream/route";
+import { IDX_SERVICE_AUTH_HEADER } from "../lib/server/idx-api-rag";
 
 function request() {
   const form = new FormData();
@@ -14,8 +15,8 @@ function request() {
 
 describe("POST /api/voice/stream", () => {
   beforeEach(() => {
-    vi.stubEnv("MODULAR_RAG_GATEWAY_URL", "http://localhost:8030");
-    vi.stubEnv("USER_API_KEY", "server-secret");
+    vi.stubEnv("IDX_API_URL", "http://localhost:4000");
+    vi.stubEnv("IDX_SERVICE_SECRET", "service-secret");
   });
 
   afterEach(() => {
@@ -23,7 +24,7 @@ describe("POST /api/voice/stream", () => {
     vi.restoreAllMocks();
   });
 
-  it("forwards audio as audio_b64 to the gateway voice stream", async () => {
+  it("forwards audio as audio_b64 through idx-api voice stream", async () => {
     const encoder = new TextEncoder();
     const upstreamBody = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -31,21 +32,21 @@ describe("POST /api/voice/stream", () => {
         controller.close();
       },
     });
-    const gatewayFetch = vi.fn().mockResolvedValue(
+    const idxFetch = vi.fn().mockResolvedValue(
       new Response(upstreamBody, {
         headers: { "Content-Type": "text/event-stream" },
       }),
     );
-    vi.stubGlobal("fetch", gatewayFetch);
+    vi.stubGlobal("fetch", idxFetch);
 
     const response = await POST(request());
 
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/event-stream");
 
-    const [url, init] = gatewayFetch.mock.calls[0] as [string, RequestInit];
-    expect(url).toBe("http://localhost:8030/voice/chat/stream");
-    expect(new Headers(init.headers).get("X-API-Key")).toBe("server-secret");
+    const [url, init] = idxFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://localhost:4000/rag/voice/stream");
+    expect(new Headers(init.headers).get(IDX_SERVICE_AUTH_HEADER)).toBe("service-secret");
     expect(JSON.parse(String(init.body))).toMatchObject({
       audio_b64: Buffer.from("fake-audio").toString("base64"),
       conversation_id: "thread-1",
@@ -63,11 +64,14 @@ describe("POST /api/voice/stream", () => {
     await expect(response.json()).resolves.toMatchObject({ code: "missing_session" });
   });
 
-  it("returns gateway_error when upstream rejects the payload", async () => {
+  it("returns gateway_error when idx-api rejects the payload", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ detail: "invalid audio" }), { status: 422 }),
+        new Response(
+          JSON.stringify({ success: false, error: { code: "GATEWAY_ERROR", message: "invalid audio" } }),
+          { status: 422 },
+        ),
       ),
     );
 

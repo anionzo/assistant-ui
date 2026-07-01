@@ -1,13 +1,9 @@
-# Idx Chat production stack (E07).
-# Replaces legacy chatbot-ui with idx-chat-user + auth-api + postgres.
-# ModularRAG gateway stays external — point MODULAR_RAG_GATEWAY_URL at it.
+# Idx Chat production stack (E07 + E09).
+# ModularRAG gateway stays external — only idx-api holds gateway URL and keys.
 #
 #   docker compose -f docker-compose.prod.yml up -d --build
 #   curl http://localhost:3001/api/health
 #   curl http://localhost:4000/health
-#
-# NOTE: For real production, put a reverse proxy (nginx/traefik) in front.
-# `extra_hosts` is only needed if the ModularRAG gateway runs on the host.
 
 services:
   postgres:
@@ -25,10 +21,10 @@ services:
       timeout: 5s
       retries: 10
 
-  auth-api:
+  idx-api:
     build:
       context: .
-      dockerfile: apps/auth-api/Dockerfile
+      dockerfile: apps/idx-api/Dockerfile
     restart: unless-stopped
     environment:
       PORT: 4000
@@ -40,11 +36,17 @@ services:
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:4000/auth/google/callback}
       FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}
+      MODULAR_RAG_GATEWAY_URL: ${MODULAR_RAG_GATEWAY_URL:-http://host.docker.internal:8030}
+      USER_API_KEY: ${USER_API_KEY:?USER_API_KEY is required}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:?ADMIN_API_KEY is required}
+      IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required}
     ports:
       - "4000:4000"
     depends_on:
       postgres:
         condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
       test:
         [
@@ -64,25 +66,21 @@ services:
       dockerfile: apps/user-chat/Dockerfile
     restart: unless-stopped
     environment:
-      MODULAR_RAG_GATEWAY_URL: ${MODULAR_RAG_GATEWAY_URL:-http://host.docker.internal:8030}
-      USER_API_KEY: ${USER_API_KEY:?USER_API_KEY is required}
+      IDX_API_URL: http://idx-api:4000
+      IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required}
       TENANT_ID: ${TENANT_ID:-huit_admission_chatbot}
       TENANT_DISPLAY_NAME: ${TENANT_DISPLAY_NAME:-HUIT Admission Chatbot}
       DEFAULT_CORPUS_ID: ${DEFAULT_CORPUS_ID:-admission-chatbot-corpus}
       DEFAULT_CHAT_PIPELINE: ${DEFAULT_CHAT_PIPELINE:-huit_chat_multi_query_prod}
       DEFAULT_VOICE_PIPELINE: ${DEFAULT_VOICE_PIPELINE:-huit_voice_multi_query_prod}
       DEFAULT_TOP_K: ${DEFAULT_TOP_K:-5}
-      AUTH_API_URL: http://auth-api:4000
       JWT_SECRET: ${IDX_JWT_SECRET:?IDX_JWT_SECRET is required}
       AUTH_REQUIRED: "true"
-      # ALLOW_GUEST_CHAT: "true"   # override if you want guest chat even with AUTH_REQUIRED
       FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}
     ports:
-      - "3001:3000"  # host:3001 → container:3000 (see Dockerfile)
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "3001:3000"
     depends_on:
-      auth-api:
+      idx-api:
         condition: service_healthy
     healthcheck:
       test:
@@ -103,13 +101,15 @@ services:
       dockerfile: apps/admin/Dockerfile
     restart: unless-stopped
     environment:
-      MODULAR_RAG_GATEWAY_URL: ${MODULAR_RAG_GATEWAY_URL:-http://host.docker.internal:8030}
-      ADMIN_API_KEY: ${ADMIN_API_KEY:?ADMIN_API_KEY is required}
+      IDX_API_URL: http://idx-api:4000
+      IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required}
       ADMIN_IP_ALLOWLIST: ${ADMIN_IP_ALLOWLIST:-127.0.0.1,10.0.0.0/8}
+      FRONTEND_URL: ${IDX_ADMIN_FRONTEND_URL:-http://localhost:3002}
     ports:
       - "3002:3000"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    depends_on:
+      idx-api:
+        condition: service_healthy
     healthcheck:
       test:
         [

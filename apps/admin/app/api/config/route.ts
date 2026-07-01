@@ -1,5 +1,6 @@
 import { errorResponse } from "@/lib/server/errors";
 import { getAdminConfig } from "@/lib/server/config";
+import { IDX_SERVICE_AUTH_HEADER } from "@/lib/server/gateway-proxy";
 import { requireAdminPermission } from "@/lib/server/require-admin-session";
 import { P } from "@/lib/auth/permissions";
 import { asArray } from "@/lib/api/bff";
@@ -19,17 +20,15 @@ export async function GET() {
     let collections: Collection[] = [];
 
     try {
-      const response = await fetch(
-        `${config.gatewayUrl}/document-processing/compat/collections`,
-        {
-          headers: {
-            "X-API-Key": config.adminApiKey,
-            "X-Request-ID": requestId,
-          },
-          cache: "no-store",
-          signal: AbortSignal.timeout(5_000),
+      const response = await fetch(`${config.idxApiUrl}/rag/admin/documents/collections`, {
+        headers: {
+          [IDX_SERVICE_AUTH_HEADER]: config.idxServiceSecret,
+          Authorization: `Bearer ${session.session.accessToken}`,
+          "X-Request-ID": requestId,
         },
-      );
+        cache: "no-store",
+        signal: AbortSignal.timeout(5_000),
+      });
       if (response.ok) {
         const payload = await response.json();
         collections = asArray<Collection>(payload, ["collections", "items", "data"]);
@@ -38,10 +37,7 @@ export async function GET() {
       // Config remains usable when catalog is temporarily unavailable.
     }
 
-    return Response.json({
-      collections,
-      gatewayUrl: config.gatewayUrl.replace(/\/\/.*@/, "//***@"),
-    });
+    return Response.json({ collections });
   } catch (error) {
     return errorResponse(
       error instanceof Error ? error.message : "Invalid admin configuration",

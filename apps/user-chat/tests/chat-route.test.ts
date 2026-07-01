@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "../app/api/chat/stream/route";
+import { IDX_SERVICE_AUTH_HEADER } from "../lib/server/idx-api-rag";
 
 const requestBody = {
   message: "Xin chào",
@@ -16,8 +17,8 @@ function request() {
 
 describe("POST /api/chat/stream", () => {
   beforeEach(() => {
-    vi.stubEnv("MODULAR_RAG_GATEWAY_URL", "http://localhost:8030");
-    vi.stubEnv("USER_API_KEY", "server-secret");
+    vi.stubEnv("IDX_API_URL", "http://localhost:4000");
+    vi.stubEnv("IDX_SERVICE_SECRET", "service-secret");
   });
 
   afterEach(() => {
@@ -25,7 +26,7 @@ describe("POST /api/chat/stream", () => {
     vi.restoreAllMocks();
   });
 
-  it("returns 502 when the gateway is unavailable", async () => {
+  it("returns 502 when idx-api is unavailable", async () => {
     vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new TypeError("offline")));
 
     const response = await POST(request());
@@ -34,7 +35,7 @@ describe("POST /api/chat/stream", () => {
     await expect(response.json()).resolves.toMatchObject({ code: "gateway_error" });
   });
 
-  it("forwards SSE without buffering and keeps the API key server-side", async () => {
+  it("forwards SSE through idx-api without exposing gateway credentials", async () => {
     const encoder = new TextEncoder();
     const upstreamBody = new ReadableStream<Uint8Array>({
       start(controller) {
@@ -42,12 +43,12 @@ describe("POST /api/chat/stream", () => {
         controller.close();
       },
     });
-    const gatewayFetch = vi.fn().mockResolvedValue(
+    const idxFetch = vi.fn().mockResolvedValue(
       new Response(upstreamBody, {
         headers: { "Content-Type": "text/event-stream" },
       }),
     );
-    vi.stubGlobal("fetch", gatewayFetch);
+    vi.stubGlobal("fetch", idxFetch);
 
     const response = await POST(request());
 
@@ -55,8 +56,10 @@ describe("POST /api/chat/stream", () => {
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     await expect(response.text()).resolves.toBe("event: token\ndata: Xin\n\n");
 
-    const [, init] = gatewayFetch.mock.calls[0] as [string, RequestInit];
-    expect(new Headers(init.headers).get("X-API-Key")).toBe("server-secret");
+    const [url, init] = idxFetch.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("http://localhost:4000/rag/chat/stream");
+    expect(new Headers(init.headers).get(IDX_SERVICE_AUTH_HEADER)).toBe("service-secret");
+    expect(new Headers(init.headers).get("X-API-Key")).toBeNull();
     expect(JSON.parse(String(init.body))).toMatchObject({
       message: "Xin chào",
       conversation_id: "thread-1",

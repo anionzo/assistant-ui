@@ -14,9 +14,8 @@ RUN pnpm install --frozen-lockfile --filter @idx/admin...
 COPY apps/admin ./apps/admin
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV MODULAR_RAG_GATEWAY_URL=http://host.docker.internal:8030
-ENV ADMIN_API_KEY=build-placeholder
-ENV BUILD_STANDALONE=1
+ENV IDX_API_URL=http://idx-api:4000
+ENV IDX_SERVICE_SECRET=build-placeholder
 ENV BUILD_STANDALONE=1
 
 RUN pnpm --filter @idx/admin build

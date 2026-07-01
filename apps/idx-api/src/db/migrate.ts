@@ -23,7 +23,7 @@ async function main() {
       console.info(`[migrate] ${file} applied`);
     }
 
-    console.info("auth-api migrations complete");
+    console.info("idx-api migrations complete");
   } finally {
     await sql.end();
   }

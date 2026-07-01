@@ -19,8 +19,8 @@ COPY packages/modular-rag-sdk ./packages/modular-rag-sdk
 COPY packages/voice-input ./packages/voice-input
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV MODULAR_RAG_GATEWAY_URL=http://gateway:8030
-ENV USER_API_KEY=build-placeholder
+ENV IDX_API_URL=http://idx-api:4000
+ENV IDX_SERVICE_SECRET=build-placeholder
 ENV JWT_SECRET=build-placeholder
 
 RUN pnpm --filter @idx/user-chat build

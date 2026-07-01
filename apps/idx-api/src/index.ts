@@ -10,6 +10,6 @@ serve({
   port,
 });
 
-console.info(`auth-api listening on :${port}`);
+console.info(`idx-api listening on :${port}`);
 
 void onAppReady();

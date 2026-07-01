@@ -2,10 +2,11 @@ import { getAdminConfig } from "@/lib/server/config";
 import { errorResponse } from "@/lib/server/errors";
 
 const FORWARDED_HEADERS = ["content-type", "accept", "accept-language"];
+export const IDX_SERVICE_AUTH_HEADER = "x-idx-service-token";
 
-function buildUpstreamUrl(gatewayUrl: string, upstreamPath: string, req: Request) {
-  const normalized = upstreamPath.startsWith("/") ? upstreamPath : `/${upstreamPath}`;
-  const url = new URL(`${gatewayUrl}${normalized}`);
+function buildIdxRagUrl(idxApiUrl: string, ragPath: string, req: Request) {
+  const normalized = ragPath.startsWith("/") ? ragPath : `/${ragPath}`;
+  const url = new URL(`${idxApiUrl.replace(/\/$/, "")}${normalized}`);
   const incoming = new URL(req.url);
   incoming.searchParams.forEach((value, key) => {
     url.searchParams.set(key, value);
@@ -13,9 +14,15 @@ function buildUpstreamUrl(gatewayUrl: string, upstreamPath: string, req: Request
   return url.toString();
 }
 
-function pickForwardHeaders(req: Request, requestId: string): HeadersInit {
+function pickForwardHeaders(
+  req: Request,
+  requestId: string,
+  accessToken: string,
+): HeadersInit {
+  const config = getAdminConfig();
   const headers: Record<string, string> = {
-    "X-API-Key": getAdminConfig().adminApiKey,
+    [IDX_SERVICE_AUTH_HEADER]: config.idxServiceSecret,
+    Authorization: `Bearer ${accessToken}`,
     "X-Request-ID": requestId,
   };
   for (const name of FORWARDED_HEADERS) {
@@ -35,9 +42,21 @@ async function readBody(req: Request): Promise<BodyInit | undefined> {
   return text.length > 0 ? text : undefined;
 }
 
+function parseIdxRagError(payload: string, status: number): string {
+  try {
+    const parsed = JSON.parse(payload) as { error?: string | { message?: string } };
+    if (typeof parsed.error === "string") return parsed.error;
+    if (parsed.error?.message) return parsed.error.message;
+  } catch {
+    if (payload) return payload.slice(0, 500);
+  }
+  return `Gateway error (${status})`;
+}
+
 export async function proxyGatewayRequest(
   req: Request,
-  upstreamPath: string,
+  ragPath: string,
+  accessToken: string,
   requestId = crypto.randomUUID(),
 ) {
   let config;
@@ -52,8 +71,8 @@ export async function proxyGatewayRequest(
     );
   }
 
-  const url = buildUpstreamUrl(config.gatewayUrl, upstreamPath, req);
-  const headers = pickForwardHeaders(req, requestId);
+  const url = buildIdxRagUrl(config.idxApiUrl, ragPath, req);
+  const headers = pickForwardHeaders(req, requestId, accessToken);
 
   let body: BodyInit | undefined;
   try {
@@ -85,30 +104,12 @@ export async function proxyGatewayRequest(
   const payload = await upstream.text();
 
   if (!upstream.ok) {
-    const hint =
-      upstream.status === 404
-        ? " — check MODULAR_RAG_GATEWAY_URL (gateway not on localhost?)"
-        : upstream.status === 403
-          ? " — check ADMIN_API_KEY"
-          : "";
-    try {
-      const parsed = JSON.parse(payload) as { error?: string; message?: string; detail?: string };
-      return errorResponse(
-        (parsed.error ?? parsed.message ?? parsed.detail ?? `Gateway error (${upstream.status})`) + hint,
-        "gateway_error",
-        upstream.status,
-        requestId,
-        { upstream: url.replace(config.adminApiKey, "***"), ...parsed },
-      );
-    } catch {
-      return errorResponse(
-        (payload || `Gateway error (${upstream.status})`) + hint,
-        "gateway_error",
-        upstream.status,
-        requestId,
-        { upstream: url.replace(config.adminApiKey, "***") },
-      );
-    }
+    return errorResponse(
+      parseIdxRagError(payload, upstream.status),
+      "gateway_error",
+      upstream.status,
+      requestId,
+    );
   }
 
   return new Response(payload, {
