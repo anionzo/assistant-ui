@@ -35,4 +35,15 @@ export const P = {
   USERS_RESET_PASSWORD: 55,
   USERS_DELETE:        56,
   USERS_FORCE_LOGOUT:  57,
+
+  // security (58)
+  SECURITY_IP_ALLOWLIST: 58,
 } as const;
+
+export const PERMISSION_CODES = {
+  SECURITY_IP_ALLOWLIST: "security.ip_allowlist",
+} as const;
+
+export function hasPermissionCode(permissions: string[], code: string): boolean {
+  return permissions.includes(code);
+}

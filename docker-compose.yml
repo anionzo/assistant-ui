@@ -95,7 +95,7 @@ services:
       NODE_ENV: development
       IDX_API_URL: http://idx-api:4000
       FRONTEND_URL: http://localhost:3002
-      ADMIN_IP_ALLOWLIST: 127.0.0.1,10.0.0.0/8,172.16.0.0/12
+
     ports:
       - "3002:3002"
     depends_on:

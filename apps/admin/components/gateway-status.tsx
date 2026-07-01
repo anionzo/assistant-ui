@@ -10,7 +10,7 @@ type Status = {
   gatewayHost?: string;
 };
 
-export function GatewayStatus() {
+export function GatewayStatus({ className }: { className?: string }) {
   const [status, setStatus] = useState<Status | null>(null);
 
   useEffect(() => {
@@ -45,26 +45,30 @@ export function GatewayStatus() {
 
   if (!status) {
     return (
-      <span className="rounded-full bg-muted px-2.5 py-1 text-xs text-muted-foreground">
-        Gateway…
-      </span>
+      <p className={cn("flex items-center gap-1.5 text-[11px] text-muted-foreground", className)}>
+        <span className="size-1.5 rounded-full bg-muted-foreground/40" />
+        Đang kiểm tra gateway…
+      </p>
     );
   }
 
   const ok = status.gateway === "ok";
   return (
-    <span
+    <p
       title={status.message ?? status.gatewayHost}
-      className={cn(
-        "rounded-full px-2.5 py-1 text-xs font-medium",
-        ok
-          ? "bg-emerald-50 text-emerald-800"
-          : "bg-destructive/10 text-destructive",
-      )}
+      className={cn("flex items-center gap-1.5 text-[11px]", className)}
     >
-      {ok
-        ? `Gateway OK · ${status.collectionCount ?? 0} collections`
-        : `Gateway error${status.message ? `: ${status.message}` : ""}`}
-    </span>
+      <span
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          ok ? "bg-emerald-500" : "bg-destructive",
+        )}
+      />
+      <span className={cn(ok ? "text-muted-foreground" : "text-destructive")}>
+        {ok
+          ? `Gateway OK · ${status.collectionCount ?? 0} collections`
+          : `Gateway lỗi${status.message ? `: ${status.message}` : ""}`}
+      </span>
+    </p>
   );
 }

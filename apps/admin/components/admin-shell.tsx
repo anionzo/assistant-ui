@@ -7,22 +7,29 @@ import {
   FileStack,
   FolderOpen,
   LayoutDashboard,
+  Lock,
   PanelRightOpen,
   Shield,
   Users,
 } from "lucide-react";
+import { AdminUserMenu } from "@/components/admin-user-menu";
 import { GatewayStatus } from "@/components/gateway-status";
+import { useAdminMe } from "@/hooks/use-admin-me";
 import { cn } from "@/lib/utils";
 
-const nav = [
+const baseNav = [
   { href: "/", label: "Collections", icon: LayoutDashboard },
   { href: "/forms", label: "Forms", icon: FileStack },
   { href: "/users", label: "Users", icon: Users },
   { href: "/roles", label: "Roles", icon: Shield },
 ] as const;
 
+const securityNav = { href: "/settings/security", label: "Security", icon: Lock } as const;
+
 function Sidebar() {
   const pathname = usePathname();
+  const { canManageIpAllowlist } = useAdminMe();
+  const nav = canManageIpAllowlist ? [...baseNav, securityNav] : baseNav;
 
   return (
     <aside className="flex w-60 flex-col border-r border-border bg-card">
@@ -63,8 +70,9 @@ function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-border px-4 py-3">
-        <GatewayStatus />
+      <div className="mt-auto border-t border-border px-3 py-3">
+        <GatewayStatus className="mb-3" />
+        <AdminUserMenu />
       </div>
     </aside>
   );
