@@ -31,19 +31,31 @@ cd <đường-dẫn-repo>\assistant-ui
 pnpm install
 ```
 
-Tạo file env:
+### Env — **một file gốc** (khuyên dùng)
+
+Chỉ sửa **`.env` ở root repo** (không sửa tay 3 file app):
 
 ```powershell
-Copy-Item apps\idx-api\.env.example apps\idx-api\.env
-Copy-Item apps\user-chat\.env.example apps\user-chat\.env.local
-Copy-Item apps\admin\.env.example apps\admin\.env.local
+Copy-Item .env.example .env    # lần đầu
+# chỉnh .env (Google OAuth, API keys, …)
+pnpm setup:env               # sinh 3 file app tự động
 ```
 
-**Bắt buộc:** `IDX_SERVICE_SECRET` **giống nhau** ở cả 3 file:
+| File gốc | Script sinh ra |
+| --- | --- |
+| `.env` (root) | `apps/idx-api/.env` |
+| | `apps/user-chat/.env.local` |
+| | `apps/admin/.env.local` |
 
-```env
-IDX_SERVICE_SECRET=dev-service-secret
+`pnpm dev:stack` **tự chạy** `setup:env` trước khi bật Docker.
+
+Kiểm tra đồng bộ secret:
+
+```powershell
+pnpm setup:env:check
 ```
+
+**Lần đầu** nếu đã có env cũ trong `apps/*`, `setup:env` sẽ **gom** vào root `.env` rồi sinh lại 3 file.
 
 Mặc định `AUTH_REQUIRED=false` — chat guest không cần login.
 
