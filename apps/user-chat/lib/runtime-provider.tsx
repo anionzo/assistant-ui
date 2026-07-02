@@ -22,8 +22,13 @@ import {
 import { VoicePlaybackProvider } from "./voice-playback-provider";
 import { useT } from "@idx/i18n";
 
+function clientUUID(): string {
+  if (typeof crypto?.randomUUID === "function") return crypto.randomUUID();
+  return "f-" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+}
+
 function createChatRuntime() {
-  const fallbackConversationId = crypto.randomUUID();
+  const fallbackConversationId = clientUUID();
   const conversationIds = new Map<string, string>();
   const activeThreadIdRef = { current: undefined as string | undefined };
 

@@ -24,7 +24,8 @@ export function VoiceFormSessionInit({
         const forms = await loadFormList("");
         onReady(forms);
         if (!initialAuth) {
-          setGuestGatewayId(crypto.randomUUID());
+          const id = typeof crypto?.randomUUID === "function" ? crypto.randomUUID() : "g-" + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+          setGuestGatewayId(id);
           return;
         }
         await bootstrapSessions();
