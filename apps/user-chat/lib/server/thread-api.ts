@@ -1,3 +1,4 @@
+import { apiErrorMessage, unwrapApiData } from "@/lib/api-payload";
 import { resolveSession } from "@/lib/auth/session-resolve";
 import type { SessionUser } from "@/lib/auth/session";
 import { getServerConfig } from "@/lib/server/config";
@@ -38,12 +39,9 @@ export async function authThreadFetch<T>(path: string, init: RequestInit, token:
     return {
       ok: false as const,
       status: response.status,
-      error:
-        (payload.error as any)?.message ??
-        (typeof payload.error === "string" ? payload.error : null) ??
-        "Auth API request failed",
+      error: apiErrorMessage(payload) ?? "Auth API request failed",
     };
   }
 
-  return { ok: true as const, data: ((payload as any).data ?? payload) as T };
+  return { ok: true as const, data: unwrapApiData<T>(payload) };
 }

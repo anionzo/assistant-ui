@@ -1,4 +1,5 @@
 import type { ExportedMessageRepository, ExportedMessageRepositoryItem } from "@assistant-ui/react";
+import { apiErrorMessage, unwrapApiData } from "@/lib/api-payload";
 
 type ThreadDto = {
   id: string;
@@ -51,14 +52,12 @@ async function fetchThreadApi<T>(path: string, init?: RequestInit): Promise<T> {
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
   if (!response.ok || payload.success === false) {
     throw new ThreadApiError(
-      (payload.error as any)?.message ??
-        (typeof payload.error === "string" ? payload.error : null) ??
-        "Thread API request failed",
+      apiErrorMessage(payload) ?? "Thread API request failed",
       response.status,
     );
   }
 
-  return ((payload as any).data ?? payload) as T;
+  return unwrapApiData<T>(payload);
 }
 
 function reviveMessageDates(repository: ThreadMessagesResponse): ExportedMessageRepository {

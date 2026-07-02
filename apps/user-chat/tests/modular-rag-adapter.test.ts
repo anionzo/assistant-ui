@@ -1,5 +1,15 @@
+import type { ChatModelRunResult } from "@assistant-ui/react";
 import { describe, expect, it, vi } from "vitest";
 import { createModularRagAdapter, extractLastUserMessage } from "../lib/modular-rag-adapter";
+
+function asAsyncGenerator(
+  result: Promise<ChatModelRunResult> | AsyncGenerator<ChatModelRunResult, void, unknown>,
+) {
+  if (!(result && typeof result === "object" && Symbol.asyncIterator in result)) {
+    throw new Error("Expected async generator from adapter.run");
+  }
+  return result as AsyncGenerator<ChatModelRunResult, void, unknown>;
+}
 
 describe("createModularRagAdapter", () => {
   it("aborts the previous thread stream when switching threads", async () => {
@@ -29,20 +39,20 @@ describe("createModularRagAdapter", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     const adapter = createModularRagAdapter("conv-1");
-    const first = adapter.run({
+    const first = asAsyncGenerator(adapter.run({
       messages: [{ id: "1", role: "user", content: [{ type: "text", text: "a" }], createdAt: new Date() }],
       abortSignal: undefined,
       unstable_threadId: "thread-a",
-    } as never);
+    } as never));
 
     const pendingFirst = first.next();
     await Promise.resolve();
 
-    const second = adapter.run({
+    const second = asAsyncGenerator(adapter.run({
       messages: [{ id: "2", role: "user", content: [{ type: "text", text: "b" }], createdAt: new Date() }],
       abortSignal: undefined,
       unstable_threadId: "thread-b",
-    } as never);
+    } as never));
     void second.next();
 
     await expect(pendingFirst).rejects.toMatchObject({ name: "AbortError" });
