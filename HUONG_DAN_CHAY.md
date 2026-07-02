@@ -61,6 +61,8 @@ Mặc định `AUTH_REQUIRED=false` — chat guest không cần login.
 
 ---
 
+> **Docker chi tiết (cài Desktop, dev vs prod, Mongo volume):** [HUONG_DAN_DOCKER.md](HUONG_DAN_DOCKER.md)
+
 ## Bước 2 — Chạy stack (Docker, khuyên dùng)
 
 ```powershell
@@ -178,11 +180,12 @@ pnpm test:platform     # thêm admin health
 ## Production (Docker)
 
 ```powershell
-# Copy và điền biến từ .env.prod.example
-docker compose -f docker-compose.prod.yml up -d --build
+pnpm setup:env:prod    # tạo .env.prod từ template
+# chỉnh .env.prod
+pnpm prod:stack
 ```
 
-Biến bắt buộc: `IDX_JWT_SECRET`, `IDX_SERVICE_SECRET`, `USER_API_KEY`, `ADMIN_API_KEY`.
+Chi tiết: [HUONG_DAN_DOCKER.md](HUONG_DAN_DOCKER.md#4-production-stack-build-image-không-mount-source).
 
 ---
 
@@ -205,7 +208,10 @@ Biến bắt buộc: `IDX_JWT_SECRET`, `IDX_SERVICE_SECRET`, `USER_API_KEY`, `AD
 
 ```powershell
 pnpm install
-# copy 3 file .env, đồng bộ IDX_SERVICE_SECRET
+Copy-Item .env.example .env
+pnpm setup:env
 pnpm dev:stack
 # :3001 chat | :3002 admin | :4000/health
 ```
+
+Docker chi tiết: [HUONG_DAN_DOCKER.md](HUONG_DAN_DOCKER.md)

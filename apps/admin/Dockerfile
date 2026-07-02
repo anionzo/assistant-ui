@@ -1,17 +1,18 @@
-# admin — Next.js with standalone output (monorepo aware)
+# admin — Next.js standalone (production)
 FROM node:22-bookworm-slim AS build
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
+ENV CI=true
 RUN corepack enable
 WORKDIR /app
 
-# 1) Lockfiles + manifests only (good caching)
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/admin/package.json ./apps/admin/
+COPY packages/i18n/package.json ./packages/i18n/
 RUN pnpm install --frozen-lockfile --filter @idx/admin...
 
-# 2) Copy sources and build
 COPY apps/admin ./apps/admin
+COPY packages/i18n ./packages/i18n
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV IDX_API_URL=http://idx-api:4000
@@ -22,13 +23,12 @@ RUN pnpm --filter @idx/admin build
 
 FROM node:22-bookworm-slim AS runner
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3002
 ENV HOSTNAME=0.0.0.0
 WORKDIR /app
 
-# Next.js standalone is self-contained
 COPY --from=build /app/apps/admin/.next/standalone ./
 COPY --from=build /app/apps/admin/.next/static ./apps/admin/.next/static
 
-EXPOSE 3000
+EXPOSE 3002
 CMD ["node", "apps/admin/server.js"]

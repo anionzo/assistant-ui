@@ -14,6 +14,8 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const rootEnv = join(root, ".env");
 const rootExample = join(root, ".env.example");
+const rootProdEnv = join(root, ".env.prod");
+const rootProdExample = join(root, ".env.prod.example");
 
 const targets = {
   idxApi: join(root, "apps/idx-api/.env"),
@@ -215,6 +217,25 @@ function distribute() {
   console.log("💡 Chỉ sửa file .env ở root repo, sau đó chạy lại: pnpm setup:env");
 }
 
-const mode = process.argv.includes("--check") ? "check" : "distribute";
+function setupProd() {
+  if (!existsSync(rootProdExample)) {
+    console.error("❌ Không tìm thấy .env.prod.example");
+    process.exit(1);
+  }
+  if (!existsSync(rootProdEnv)) {
+    copyFileSync(rootProdExample, rootProdEnv);
+    console.log("📄 Đã tạo .env.prod từ .env.prod.example — chỉnh secret production rồi chạy: pnpm prod:stack");
+    return;
+  }
+  console.log("✅ .env.prod đã tồn tại — chỉnh file rồi: pnpm prod:stack");
+}
+
+const mode = process.argv.includes("--check")
+  ? "check"
+  : process.argv.includes("--prod")
+    ? "prod"
+    : "distribute";
+
 if (mode === "check") checkSync();
+else if (mode === "prod") setupProd();
 else distribute();
