@@ -23,7 +23,7 @@
     "test:e2e": "node scripts/dev/e2e-smoke.mjs --e03",
     "test:platform": "node scripts/dev/e2e-smoke.mjs --admin",
     "typecheck": "pnpm -r --if-present typecheck",
-    "prepare": "node scripts/dev/install-git-hooks.mjs"
+    "prepare": "node scripts/dev/prepare.mjs"
   },
   "devDependencies": {
     "turbo": "2.10.1",

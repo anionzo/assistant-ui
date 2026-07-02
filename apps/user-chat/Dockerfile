@@ -11,7 +11,7 @@ COPY apps/user-chat/package.json ./apps/user-chat/
 COPY packages/modular-rag-sdk/package.json ./packages/modular-rag-sdk/
 COPY packages/voice-input/package.json ./packages/voice-input/
 COPY packages/i18n/package.json ./packages/i18n/
-RUN pnpm install --frozen-lockfile --filter @idx/user-chat...
+RUN pnpm install --frozen-lockfile --filter @idx/user-chat... --ignore-scripts
 
 COPY apps/user-chat ./apps/user-chat
 COPY packages/modular-rag-sdk ./packages/modular-rag-sdk

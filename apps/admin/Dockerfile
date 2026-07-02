@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/admin/package.json ./apps/admin/
 COPY packages/i18n/package.json ./packages/i18n/
-RUN pnpm install --frozen-lockfile --filter @idx/admin...
+RUN pnpm install --frozen-lockfile --filter @idx/admin... --ignore-scripts
 
 COPY apps/admin ./apps/admin
 COPY packages/i18n ./packages/i18n
