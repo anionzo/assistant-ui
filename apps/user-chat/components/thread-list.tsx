@@ -27,14 +27,6 @@ import {
   type FC,
 } from "react";
 
-async function initializeNewThread(aui: ReturnType<typeof useAui>) {
-  const { mainThreadId } = aui.threads().getState();
-  const item = aui.threads().item({ id: mainThreadId });
-  if (item.getState().status === "new") {
-    await item.initialize();
-  }
-}
-
 export const ThreadList: FC = () => {
   return (
     <ThreadListRoot>
@@ -171,10 +163,7 @@ export const ThreadListNew = forwardRef<
   );
 
   const handleNewThread = () => {
-    void (async () => {
-      await aui.threads().switchToNewThread();
-      await initializeNewThread(aui);
-    })();
+    void aui.threads().switchToNewThread();
   };
 
   return (
