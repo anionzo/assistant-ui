@@ -44,6 +44,15 @@ describe("gateway policy", () => {
     expect(validatePathSegments(["collections", ".."])).toBe("invalid path segment");
   });
 
+  it("allows composite ModularRAG collection ids with colons", () => {
+    const collectionId = "huit_admission_chatbot:admission-chatbot-corpus:test-probe";
+    expect(validatePathSegments(["collections", collectionId, "documents"])).toBeNull();
+    expect(resolveAdminDocumentsRoute(["collections", collectionId, "documents"], "GET")).toMatchObject({
+      upstreamPath: `/document-processing/compat/collections/${collectionId}/documents`,
+      credential: "admin",
+    });
+  });
+
   it("covers forms root and nested permission mapping", () => {
     expect(permissionForFormsRoute([], "GET")).toBe(PERMISSIONS.FORMS_READ);
     expect(permissionForFormsRoute([], "POST")).toBe(PERMISSIONS.FORMS_CREATE);
