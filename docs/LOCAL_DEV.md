@@ -58,8 +58,8 @@ Các biến khác mặc định trong `.env.example` đủ để chạy local kh
 
 ### Tạo admin đầu tiên (tuỳ chọn)
 
-1. Trong `apps/idx-api/.env`, set `ADMIN_SEED_EMAIL=admin@huit.edu.vn`
-2. Đăng ký tài khoản bằng email đó (user-chat hoặc Google OAuth)
+1. Trong `apps/idx-api/.env`, set `ADMIN_SEED_EMAIL=anionzo.ai@gmail.com` (email Google test)
+2. Đăng nhập Google bằng đúng email đó (user-chat)
 3. idx-api tự gán role `super_admin`
 
 ### Chat RAG thật (tuỳ chọn)
@@ -222,6 +222,7 @@ pnpm test:e2e
 
 ## Liên quan
 
+- [HUONG_DAN_CHAY.md](../HUONG_DAN_CHAY.md) — bản hướng dẫn đầy đủ (root, dùng cho team)
 - [REPO_LAYOUT.md](./REPO_LAYOUT.md) — giải thích thư mục repo
 - [product/deployment.md](./product/deployment.md) — Docker prod, env đầy đủ
 - [DOC_MAP.md](./DOC_MAP.md) — map docs toàn project

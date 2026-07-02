@@ -62,6 +62,8 @@ assistant-ui/
 
 ## Chạy local
 
+Hướng dẫn chi tiết: **[HUONG_DAN_CHAY.md](HUONG_DAN_CHAY.md)**
+
 ### Bước 1 — Cài dependency & env
 
 ```powershell
