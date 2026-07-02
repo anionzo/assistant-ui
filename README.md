@@ -68,13 +68,11 @@ Hướng dẫn chi tiết: **[HUONG_DAN_CHAY.md](HUONG_DAN_CHAY.md)**
 
 ```powershell
 pnpm install
-
-Copy-Item apps\idx-api\.env.example apps\idx-api\.env
-Copy-Item apps\user-chat\.env.example apps\user-chat\.env.local
-Copy-Item apps\admin\.env.example apps\admin\.env.local
+Copy-Item .env.example .env   # chỉnh .env ở root
+pnpm setup:env               # sinh 3 file app (tự sync secret)
 ```
 
-`IDX_SERVICE_SECRET` phải **giống nhau** ở cả 3 file env.
+Chỉ sửa **`.env` ở root** — không cần copy tay từng app.
 
 ### Bước 2 — Docker stack (khuyên dùng)
 

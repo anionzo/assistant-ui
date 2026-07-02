@@ -6,7 +6,9 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "dev": "pnpm --filter @idx/user-chat dev",
-    "dev:stack": "docker compose up -d --build",
+    "setup:env": "node scripts/dev/setup-env.mjs",
+    "setup:env:check": "node scripts/dev/setup-env.mjs --check",
+    "dev:stack": "node scripts/dev/setup-env.mjs && docker compose up -d --build",
     "dev:stack:down": "docker compose down",
     "dev:stack:logs": "docker compose logs -f mongo idx-api idx-chat-user idx-chat-admin",
     "dev:admin": "pnpm --filter @idx/admin dev",
