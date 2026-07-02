@@ -7,6 +7,7 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
 COPY apps/idx-api/package.json ./apps/idx-api/
+COPY apps/idx-api/scripts ./apps/idx-api/scripts
 RUN pnpm install --frozen-lockfile --filter @idx/idx-api --ignore-scripts
 
 COPY apps/idx-api ./apps/idx-api
