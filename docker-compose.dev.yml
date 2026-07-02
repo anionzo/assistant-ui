@@ -1,0 +1,37 @@
+services:
+  idx-api:
+    build:
+      context: .
+      dockerfile: apps/idx-api/Dockerfile.dev
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/idx-api/src:/app/apps/idx-api/src
+      - ./apps/idx-api/package.json:/app/apps/idx-api/package.json
+      - ./packages:/app/packages
+    healthcheck:
+      disable: true
+
+  idx-chat-user:
+    build:
+      context: .
+      dockerfile: apps/user-chat/Dockerfile.dev
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/user-chat:/app/apps/user-chat
+      - ./packages:/app/packages
+    healthcheck:
+      disable: true
+
+  idx-chat-admin:
+    build:
+      context: .
+      dockerfile: apps/admin/Dockerfile.dev
+    environment:
+      NODE_ENV: development
+    volumes:
+      - ./apps/admin:/app/apps/admin
+      - ./packages:/app/packages
+    healthcheck:
+      disable: true

@@ -55,7 +55,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required in .env}
       SELF_SERVICE_PASSWORD_RESET_ENABLED: ${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}
     ports:
-      - "3001:3000"
+      - "3003:3000"
     depends_on:
       idx-api:
         condition: service_healthy
