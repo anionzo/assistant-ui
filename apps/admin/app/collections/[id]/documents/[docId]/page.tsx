@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { RefreshCw, RotateCcw } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
+import { ChunkDetailCard } from "@/components/chunk-detail-card";
 import { CollectionNav } from "@/components/collection-nav";
+import { RecordFieldsPanel } from "@/components/record-fields-panel";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
 import { PaginationBar } from "@/components/ui/pagination";
@@ -111,24 +113,11 @@ export default function DocumentDetailPage() {
       {success ? <StatusBanner tone="success">{success}</StatusBanner> : null}
 
       {document ? (
-        <div className="mb-6 grid gap-3 rounded-xl border border-border bg-card p-4 text-sm sm:grid-cols-4">
-          <div>
-            <span className="text-muted-foreground">{t("common.status")}</span>
-            <p className="font-medium">{String(document.status ?? "—")}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">{t("collections.colChunks")}</span>
-            <p className="font-medium">{String(document.chunk_count ?? 0)}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">{t("collections.colTokens")}</span>
-            <p className="font-medium">{String(document.token_count ?? 0)}</p>
-          </div>
-          <div>
-            <span className="text-muted-foreground">{t("collections.colProgress")}</span>
-            <p className="font-medium">{Math.round((document.progress ?? 0) * 100)}%</p>
-          </div>
-        </div>
+        <RecordFieldsPanel
+          className="mb-6"
+          title={t("collections.documentDetails")}
+          record={document as Record<string, unknown>}
+        />
       ) : null}
 
       <h2 className="mb-3 text-sm font-semibold">{t("collections.chunksTitle", { count: chunks.length })}</h2>
@@ -139,14 +128,11 @@ export default function DocumentDetailPage() {
           <StatusBanner tone="info">{t("collections.chunksEmpty")}</StatusBanner>
         ) : (
           pageChunks.map((chunk, index) => (
-            <article key={String(chunk.id ?? rowOffset + index)} className="rounded-xl border border-border bg-card p-4 text-sm">
-              <p className="mb-2 text-xs text-muted-foreground">
-                {t("common.colIndex")} {rowOffset + index + 1} · {String(chunk.id ?? "")}
-              </p>
-              <p className="whitespace-pre-wrap leading-relaxed">
-                {String(chunk.content ?? chunk.text ?? "")}
-              </p>
-            </article>
+            <ChunkDetailCard
+              key={String(chunk.id ?? rowOffset + index)}
+              index={rowOffset + index + 1}
+              record={chunk as Record<string, unknown>}
+            />
           ))
         )}
       </div>
