@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { AdminShell } from "@/components/admin-shell";
+import { ChunkDetailCard } from "@/components/chunk-detail-card";
 import { CollectionNav } from "@/components/collection-nav";
 import { StatusBanner } from "@/components/status-banner";
 import { Button } from "@/components/ui/button";
@@ -100,24 +101,13 @@ export default function SearchPage() {
           <StatusBanner tone="info">{t("collections.searchHint")}</StatusBanner>
         ) : null}
         {pageHits.map((hit, index) => (
-          <article
+          <ChunkDetailCard
             key={String(hit.id ?? rowOffset + index)}
-            className="rounded-xl border border-border bg-card p-4 text-sm"
-          >
-            <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-              <span>
-                {t("common.colIndex")} {rowOffset + index + 1}
-              </span>
-              {hit.score !== undefined ? (
-                <span>
-                  {t("collections.score")} {String(hit.score)}
-                </span>
-              ) : null}
-            </div>
-            <p className="whitespace-pre-wrap leading-relaxed">
-              {String(hit.text ?? hit.content ?? JSON.stringify(hit))}
-            </p>
-          </article>
+            index={rowOffset + index + 1}
+            record={hit as Record<string, unknown>}
+            score={hit.score}
+            scoreLabel={t("collections.score")}
+          />
         ))}
       </div>
 

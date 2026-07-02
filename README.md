@@ -105,8 +105,8 @@ pnpm dev:admin                    # admin :3002
 
 ### Admin đầu tiên (tuỳ chọn)
 
-1. Set `ADMIN_SEED_EMAIL=admin@huit.edu.vn` trong `apps/idx-api/.env`
-2. Đăng ký bằng email đó (user-chat)
+1. Set `ADMIN_SEED_EMAIL=anionzo.ai@gmail.com` trong `apps/idx-api/.env` (email Google dùng test)
+2. Đăng nhập Google bằng đúng email đó (user-chat)
 3. idx-api tự gán role `super_admin`
 
 ### Chat RAG thật (tuỳ chọn)

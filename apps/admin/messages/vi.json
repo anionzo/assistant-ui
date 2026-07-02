@@ -175,6 +175,7 @@
     "publishFailed": "Publish thất bại",
     "documentError": "Lỗi: {error}",
     "documentTitle": "Tài liệu {id}",
+    "documentDetails": "Chi tiết tài liệu",
     "loadDocumentFailed": "Không tải được tài liệu",
     "reprocessStarted": "Đã bắt đầu reprocess — làm mới sau vài giây.",
     "reprocessFailed": "Reprocess thất bại",

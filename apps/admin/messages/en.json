@@ -175,6 +175,7 @@
     "publishFailed": "Publish failed",
     "documentError": "Error: {error}",
     "documentTitle": "Document {id}",
+    "documentDetails": "Document details",
     "loadDocumentFailed": "Failed to load document",
     "reprocessStarted": "Reprocess started — refresh in a few seconds.",
     "reprocessFailed": "Reprocess failed",

@@ -46,7 +46,8 @@ const USER_ROUTE_MAP: Record<UserRagRoute, { methods: string[]; upstreamPath: st
 export function isSafePathSegment(segment: string): boolean {
   if (!segment || segment === "." || segment === "..") return false;
   if (segment.includes("/") || segment.includes("\\")) return false;
-  return /^[A-Za-z0-9._-]+$/.test(segment);
+  // ModularRAG collection ids are composite: tenant:corpus:slug
+  return /^[A-Za-z0-9._:-]+$/.test(segment);
 }
 
 export function validatePathSegments(segments: string[]): string | null {
