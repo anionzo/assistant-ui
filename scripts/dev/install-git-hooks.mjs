@@ -11,6 +11,10 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const hooksDir = ".githooks";
 
+if (process.env.CI === "true" || process.env.SKIP_PREPARE === "1") {
+  process.exit(0);
+}
+
 if (!existsSync(join(root, ".git"))) {
   process.exit(0);
 }
