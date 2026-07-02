@@ -23,7 +23,7 @@ export async function requireSessionUser(): Promise<
 
 export async function authThreadFetch<T>(path: string, init: RequestInit, token: string) {
   const config = getServerConfig();
-  const response = await fetch(`${config.authApiUrl}${path}`, {
+  const response = await fetch(`${config.idxApiUrl}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",

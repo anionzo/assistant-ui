@@ -19,7 +19,7 @@ export async function authApiFetch<T>(
   init: RequestInit,
 ): Promise<AuthApiResult<T>> {
   const config = getServerConfig();
-  const response = await fetch(`${config.authApiUrl}${path}`, {
+  const response = await fetch(`${config.idxApiUrl}${path}`, {
     ...init,
     headers: {
       "Content-Type": "application/json",

@@ -8,10 +8,9 @@ export type AdminConfig = {
 export function getAdminConfig(
   env: Record<string, string | undefined> = process.env,
 ): AdminConfig {
-  const idxApiUrl =
-    env.IDX_API_URL?.replace(/\/$/, "") ??
-    env.AUTH_API_URL?.replace(/\/$/, "") ??
-    "http://localhost:4000";
+  const authApiUrl = env.IDX_API_URL?.replace(/\/$/, "");
+  if (!authApiUrl) throw new Error("IDX_API_URL is required");
+  const idxApiUrl = env.IDX_API_INTERNAL_URL?.replace(/\/$/, "") ?? authApiUrl;
   const idxServiceSecret = env.IDX_SERVICE_SECRET;
   if (!idxServiceSecret) {
     throw new Error("IDX_SERVICE_SECRET is required");
@@ -20,7 +19,7 @@ export function getAdminConfig(
   return {
     idxApiUrl,
     idxServiceSecret,
-    authApiUrl: idxApiUrl,
+    authApiUrl,
     frontendUrl: env.FRONTEND_URL ?? "http://localhost:3002",
   };
 }

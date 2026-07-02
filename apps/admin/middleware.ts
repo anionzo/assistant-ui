@@ -35,7 +35,8 @@ export async function middleware(request: NextRequest) {
         { status: 401 },
       );
     }
-    return NextResponse.redirect(new URL("/login", request.url));
+    const frontendUrl = process.env.FRONTEND_URL ?? "http://localhost:3002";
+    return NextResponse.redirect(new URL("/login", frontendUrl));
   }
 
   if (pathname.startsWith("/api/") && !isIpCheckExempt(pathname)) {

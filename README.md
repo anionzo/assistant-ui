@@ -44,8 +44,7 @@ assistant-ui/
 ├── apps/                 # user-chat, admin, idx-api
 ├── packages/             # modular-rag-sdk, voice-input, i18n (@idx/*)
 ├── scripts/dev/          # e2e smoke, mock gateway
-├── docker-compose.yml
-└── docker-compose.prod.yml
+└── docker-compose.yml
 ```
 
 | Thư mục | Mục đích |
@@ -69,15 +68,16 @@ Hướng dẫn: **[HUONG_DAN_CHAY.md](HUONG_DAN_CHAY.md)** · Docker: **[HUONG_D
 ```powershell
 pnpm install
 Copy-Item .env.example .env   # chỉnh .env ở root
-pnpm setup:env               # sinh 3 file app (tự sync secret)
+pnpm setup:env               # chỉ cần khi chạy native; sinh env cho 3 app
 ```
 
-Chỉ sửa **`.env` ở root** — không cần copy tay từng app.
+Chỉ sửa **`.env` ở root**. Docker Compose đọc trực tiếp file này; `pnpm setup:env`
+chỉ phân phối cấu hình cho chế độ chạy native.
 
 ### Bước 2 — Docker stack (khuyên dùng)
 
 ```powershell
-pnpm dev:stack      # mongo + idx-api + user-chat + admin
+pnpm stack          # mongo + idx-api + user-chat + admin
 ```
 
 | URL | Service |
@@ -88,8 +88,8 @@ pnpm dev:stack      # mongo + idx-api + user-chat + admin
 | http://localhost:27017 | MongoDB |
 
 ```powershell
-pnpm dev:stack:logs    # xem log
-pnpm dev:stack:down    # tắt stack
+pnpm prod:stack:logs   # xem log
+pnpm prod:stack:down   # tắt stack
 pnpm test:e2e          # smoke (stack đang chạy)
 ```
 
@@ -105,13 +105,13 @@ pnpm dev:admin                    # admin :3002
 
 ### Admin đầu tiên (tuỳ chọn)
 
-1. Set `ADMIN_SEED_EMAIL=anionzo.ai@gmail.com` trong `apps/idx-api/.env` (email Google dùng test)
+1. Set `ADMIN_SEED_EMAIL=anionzo.ai@gmail.com` trong root `.env` rồi chạy `pnpm setup:env` nếu chạy native
 2. Đăng nhập Google bằng đúng email đó (user-chat)
 3. idx-api tự gán role `super_admin`
 
 ### Chat RAG thật (tuỳ chọn)
 
-Trong `apps/idx-api/.env`:
+Trong root `.env` (chạy `pnpm setup:env` nếu chạy native):
 
 ```env
 MODULAR_RAG_GATEWAY_URL=http://localhost:8030
@@ -145,11 +145,10 @@ pnpm --filter @idx/admin test
 Hướng dẫn đầy đủ: **[HUONG_DAN_DOCKER.md](HUONG_DAN_DOCKER.md)** (cài Docker, prod stack, triển khai server).
 
 ```powershell
-Copy-Item .env.prod.example .env.prod   # Linux: cp .env.prod.example .env.prod
-# chỉnh .env.prod
-docker compose -f docker-compose.prod.yml up -d --build
+# dùng chính root .env đã cấu hình
+docker compose up -d --build
 ```
 
-Compose tự đọc `.env` hoặc `.env.prod`; nếu cả hai tồn tại thì `.env.prod` được ưu tiên. Máy deploy chỉ cần Docker, không cần Node.js/pnpm.
+Compose chỉ đọc root `.env`. Máy deploy chỉ cần Docker, không cần Node.js/pnpm.
 
-Biến bắt buộc: `IDX_JWT_SECRET`, `IDX_SERVICE_SECRET`, `USER_API_KEY`, `ADMIN_API_KEY` — xem `.env.prod.example`.
+Các biến dùng chung nằm trong `.env.example`; copy thành `.env` và điền giá trị thật trước khi chạy.

@@ -47,7 +47,7 @@ pnpm setup:env               # sinh 3 file app tự động
 | | `apps/user-chat/.env.local` |
 | | `apps/admin/.env.local` |
 
-`pnpm dev:stack` **tự chạy** `setup:env` trước khi bật Docker.
+Docker đọc root `.env` trực tiếp. `pnpm setup:env` chỉ dùng cho chế độ native.
 
 Kiểm tra đồng bộ secret:
 
@@ -66,7 +66,7 @@ Mặc định `AUTH_REQUIRED=false` — chat guest không cần login.
 ## Bước 2 — Chạy stack (Docker, khuyên dùng)
 
 ```powershell
-pnpm dev:stack
+pnpm stack
 ```
 
 Lần đầu build image ~ vài phút. Khi healthcheck xong:
@@ -179,13 +179,7 @@ pnpm test:platform     # thêm admin health
 
 ## Production (Docker)
 
-```powershell
-pnpm setup:env:prod    # tạo .env.prod từ template
-# chỉnh .env.prod
-pnpm prod:stack
-```
-
-Chi tiết: [HUONG_DAN_DOCKER.md](HUONG_DAN_DOCKER.md#4-production-stack-build-image-không-mount-source).
+Production dùng cùng root `.env` và `docker-compose.yml`: `pnpm stack`.
 
 ---
 

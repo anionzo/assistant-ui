@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authApiFetch } from "@/lib/auth/auth-api-client";
 import { REFRESH_COOKIE_NAME, SESSION_COOKIE_NAME } from "@/lib/auth/cookies";
+import { getServerConfig } from "@/lib/server/config";
 
 type AuthApiResponse = {
   accessToken: string;
@@ -39,7 +40,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  const redirect = NextResponse.redirect(new URL(returnTo, request.url), 302);
+  const config = getServerConfig();
+  const redirect = NextResponse.redirect(new URL(returnTo, config.frontendUrl), 302);
   redirect.cookies.set(SESSION_COOKIE_NAME, result.data.accessToken, {
     ...cookieBase,
     maxAge: Number(process.env.JWT_ACCESS_TTL ?? 3600),

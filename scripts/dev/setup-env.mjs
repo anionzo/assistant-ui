@@ -14,8 +14,6 @@ import { fileURLToPath } from "node:url";
 const root = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const rootEnv = join(root, ".env");
 const rootExample = join(root, ".env.example");
-const rootProdEnv = join(root, ".env.prod");
-const rootProdExample = join(root, ".env.prod.example");
 
 const targets = {
   idxApi: join(root, "apps/idx-api/.env"),
@@ -55,27 +53,33 @@ function val(env, key, fallback = "") {
   return env[key] ?? fallback;
 }
 
+function required(env, key) {
+  const value = env[key]?.trim();
+  if (!value) throw new Error(`${key} is required in root .env`);
+  return value;
+}
+
 function buildAppFiles(env) {
   const sharedSecret = val(env, "IDX_SERVICE_SECRET", "dev-service-secret");
   const jwtSecret = val(env, "JWT_SECRET", "dev-jwt-secret-min-32-bytes-long");
-  const idxApiUrl = val(env, "IDX_API_URL", "http://localhost:4000");
-  const userFrontend = val(env, "FRONTEND_URL", "http://localhost:3001");
-  const adminFrontend = val(env, "ADMIN_FRONTEND_URL", "http://localhost:3002");
+  const idxApiUrl = required(env, "IDX_API_URL");
+  const userFrontend = required(env, "FRONTEND_URL");
+  const adminFrontend = required(env, "ADMIN_FRONTEND_URL");
 
   const idxApi = serializeEnv([
     section("Generated from root .env — edit root .env then run: pnpm setup:env", []),
     section("idx-api", [
       ["PORT", val(env, "PORT", "4000")],
-      ["MONGODB_URI", val(env, "MONGODB_URI", "mongodb://localhost:27017/idx_api")],
+      ["MONGODB_URI", required(env, "MONGODB_URI")],
       ["JWT_SECRET", jwtSecret],
       ["JWT_ACCESS_TTL", val(env, "JWT_ACCESS_TTL", "3600")],
       ["JWT_REFRESH_TTL", val(env, "JWT_REFRESH_TTL", "604800")],
       ["GOOGLE_CLIENT_ID", val(env, "GOOGLE_CLIENT_ID")],
       ["GOOGLE_CLIENT_SECRET", val(env, "GOOGLE_CLIENT_SECRET")],
-      ["GOOGLE_CALLBACK_URL", val(env, "GOOGLE_CALLBACK_URL", "http://localhost:4000/auth/google/callback")],
+      ["GOOGLE_CALLBACK_URL", required(env, "GOOGLE_CALLBACK_URL")],
       ["FRONTEND_URL", userFrontend],
       ["ADMIN_SEED_EMAIL", val(env, "ADMIN_SEED_EMAIL")],
-      ["MODULAR_RAG_GATEWAY_URL", val(env, "MODULAR_RAG_GATEWAY_URL", "http://localhost:8030")],
+      ["MODULAR_RAG_GATEWAY_URL", required(env, "MODULAR_RAG_GATEWAY_URL")],
       ["USER_API_KEY", val(env, "USER_API_KEY")],
       ["ADMIN_API_KEY", val(env, "ADMIN_API_KEY")],
       ["IDX_SERVICE_SECRET", sharedSecret],
@@ -217,25 +221,9 @@ function distribute() {
   console.log("💡 Chỉ sửa file .env ở root repo, sau đó chạy lại: pnpm setup:env");
 }
 
-function setupProd() {
-  if (!existsSync(rootProdExample)) {
-    console.error("❌ Không tìm thấy .env.prod.example");
-    process.exit(1);
-  }
-  if (!existsSync(rootProdEnv)) {
-    copyFileSync(rootProdExample, rootProdEnv);
-    console.log("📄 Đã tạo .env.prod từ .env.prod.example — chỉnh secret production rồi chạy: pnpm prod:stack");
-    return;
-  }
-  console.log("✅ .env.prod đã tồn tại — chỉnh file rồi: pnpm prod:stack");
-}
-
 const mode = process.argv.includes("--check")
   ? "check"
-  : process.argv.includes("--prod")
-    ? "prod"
-    : "distribute";
+  : "distribute";
 
 if (mode === "check") checkSync();
-else if (mode === "prod") setupProd();
 else distribute();

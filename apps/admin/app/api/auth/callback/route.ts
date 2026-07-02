@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { authApiFetch } from "@/lib/auth/auth-api-client";
 import { REFRESH_COOKIE_NAME, SESSION_COOKIE_NAME } from "@/lib/auth/cookies";
+import { getAdminConfig } from "@/lib/server/config";
 
 type ExchangeResponse = {
   accessToken: string;
@@ -31,14 +32,17 @@ export async function GET(request: Request) {
     body: JSON.stringify({ code: exchange }),
   });
   if (!result.ok) {
-    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(result.error)}`, request.url), 302);
+    const config = getAdminConfig();
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(result.error)}`, config.frontendUrl), 302);
   }
 
   if (result.data.roles.length === 0) {
-    return NextResponse.redirect(new URL("/login?error=This+account+does+not+have+admin+access", request.url), 302);
+    const config = getAdminConfig();
+    return NextResponse.redirect(new URL("/login?error=This+account+does+not+have+admin+access", config.frontendUrl), 302);
   }
 
-  const redirect = NextResponse.redirect(new URL(returnTo, request.url), 302);
+  const config = getAdminConfig();
+  const redirect = NextResponse.redirect(new URL(returnTo, config.frontendUrl), 302);
   redirect.cookies.set(SESSION_COOKIE_NAME, result.data.accessToken, {
     ...cookieBase,
     maxAge: Number(process.env.JWT_ACCESS_TTL ?? 3600),

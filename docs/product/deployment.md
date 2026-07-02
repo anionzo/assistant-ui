@@ -16,37 +16,7 @@ Replaces `chatbot-ui` on port 3000 in E07. After E09, only `idx-api` holds Modul
 
 ## Docker Compose (root `docker-compose.yml`)
 
-Dev compose runs `mongo`, `idx-api`, `idx-chat-user`, and `idx-chat-admin`. BFF apps use `IDX_API_URL` + `IDX_SERVICE_SECRET` — not gateway URL or keys.
-
-```yaml
-mongo:
-  image: mongo:7
-  ports:
-    - "27017:27017"
-
-idx-api:
-  build:
-    context: .
-    dockerfile: apps/idx-api/Dockerfile
-  environment:
-    MONGODB_URI: mongodb://mongo:27017/idx_api
-    JWT_SECRET: ${IDX_JWT_SECRET}
-    GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-    GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
-    GOOGLE_CALLBACK_URL: http://localhost:4000/auth/google/callback
-    FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}
-    MODULAR_RAG_GATEWAY_URL: http://host.docker.internal:8030
-    USER_API_KEY: ${HUIT_USER_API_KEY}
-    ADMIN_API_KEY: ${HUIT_ADMIN_API_KEY}
-    IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET}
-  ports:
-    - "4000:4000"
-  depends_on:
-    mongo:
-      condition: service_healthy
-```
-
-See `docker-compose.prod.yml` for production cutover (`idx-chat-user`, `idx-chat-admin`, `idx-api`, `mongo`). The production compose loads optional root `.env` and `.env.prod` files in that order, validates required secrets, and does not require Node.js or pnpm on the host.
+The repository has one `docker-compose.yml` for `idx-chat-user`, `idx-chat-admin`, `idx-api`, and `mongo`. It reads root `.env`; there is no second production env or Compose file. BFF apps receive only `IDX_API_URL` + `IDX_SERVICE_SECRET`, not the ModularRAG URL or keys.
 
 ## Environment Variables
 
@@ -71,7 +41,7 @@ See `docker-compose.prod.yml` for production cutover (`idx-chat-user`, `idx-chat
 
 | Variable | Required | Example |
 | --- | --- | --- |
-| `IDX_API_URL` | yes | `http://idx-api:4000` |
+| `IDX_API_URL` | yes | `http://localhost:4000` locally; public API domain when deployed |
 | `IDX_SERVICE_SECRET` | yes | shared with idx-api |
 | `TENANT_ID` | yes | `huit_admission_chatbot` |
 | `DEFAULT_CORPUS_ID` | yes | `admission-chatbot-corpus` |
@@ -82,13 +52,15 @@ See `docker-compose.prod.yml` for production cutover (`idx-chat-user`, `idx-chat
 | `AUTH_REQUIRED` | E02/E07 | `false` dev, `true` prod |
 | `FRONTEND_URL` | E08+ | `http://localhost:3001` |
 
-`AUTH_API_URL` is accepted as a backward-compatible alias for `IDX_API_URL`.
+`IDX_API_URL` is required; the BFF does not synthesize a default endpoint or accept a legacy alias.
+
+`IDX_API_URL` is the browser-reachable auth endpoint (`http://localhost:4000` locally or the deployed API domain). Compose injects `IDX_API_INTERNAL_URL=http://idx-api:4000` only for server-to-server requests inside Docker.
 
 ### admin
 
 | Variable | Required | Example |
 | --- | --- | --- |
-| `IDX_API_URL` | yes | `http://idx-api:4000` |
+| `IDX_API_URL` | yes | `http://localhost:4000` locally; public API domain when deployed |
 | `IDX_SERVICE_SECRET` | yes | shared with idx-api |
 | `ADMIN_IP_ALLOWLIST` | prod | `10.0.0.0/8,...` |
 | `SESSION_SECRET` | yes | random |
@@ -112,7 +84,7 @@ pnpm --filter @idx/admin dev
 # http://localhost:3002
 ```
 
-Copy `.env.example` → `.env.local` per app. Gateway URL and keys belong in `apps/idx-api/.env` only.
+Copy `.env.example` → root `.env`. Docker Compose reads it directly. For native app processes, run `pnpm setup:env` to generate the app-local files. Gateway URL and keys are passed only to `idx-api` at runtime; frontend code does not consume them.
 
 ## Health Checks
 

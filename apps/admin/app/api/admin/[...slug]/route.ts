@@ -42,9 +42,9 @@ async function handle(req: Request, context: RouteContext) {
     return Response.json({ error: session.error }, { status: session.status });
   }
 
-  const { authApiUrl } = getAdminConfig();
+  const { idxApiUrl } = getAdminConfig();
   const incomingUrl = new URL(req.url);
-  const upstreamUrl = new URL(`${authApiUrl}/admin/${path}`);
+  const upstreamUrl = new URL(`${idxApiUrl}/admin/${path}`);
   incomingUrl.searchParams.forEach((value, key) => {
     upstreamUrl.searchParams.set(key, value);
   });

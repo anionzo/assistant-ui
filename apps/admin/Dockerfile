@@ -15,8 +15,6 @@ COPY apps/admin ./apps/admin
 COPY packages/i18n ./packages/i18n
 
 ENV NEXT_TELEMETRY_DISABLED=1
-ENV IDX_API_URL=http://idx-api:4000
-ENV IDX_SERVICE_SECRET=build-placeholder
 ENV BUILD_STANDALONE=1
 
 RUN pnpm --filter @idx/admin build

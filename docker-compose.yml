@@ -15,97 +15,79 @@ services:
   idx-api:
     build:
       context: .
-      dockerfile: docker/Dockerfile.dev
+      dockerfile: apps/idx-api/Dockerfile
+    restart: unless-stopped
     env_file:
-      - apps/idx-api/.env
-    command: >
-      sh -lc "export CI=true &&
-      corepack enable &&
-      pnpm install --filter @idx/idx-api &&
-      pnpm --filter @idx/idx-api db:bootstrap &&
-      pnpm --filter @idx/idx-api dev"
+      - ./.env
     environment:
+      NODE_ENV: production
       PORT: 4000
       MONGODB_URI: mongodb://mongo:27017/idx_api
-      GOOGLE_CALLBACK_URL: http://localhost:4000/auth/google/callback
-      FRONTEND_URL: http://localhost:3001
     ports:
       - "4000:4000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       mongo:
         condition: service_healthy
     healthcheck:
-      test:
-        [
-          "CMD",
-          "node",
-          "-e",
-          "fetch('http://127.0.0.1:4000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
-        ]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 6
-      start_period: 15s
-    volumes:
-      - ./:/app
-      - /app/node_modules
-      - /app/apps/idx-api/node_modules
+      start_period: 30s
 
   idx-chat-user:
     build:
       context: .
-      dockerfile: docker/Dockerfile.dev
-    env_file:
-      - apps/user-chat/.env.local
-    command: >
-      sh -lc "export CI=true &&
-      corepack enable &&
-      pnpm install --filter @idx/user-chat... &&
-      pnpm --filter @idx/user-chat dev"
+      dockerfile: apps/user-chat/Dockerfile
+    restart: unless-stopped
     environment:
-      NODE_ENV: development
-      IDX_API_URL: http://idx-api:4000
-      FRONTEND_URL: http://localhost:3001
+      NODE_ENV: production
+      IDX_API_URL: ${IDX_API_URL:?IDX_API_URL is required in .env}
+      IDX_API_INTERNAL_URL: http://idx-api:4000
+      IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required in .env}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required in .env}
+      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-3600}
+      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-604800}
+      AUTH_REQUIRED: ${AUTH_REQUIRED:-false}
+      ALLOW_GUEST_CHAT: ${ALLOW_GUEST_CHAT:-true}
+      FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required in .env}
+      SELF_SERVICE_PASSWORD_RESET_ENABLED: ${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}
     ports:
-      - "3001:3001"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "3001:3000"
     depends_on:
       idx-api:
         condition: service_healthy
-    volumes:
-      - ./:/app
-      - /app/node_modules
-      - /app/apps/user-chat/node_modules
-      - /app/packages
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
 
   idx-chat-admin:
     build:
       context: .
-      dockerfile: docker/Dockerfile.dev
-    env_file:
-      - apps/admin/.env.local
-    command: >
-      sh -lc "export CI=true &&
-      corepack enable &&
-      pnpm install --filter @idx/admin... &&
-      rm -rf apps/admin/.next &&
-      pnpm --filter @idx/admin dev"
+      dockerfile: apps/admin/Dockerfile
+    restart: unless-stopped
     environment:
-      NODE_ENV: development
-      IDX_API_URL: http://idx-api:4000
-      FRONTEND_URL: http://localhost:3002
-
+      NODE_ENV: production
+      IDX_API_URL: ${IDX_API_URL:?IDX_API_URL is required in .env}
+      IDX_API_INTERNAL_URL: http://idx-api:4000
+      IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required in .env}
+      FRONTEND_URL: ${ADMIN_FRONTEND_URL:?ADMIN_FRONTEND_URL is required in .env}
     ports:
       - "3002:3002"
     depends_on:
       idx-api:
         condition: service_healthy
-    volumes:
-      - ./:/app
-      - /app/node_modules
-      - /app/apps/admin/node_modules
-      - /app/packages
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3002/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 60s
 
 volumes:
   mongodata:

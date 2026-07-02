@@ -16,13 +16,22 @@ describe("server config", () => {
     ).toMatchObject({ showRuntimeToolbar: true });
   });
 
-  it("falls back to AUTH_API_URL when IDX_API_URL is absent", () => {
+  it("separates the public auth URL from the Docker-internal API URL", () => {
     const config = getServerConfig({
-      AUTH_API_URL: "http://auth-api:4000",
+      IDX_API_URL: "https://api.example.edu/",
+      IDX_API_INTERNAL_URL: "http://idx-api:4000/",
       IDX_SERVICE_SECRET: "secret",
     });
-    expect(config.idxApiUrl).toBe("http://auth-api:4000");
-    expect(config.authApiUrl).toBe("http://auth-api:4000");
+
+    expect(config.authApiUrl).toBe("https://api.example.edu");
+    expect(config.idxApiUrl).toBe("http://idx-api:4000");
+  });
+
+  it("fails closed when IDX_API_URL is absent", () => {
+    expect(() => getServerConfig({
+      AUTH_API_URL: "http://auth-api:4000",
+      IDX_SERVICE_SECRET: "secret",
+    })).toThrow("IDX_API_URL is required");
   });
 
   it("fails closed when the service secret is missing", () => {

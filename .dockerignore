@@ -15,7 +15,8 @@ out
 # Env files (all levels)
 .env
 **/.env
-.env.*.local
+.env.*
+**/.env.*
 
 # Test files
 **/tests/

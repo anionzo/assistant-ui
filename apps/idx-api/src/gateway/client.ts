@@ -127,12 +127,9 @@ export async function proxyToGateway(input: ProxyGatewayInput): Promise<Response
   if (!upstream.ok) {
     let message = `Gateway error (${upstream.status})`;
     try {
-      const parsed = JSON.parse(payload) as {
-        error?: string;
-        message?: string;
-        detail?: string;
-      };
-      message = parsed.error ?? parsed.message ?? parsed.detail ?? message;
+      const parsed = JSON.parse(payload) as Record<string, unknown>;
+      const raw = parsed.error ?? parsed.message ?? parsed.detail;
+      message = typeof raw === "string" ? raw : message;
     } catch {
       if (payload) message = payload.slice(0, 500);
     }

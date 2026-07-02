@@ -10,7 +10,7 @@ normal
 
 ## Product Contract
 
-An operator with an existing root `.env` or `.env.prod` can build and start the production stack on Windows or Linux with one Docker Compose command and without installing Node.js or pnpm on the host.
+An operator with a root `.env` can build and start the stack on Windows or Linux with one Docker Compose command and without installing Node.js or pnpm on the host.
 
 ## Relevant Product Docs
 
@@ -19,8 +19,8 @@ An operator with an existing root `.env` or `.env.prod` can build and start the 
 
 ## Acceptance Criteria
 
-- `docker compose -f docker-compose.prod.yml up -d --build` is the canonical production command on Windows and Linux.
-- `.env` and `.env.prod` are optional inputs; `.env.prod` takes precedence when both exist.
+- `docker compose up -d --build` is the canonical command on Windows and Linux.
+- Root `.env` is the single configuration source.
 - Startup stops before application services when JWT, service secret, or gateway keys are missing.
 - Existing internal Docker URLs, healthchecks, and persistent MongoDB volume remain unchanged.
 
@@ -46,6 +46,7 @@ No Harness policy change.
 
 ## Evidence
 
-- `docker compose -f docker-compose.prod.yml config --quiet` — passed with Docker Compose v5.1.3.
-- `docker compose -f docker-compose.prod.yml run --rm --no-deps config-check` — accepted valid values.
+- `docker compose config` — passed for the consolidated stack.
+- `docker compose build` — built all three application images successfully.
+- `docker compose up -d` — all four services became healthy; three HTTP health endpoints returned 200.
 - The same config-check command with all required values blank exited non-zero with the expected JWT validation error.
