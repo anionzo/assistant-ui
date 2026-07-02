@@ -1,3 +1,4 @@
+import { apiErrorMessage, unwrapApiData } from "@/lib/api-payload";
 import { getServerConfig } from "@/lib/server/config";
 
 type AuthApiResult<T> = {
@@ -29,14 +30,12 @@ export async function authApiFetch<T>(
 
   const payload = await parseJson(response);
   if (!response.ok) {
-    const errMsg =
-      typeof (payload as any)?.error?.message === "string" ? (payload as any).error.message :
-      typeof payload?.error === "string" ? payload.error as string :
-      "Auth API request failed";
-    return { ok: false, status: response.status, error: errMsg };
+    return {
+      ok: false,
+      status: response.status,
+      error: apiErrorMessage(payload) ?? "Auth API request failed",
+    };
   }
 
-  // Unwrap wrapper format: { success: true, data: {...} }
-  const data = (payload as any).success === true && "data" in payload ? (payload as any).data : payload;
-  return { ok: true, data: data as T };
+  return { ok: true, data: unwrapApiData<T>(payload) };
 }

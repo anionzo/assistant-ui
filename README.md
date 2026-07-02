@@ -62,7 +62,7 @@ assistant-ui/
 
 ## Chạy local
 
-Hướng dẫn chi tiết: **[HUONG_DAN_CHAY.md](HUONG_DAN_CHAY.md)**
+Hướng dẫn: **[HUONG_DAN_CHAY.md](HUONG_DAN_CHAY.md)** · Docker: **[HUONG_DAN_DOCKER.md](HUONG_DAN_DOCKER.md)**
 
 ### Bước 1 — Cài dependency & env
 
@@ -142,8 +142,12 @@ pnpm --filter @idx/admin test
 
 ## Production
 
+Hướng dẫn đầy đủ: **[HUONG_DAN_DOCKER.md](HUONG_DAN_DOCKER.md)** (cài Docker, prod stack, triển khai server).
+
 ```powershell
-docker compose -f docker-compose.prod.yml up -d --build
+pnpm setup:env:prod    # tạo .env.prod từ template
+# chỉnh .env.prod
+pnpm prod:stack
 ```
 
 Biến bắt buộc: `IDX_JWT_SECRET`, `IDX_SERVICE_SECRET`, `USER_API_KEY`, `ADMIN_API_KEY` — xem `.env.prod.example`.

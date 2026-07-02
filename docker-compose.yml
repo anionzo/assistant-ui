@@ -15,7 +15,7 @@ services:
   idx-api:
     build:
       context: .
-      dockerfile: apps/idx-api/Dockerfile
+      dockerfile: docker/Dockerfile.dev
     env_file:
       - apps/idx-api/.env
     command: >
@@ -54,7 +54,7 @@ services:
   idx-chat-user:
     build:
       context: .
-      dockerfile: apps/user-chat/Dockerfile
+      dockerfile: docker/Dockerfile.dev
     env_file:
       - apps/user-chat/.env.local
     command: >
@@ -82,7 +82,7 @@ services:
   idx-chat-admin:
     build:
       context: .
-      dockerfile: apps/admin/Dockerfile
+      dockerfile: docker/Dockerfile.dev
     env_file:
       - apps/admin/.env.local
     command: >
