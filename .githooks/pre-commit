@@ -1,0 +1,3 @@
+#!/bin/sh
+# Block commit when typecheck or build fails.
+pnpm test:build

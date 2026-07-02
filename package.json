@@ -19,9 +19,11 @@
     "dev:turbo": "turbo dev",
     "lint": "pnpm -r --if-present lint",
     "test": "pnpm -r --if-present test",
+    "test:build": "node scripts/dev/build-check.mjs",
     "test:e2e": "node scripts/dev/e2e-smoke.mjs --e03",
     "test:platform": "node scripts/dev/e2e-smoke.mjs --admin",
-    "typecheck": "pnpm -r --if-present typecheck"
+    "typecheck": "pnpm -r --if-present typecheck",
+    "prepare": "node scripts/dev/install-git-hooks.mjs"
   },
   "devDependencies": {
     "turbo": "2.10.1",
