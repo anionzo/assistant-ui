@@ -50,3 +50,4 @@ AGENTS.md
 .codex/
 .opencode/
 history/
+.env.prod
