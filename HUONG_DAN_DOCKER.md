@@ -5,7 +5,7 @@ Triển khai stack Idx Chat bằng Docker: dev (hot-reload) hoặc prod (build i
 | Mục đích | File compose | Lệnh |
 | --- | --- | --- |
 | Dev local | `docker-compose.yml` | `pnpm dev:stack` |
-| Prod / staging | `docker-compose.prod.yml` | `pnpm prod:stack` |
+| Prod / staging | `docker-compose.prod.yml` | `docker compose -f docker-compose.prod.yml up -d --build` |
 
 ---
 
@@ -152,16 +152,18 @@ Copy-Item .env.prod.example .env.prod
 
 Tuỳ chọn: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `ADMIN_SEED_EMAIL`, `IDX_FRONTEND_URL`.
 
-### Bước 2 — Build & chạy
+### Bước 2 — Build & chạy bằng một lệnh Docker
+
+```powershell
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Lệnh giống nhau trên PowerShell, Command Prompt và Linux. Compose tự nạp `.env` nếu có, sau đó nạp `.env.prod` nếu có; khi cả hai tồn tại, giá trị trong `.env.prod` được ưu tiên. Máy host không cần cài Node.js hoặc pnpm.
+
+Lệnh `pnpm prod:stack` vẫn được giữ làm alias cho máy phát triển đã có pnpm:
 
 ```powershell
 pnpm prod:stack
-```
-
-Hoặc tay:
-
-```powershell
-docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
 ```
 
 | Service | URL host | Port container |
@@ -273,13 +275,11 @@ Frontend container **không** cần biết URL ModularRAG — chỉ `IDX_API_URL
 ```bash
 git clone https://github.com/HUIT-IDX/assistant-ui.git
 cd assistant-ui
-pnpm install   # hoặc chỉ cần Docker prod — install trên host là tuỳ chọn
-
-pnpm setup:env:prod
+cp .env.prod.example .env.prod
 # Sửa .env.prod — xem bảng bên dưới
 
-pnpm prod:stack
-pnpm prod:stack:logs   # theo dõi lần build đầu (5–15 phút)
+docker compose -f docker-compose.prod.yml up -d --build
+docker compose -f docker-compose.prod.yml logs -f   # theo dõi lần build đầu (5–15 phút)
 ```
 
 ### Biến `.env.prod` quan trọng
@@ -353,9 +353,9 @@ pnpm test:e2e
 ### Prod (server)
 
 ```powershell
-pnpm setup:env:prod
+Copy-Item .env.prod.example .env.prod
 # Chỉnh .env.prod: secret, domain, Google, ModularRAG URL
-pnpm prod:stack
+docker compose -f docker-compose.prod.yml up -d --build
 docker compose -f docker-compose.prod.yml ps    # tất cả healthy
 curl http://localhost:4000/health
 curl http://localhost:3001/api/health
