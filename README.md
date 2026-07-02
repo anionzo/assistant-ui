@@ -145,9 +145,11 @@ pnpm --filter @idx/admin test
 Hướng dẫn đầy đủ: **[HUONG_DAN_DOCKER.md](HUONG_DAN_DOCKER.md)** (cài Docker, prod stack, triển khai server).
 
 ```powershell
-pnpm setup:env:prod    # tạo .env.prod từ template
+Copy-Item .env.prod.example .env.prod   # Linux: cp .env.prod.example .env.prod
 # chỉnh .env.prod
-pnpm prod:stack
+docker compose -f docker-compose.prod.yml up -d --build
 ```
+
+Compose tự đọc `.env` hoặc `.env.prod`; nếu cả hai tồn tại thì `.env.prod` được ưu tiên. Máy deploy chỉ cần Docker, không cần Node.js/pnpm.
 
 Biến bắt buộc: `IDX_JWT_SECRET`, `IDX_SERVICE_SECRET`, `USER_API_KEY`, `ADMIN_API_KEY` — xem `.env.prod.example`.

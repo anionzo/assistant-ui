@@ -5,7 +5,30 @@
 #   curl http://localhost:3001/api/health
 #   curl http://localhost:4000/health
 
+x-runtime-env: &runtime-env
+  # Both files are optional so the same command works on Windows and Linux.
+  # When both exist, .env.prod is loaded last and takes precedence.
+  - path: ./.env
+    required: false
+  - path: ./.env.prod
+    required: false
+
 services:
+  config-check:
+    image: busybox:1.37
+    env_file: *runtime-env
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        jwt="$${IDX_JWT_SECRET:-$${JWT_SECRET:-}}"
+        [ "$${#jwt}" -ge 32 ] || { echo "ERROR: IDX_JWT_SECRET or JWT_SECRET must contain at least 32 characters" >&2; exit 1; }
+        [ -n "$${IDX_SERVICE_SECRET:-}" ] || { echo "ERROR: IDX_SERVICE_SECRET is required" >&2; exit 1; }
+        [ -n "$${USER_API_KEY:-}" ] || { echo "ERROR: USER_API_KEY is required" >&2; exit 1; }
+        [ -n "$${ADMIN_API_KEY:-}" ] || { echo "ERROR: ADMIN_API_KEY is required" >&2; exit 1; }
+        echo "Deployment configuration is valid"
+    restart: "no"
+
   mongo:
     image: mongo:7
     restart: unless-stopped
@@ -22,26 +45,29 @@ services:
       context: .
       dockerfile: apps/idx-api/Dockerfile
     restart: unless-stopped
+    env_file: *runtime-env
     environment:
       PORT: 4000
       MONGODB_URI: mongodb://mongo:27017/idx_api
-      JWT_SECRET: ${IDX_JWT_SECRET:?IDX_JWT_SECRET is required}
-      JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-3600}
-      JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-604800}
-      ADMIN_SEED_EMAIL: ${ADMIN_SEED_EMAIL:-}
-      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
-      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
-      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL:-http://localhost:4000/auth/google/callback}
-      FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}
-      MODULAR_RAG_GATEWAY_URL: ${MODULAR_RAG_GATEWAY_URL:-http://host.docker.internal:8030}
-      USER_API_KEY: ${USER_API_KEY:?USER_API_KEY is required}
-      ADMIN_API_KEY: ${ADMIN_API_KEY:?ADMIN_API_KEY is required}
-      IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required}
       NODE_ENV: production
-      SELF_SERVICE_PASSWORD_RESET_ENABLED: ${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        export JWT_SECRET="$${IDX_JWT_SECRET:-$${JWT_SECRET:-}}"
+        export JWT_ACCESS_TTL="$${JWT_ACCESS_TTL:-3600}"
+        export JWT_REFRESH_TTL="$${JWT_REFRESH_TTL:-604800}"
+        export GOOGLE_CALLBACK_URL="$${GOOGLE_CALLBACK_URL:-http://localhost:4000/auth/google/callback}"
+        export FRONTEND_URL="$${IDX_FRONTEND_URL:-$${FRONTEND_URL:-http://localhost:3001}}"
+        export MODULAR_RAG_GATEWAY_URL="$${MODULAR_RAG_GATEWAY_URL:-http://host.docker.internal:8030}"
+        export SELF_SERVICE_PASSWORD_RESET_ENABLED="$${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}"
+        node apps/idx-api/dist/db/bootstrap.js
+        exec node apps/idx-api/dist/index.js
     ports:
       - "4000:4000"
     depends_on:
+      config-check:
+        condition: service_completed_successfully
       mongo:
         condition: service_healthy
     extra_hosts:
@@ -64,14 +90,19 @@ services:
       context: .
       dockerfile: apps/user-chat/Dockerfile
     restart: unless-stopped
+    env_file: *runtime-env
     environment:
       IDX_API_URL: http://idx-api:4000
-      IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required}
-      JWT_SECRET: ${IDX_JWT_SECRET:?IDX_JWT_SECRET is required}
       AUTH_REQUIRED: "true"
-      FRONTEND_URL: ${IDX_FRONTEND_URL:-http://localhost:3001}
       NODE_ENV: production
-      SELF_SERVICE_PASSWORD_RESET_ENABLED: ${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        export JWT_SECRET="$${IDX_JWT_SECRET:-$${JWT_SECRET:-}}"
+        export FRONTEND_URL="$${IDX_FRONTEND_URL:-$${FRONTEND_URL:-http://localhost:3001}}"
+        export SELF_SERVICE_PASSWORD_RESET_ENABLED="$${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}"
+        exec node apps/user-chat/server.js
     ports:
       - "3001:3000"
     depends_on:
@@ -95,11 +126,16 @@ services:
       context: .
       dockerfile: apps/admin/Dockerfile
     restart: unless-stopped
+    env_file: *runtime-env
     environment:
       IDX_API_URL: http://idx-api:4000
-      IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required}
-      ADMIN_IP_ALLOWLIST: ${ADMIN_IP_ALLOWLIST:-127.0.0.1,10.0.0.0/8}
-      FRONTEND_URL: ${IDX_ADMIN_FRONTEND_URL:-http://localhost:3002}
+    command:
+      - /bin/sh
+      - -ec
+      - |
+        export ADMIN_IP_ALLOWLIST="$${ADMIN_IP_ALLOWLIST:-127.0.0.1,10.0.0.0/8}"
+        export FRONTEND_URL="$${IDX_ADMIN_FRONTEND_URL:-$${ADMIN_FRONTEND_URL:-$${FRONTEND_URL:-http://localhost:3002}}}"
+        exec node apps/admin/server.js
     ports:
       - "3002:3002"
     depends_on:
