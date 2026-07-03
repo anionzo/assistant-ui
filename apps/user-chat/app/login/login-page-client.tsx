@@ -4,10 +4,13 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { useBranding } from "@/hooks/use-branding";
 import { useT } from "@idx/i18n";
+import { PublicLegalFooter } from "@/components/public/public-site-shell";
+import { useLegalDisplay } from "@/hooks/use-legal-display";
 import { LoginForm } from "./login-form";
 
 export function LoginPageClient({ showForgotPassword }: { showForgotPassword: boolean }) {
   const { branding } = useBranding();
+  const legalDisplay = useLegalDisplay();
   const t = useT();
 
   return (
@@ -28,6 +31,9 @@ export function LoginPageClient({ showForgotPassword }: { showForgotPassword: bo
           {t("auth.noAccount")}{" "}
           <Link href="/register" className="text-primary underline">{t("auth.register")}</Link>
         </p>
+        <div className="mt-6">
+          <PublicLegalFooter enabled={legalDisplay.footerOnAuthPages} />
+        </div>
       </div>
     </main>
   );

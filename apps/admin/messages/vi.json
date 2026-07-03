@@ -53,6 +53,7 @@
     "roles": "Vai trò",
     "security": "Bảo mật IP",
     "branding": "Thương hiệu",
+    "legal": "Legal & Trang public",
     "chatRuntime": "Chat Runtime",
     "quickBrand": "Brand",
     "quickRuntime": "Runtime",
@@ -115,6 +116,37 @@
     "saveBranding": "Lưu branding",
     "saved": "Đã lưu branding cho admin và user chat.",
     "loadFailed": "Không tải được branding"
+  },
+  "legal": {
+    "title": "Legal & Trang public",
+    "subtitle": "Chỉnh privacy, terms và nội dung trang chủ theo từng locale.",
+    "loadFailed": "Không tải được cấu hình legal",
+    "saveFailed": "Lưu thất bại",
+    "saved": "Đã lưu.",
+    "noAccess": "Bạn không có quyền xem cấu hình legal.",
+    "useCustom": "Dùng nội dung tùy chỉnh (tắt = dùng mặc định hệ thống)",
+    "addSection": "Thêm mục",
+    "tab": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "home": "Trang chủ",
+      "display": "Hiển thị"
+    },
+    "doc": {
+      "title": "Tiêu đề",
+      "updated": "Nhãn cập nhật",
+      "intro": "Mở đầu"
+    },
+    "home": {
+      "eyebrow": "Eyebrow",
+      "description": "Mô tả"
+    },
+    "display": {
+      "footerPublic": "Footer trên trang public (/, /privacy, /terms)",
+      "footerAuth": "Footer trên login/register",
+      "homeFeatures": "Khối tính năng trang chủ",
+      "homeRegister": "Nút đăng ký trang chủ"
+    }
   },
   "runtime": {
     "title": "Chat Runtime",

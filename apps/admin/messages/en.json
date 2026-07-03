@@ -53,6 +53,7 @@
     "roles": "Roles",
     "security": "Security",
     "branding": "Branding",
+    "legal": "Legal & Public pages",
     "chatRuntime": "Chat Runtime",
     "quickBrand": "Brand",
     "quickRuntime": "Runtime",
@@ -115,6 +116,37 @@
     "saveBranding": "Save branding",
     "saved": "Branding saved for admin and user chat.",
     "loadFailed": "Could not load branding"
+  },
+  "legal": {
+    "title": "Legal & Public pages",
+    "subtitle": "Edit privacy, terms, and home page content per locale.",
+    "loadFailed": "Could not load legal settings",
+    "saveFailed": "Save failed",
+    "saved": "Saved.",
+    "noAccess": "You do not have permission to view legal settings.",
+    "useCustom": "Use custom content (off = system default)",
+    "addSection": "Add section",
+    "tab": {
+      "privacy": "Privacy",
+      "terms": "Terms",
+      "home": "Home",
+      "display": "Display"
+    },
+    "doc": {
+      "title": "Title",
+      "updated": "Updated label",
+      "intro": "Introduction"
+    },
+    "home": {
+      "eyebrow": "Eyebrow",
+      "description": "Description"
+    },
+    "display": {
+      "footerPublic": "Footer on public pages (/, /privacy, /terms)",
+      "footerAuth": "Footer on login/register",
+      "homeFeatures": "Home feature cards",
+      "homeRegister": "Home register button"
+    }
   },
   "runtime": {
     "title": "Chat Runtime",

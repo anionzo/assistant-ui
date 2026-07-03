@@ -44,6 +44,8 @@ export const PERMISSIONS = {
   SETTINGS_BRANDING_READ: "settings.branding.read",
   SETTINGS_RUNTIME:       "settings.runtime",
   SETTINGS_RUNTIME_READ:  "settings.runtime.read",
+  SETTINGS_LEGAL:         "settings.legal",
+  SETTINGS_LEGAL_READ:    "settings.legal.read",
 } as const;
 
 export type PermissionCode = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

@@ -211,5 +211,60 @@
       "generateFailed": "Không tạo được tờ khai: {error}",
       "micFailed": "Không truy cập được micro: {error}"
     }
+  },
+  "home": {
+    "eyebrow": "Nền tảng trợ lý AI",
+    "description": "Ứng dụng hỗ trợ trò chuyện với trợ lý AI, nhập liệu và một số tính năng tương tác khác tùy cấu hình triển khai. Đăng nhập để đồng bộ dữ liệu giữa các phiên (nếu được bật).",
+    "ctaChat": "Bắt đầu trò chuyện",
+    "ctaRegister": "Tạo tài khoản",
+    "featureChatTitle": "Trò chuyện",
+    "featureChatBody": "Trao đổi với trợ lý AI theo ngữ cảnh được cấu hình. Kết quả có thể thay đổi và chỉ mang tính tham khảo.",
+    "featureVoiceTitle": "Nhập liệu tương tác",
+    "featureVoiceBody": "Hỗ trợ nhập thông tin qua giao diện và/hoặc giọng nói, tùy phiên bản và cấu hình đang sử dụng.",
+    "featureSecureTitle": "Chính sách & điều khoản",
+    "featureSecureBody": "Vui lòng đọc Chính sách bảo mật và Điều khoản sử dụng trước khi tiếp tục. Nội dung có thể được cập nhật theo từng đợt triển khai."
+  },
+  "legal": {
+    "privacyLink": "Chính sách bảo mật",
+    "termsLink": "Điều khoản sử dụng",
+    "copyright": "© {year} {appName}. Bảo lưu mọi quyền.",
+    "privacy": {
+      "title": "Chính sách bảo mật",
+      "updated": "Cập nhật lần cuối: 3 tháng 7, 2026",
+      "intro": "Tài liệu này mô tả, ở mức tổng quát, cách dịch vụ (\"ứng dụng\", \"chúng tôi\") có thể thu thập và xử lý thông tin khi bạn sử dụng. Chi tiết thực tế có thể khác tùy đơn vị triển khai và cấu hình từng phiên bản.",
+      "s1Title": "1. Phạm vi",
+      "s1Body": "Áp dụng cho người dùng truy cập website/ứng dụng, bao gồm các tính năng như trò chuyện, biểu mẫu, đăng ký và đăng nhập (email/mật khẩu hoặc nhà cung cấp bên thứ ba như Google, nếu được bật).",
+      "s2Title": "2. Thông tin có thể thu thập",
+      "s2Body": "Tùy cách bạn sử dụng, chúng tôi có thể xử lý:\n• Thông tin tài khoản (ví dụ: email, tên hiển thị, ảnh đại diện).\n• Nội dung bạn gửi qua ứng dụng (tin nhắn, dữ liệu biểu mẫu, tệp đính kèm nếu có).\n• Dữ liệu kỹ thuật (cookie phiên, nhật ký, địa chỉ IP, v.v.) phục vụ vận hành và bảo mật cơ bản.\n• Dữ liệu từ đăng nhập bên thứ ba trong phạm vi bạn cho phép.",
+      "s3Title": "3. Mục đích sử dụng",
+      "s3Body": "Thông tin có thể được dùng để:\n• Vận hành, duy trì và cải thiện dịch vụ.\n• Xác thực phiên/tài khoản và hạn chế lạm dụng.\n• Lưu trữ dữ liệu theo tài khoản (nếu tính năng được bật).\n• Đáp ứng yêu cầu pháp lý áp dụng (nếu có).",
+      "s4Title": "4. Đăng nhập bên thứ ba",
+      "s4Body": "Nếu bạn dùng đăng nhập qua bên thứ ba (ví dụ Google), việc xác thực do bên đó thực hiện. Chúng tôi không lưu mật khẩu của nhà cung cấp đó. Bạn có thể thu hồi quyền trong cài đặt tài khoản tương ứng.",
+      "s5Title": "5. Lưu trữ",
+      "s5Body": "Dữ liệu có thể được lưu trên hạ tầng do đơn vị vận hành/triển khai quản lý. Thời gian lưu trữ và biện pháp bảo vệ có thể khác nhau giữa các môi trường. Chúng tôi không cam kết mức độ bảo mật tuyệt đối.",
+      "s6Title": "6. Quyền của người dùng",
+      "s6Body": "Trong phạm vi hệ thống hỗ trợ, bạn có thể:\n• Cập nhật một số thông tin hồ sơ hoặc mật khẩu (nếu có).\n• Yêu cầu xóa tài khoản qua chức năng được cung cấp (nếu có).\n• Liên hệ quản trị viên của đợt triển khai bạn đang sử dụng.",
+      "s7Title": "7. Liên hệ",
+      "s7Body": "Thắc mắc về quyền riêng tư: vui lòng liên hệ quản trị viên hoặc đơn vị triển khai dịch vụ phiên bản bạn đang truy cập."
+    },
+    "terms": {
+      "title": "Điều khoản sử dụng",
+      "updated": "Cập nhật lần cuối: 3 tháng 7, 2026",
+      "intro": "Bằng việc truy cập hoặc sử dụng dịch vụ, bạn được xem là đã đọc và chấp nhận các điều khoản dưới đây. Nếu không đồng ý, vui lòng ngừng sử dụng.",
+      "s1Title": "1. Dịch vụ",
+      "s1Body": "Ứng dụng cung cấp các tính năng trợ lý AI và công cụ tương tác liên quan, tùy cấu hình từng lần triển khai. Nội dung do AI tạo ra chỉ mang tính tham khảo; người dùng tự chịu trách nhiệm kiểm tra trước khi sử dụng cho bất kỳ mục đích nào.",
+      "s2Title": "2. Tài khoản",
+      "s2Body": "Nếu sử dụng tài khoản, bạn chịu trách nhiệm bảo mật thông tin đăng nhập và mọi hoạt động phát sinh từ tài khoản đó, trong phạm vi cho phép của pháp luật.",
+      "s3Title": "3. Hành vi bị hạn chế",
+      "s3Body": "Bạn không nên:\n• Sử dụng dịch vụ trái quy định pháp luật hiện hành.\n• Gây gián đoạn, can thiệp trái phép hoặc lạm dụng hệ thống.\n• Khai thác dịch vụ cho mục đích gây hại hoặc spam.",
+      "s4Title": "4. Nội dung",
+      "s4Body": "Quyền sở hữu trí tuệ đối với giao diện, thương hiệu và tài liệu liên quan thuộc về các chủ thể tương ứng. Bạn chịu trách nhiệm về nội dung do mình gửi; đồng thời cho phép chúng tôi xử lý nội dung đó trong phạm vi cần thiết để vận hành dịch vụ.",
+      "s5Title": "5. Miễn trừ trách nhiệm",
+      "s5Body": "Dịch vụ được cung cấp \"nguyên trạng\" và \"theo khả dụng\". Chúng tôi không bảo đảm tính chính xác, đầy đủ, liên tục hoặc phù hợp với mọi mục đích cụ thể. Mọi quyết định dựa trên kết quả từ ứng dụng là do người dùng tự chịu trách nhiệm.",
+      "s6Title": "6. Thay đổi",
+      "s6Body": "Chúng tôi có thể sửa đổi dịch vụ hoặc điều khoản bất cứ lúc nào. Phiên bản cập nhật có hiệu lực khi đăng tại trang này. Việc tiếp tục sử dụng có thể được hiểu là chấp nhận thay đổi.",
+      "s7Title": "7. Liên hệ",
+      "s7Body": "Câu hỏi về điều khoản: liên hệ quản trị viên hoặc đơn vị triển khai phiên bản dịch vụ bạn đang sử dụng."
+    }
   }
 }

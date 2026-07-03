@@ -49,6 +49,15 @@ export function useAdminMe() {
         PERMISSION_CODES.SETTINGS_RUNTIME,
       ])
     : false;
+  const canManageLegal = me
+    ? hasPermissionCode(me.permissions, PERMISSION_CODES.SETTINGS_LEGAL)
+    : false;
+  const canReadLegal = me
+    ? hasAnyPermissionCode(me.permissions, [
+        PERMISSION_CODES.SETTINGS_LEGAL_READ,
+        PERMISSION_CODES.SETTINGS_LEGAL,
+      ])
+    : false;
 
   return {
     me,
@@ -58,5 +67,7 @@ export function useAdminMe() {
     canReadBranding,
     canManageRuntime,
     canReadRuntime,
+    canManageLegal,
+    canReadLegal,
   };
 }

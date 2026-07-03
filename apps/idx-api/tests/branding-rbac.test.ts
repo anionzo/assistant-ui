@@ -38,4 +38,20 @@ describe("settings RBAC seed", () => {
     expect(PERMISSIONS.SETTINGS_RUNTIME).toBe("settings.runtime");
     expect(PERMISSIONS.SETTINGS_RUNTIME_READ).toBe("settings.runtime.read");
   });
+
+  it("assigns legal permissions to branding_admin and super_admin", () => {
+    const pairs = buildRolePermissionPairs();
+    const has = (roleId: number, permissionId: number) =>
+      pairs.some((pair) => pair.roleId === roleId && pair.permissionId === permissionId);
+
+    expect(has(ROLES.BRANDING_ADMIN, 63)).toBe(true);
+    expect(has(ROLES.BRANDING_ADMIN, 64)).toBe(true);
+    expect(has(ROLES.SUPER_ADMIN, 63)).toBe(true);
+    expect(has(ROLES.ADMIN, 63)).toBe(false);
+  });
+
+  it("defines read and manage legal permission codes", () => {
+    expect(PERMISSIONS.SETTINGS_LEGAL).toBe("settings.legal");
+    expect(PERMISSIONS.SETTINGS_LEGAL_READ).toBe("settings.legal.read");
+  });
 });

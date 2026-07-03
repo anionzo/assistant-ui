@@ -4,10 +4,13 @@ import Link from "next/link";
 import { BrandLogo } from "@/components/brand-logo";
 import { useBranding } from "@/hooks/use-branding";
 import { useT } from "@idx/i18n";
+import { PublicLegalFooter } from "@/components/public/public-site-shell";
+import { useLegalDisplay } from "@/hooks/use-legal-display";
 import { RegisterForm } from "./register-form";
 
 export default function RegisterPage() {
   const { branding } = useBranding();
+  const legalDisplay = useLegalDisplay();
   const t = useT();
 
   return (
@@ -28,6 +31,9 @@ export default function RegisterPage() {
           {t("auth.hasAccount")}{" "}
           <Link href="/login" className="text-primary underline">{t("auth.login")}</Link>
         </p>
+        <div className="mt-6">
+          <PublicLegalFooter enabled={legalDisplay.footerOnAuthPages} />
+        </div>
       </div>
     </main>
   );

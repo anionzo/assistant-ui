@@ -7,6 +7,7 @@ import {
   updateAdminIpAllowlistSettings,
 } from "../services/admin-ip-allowlist-config";
 import { getBrandingSettings, updateBrandingSettings } from "../services/branding-config";
+import { getLegalSettings, updateLegalSettings } from "../services/legal-config";
 import { getChatRuntimeSettings, updateChatRuntimeSettings } from "../services/chat-runtime-config";
 import { PERMISSIONS } from "../services/permissions";
 import { hashPassword } from "../services/password";
@@ -295,6 +296,48 @@ export function createAdminRoutes(store: AuthStore = getAuthStore()) {
       if (message === "invalid_admin_tagline") return badRequest(c, "invalid admin tagline");
       if (message === "invalid_user_app_name") return badRequest(c, "invalid user app name");
       if (message === "invalid_user_tagline") return badRequest(c, "invalid user tagline");
+      throw error;
+    }
+  });
+
+  // GET /admin/settings/legal
+  adminRoutes.get(
+    "/settings/legal",
+    requireAnyPermission([PERMISSIONS.SETTINGS_LEGAL_READ, PERMISSIONS.SETTINGS_LEGAL]),
+    async (c) => {
+      const legal = await getLegalSettings();
+      return ok(c, { legal });
+    },
+  );
+
+  // PATCH /admin/settings/legal
+  adminRoutes.patch("/settings/legal", requirePermission(PERMISSIONS.SETTINGS_LEGAL), async (c) => {
+    const auth = c.get("auth");
+    const body = await c.req.json<{
+      display?: {
+        footerOnPublicPages?: boolean;
+        footerOnAuthPages?: boolean;
+        showHomeFeatures?: boolean;
+        showHomeCtaRegister?: boolean;
+      };
+      locale?: "vi" | "en";
+      document?: "privacy" | "terms" | "home";
+      patch?: Record<string, unknown>;
+    }>().catch(() => null);
+    if (!body) return badRequest(c, "invalid body");
+
+    try {
+      const legal = await updateLegalSettings({
+        display: body.display,
+        locale: body.locale,
+        document: body.document,
+        patch: body.patch,
+        updatedBy: auth.session.id,
+      });
+      return ok(c, { legal });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "update failed";
+      if (message.startsWith("invalid_")) return badRequest(c, message.replaceAll("_", " "));
       throw error;
     }
   });

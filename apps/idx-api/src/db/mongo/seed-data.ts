@@ -42,6 +42,8 @@ export const SEED_PERMISSIONS = [
   { _id: 60, code: "settings.branding.read", name: "Read branding", description: "View logo and branding settings without editing", resource: "settings", action: "read", createdAt: now() },
   { _id: 61, code: "settings.runtime", name: "Manage chat runtime", description: "Update tenant, corpus, and pipeline defaults for user chat", resource: "settings", action: "runtime", createdAt: now() },
   { _id: 62, code: "settings.runtime.read", name: "Read chat runtime", description: "View chat runtime settings without editing", resource: "settings", action: "read", createdAt: now() },
+  { _id: 63, code: "settings.legal", name: "Manage legal content", description: "Update privacy policy, terms, and public page content", resource: "settings", action: "legal", createdAt: now() },
+  { _id: 64, code: "settings.legal.read", name: "Read legal content", description: "View legal and public page settings without editing", resource: "settings", action: "read", createdAt: now() },
 ] as const;
 
 const ALL_PERMISSION_IDS = SEED_PERMISSIONS.map((p) => p._id);
@@ -74,6 +76,8 @@ export function buildRolePermissionPairs(): Array<{ roleId: number; permissionId
   pairs.push({ roleId: ROLES.BRANDING_ADMIN, permissionId: 60 });
   pairs.push({ roleId: ROLES.BRANDING_ADMIN, permissionId: 61 });
   pairs.push({ roleId: ROLES.BRANDING_ADMIN, permissionId: 62 });
+  pairs.push({ roleId: ROLES.BRANDING_ADMIN, permissionId: 63 });
+  pairs.push({ roleId: ROLES.BRANDING_ADMIN, permissionId: 64 });
 
   for (const permission of SEED_PERMISSIONS) {
     if ((ADMIN_RESOURCES as readonly string[]).includes(permission.resource)) {

@@ -31,6 +31,7 @@ WORKDIR /app
 
 COPY --from=build /app/apps/user-chat/.next/standalone ./
 COPY --from=build /app/apps/user-chat/.next/static ./apps/user-chat/.next/static
+COPY --from=build /app/apps/user-chat/public ./apps/user-chat/public
 
 EXPOSE 3000
 CMD ["node", "apps/user-chat/server.js"]

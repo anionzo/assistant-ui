@@ -11,7 +11,11 @@ const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "Idx Chat",
-  description: "Trợ lý tuyển sinh HUIT",
+  description: "Nền tảng trợ lý AI",
+  icons: {
+    icon: [{ url: "/app-logo.png", sizes: "120x120", type: "image/png" }],
+    apple: [{ url: "/app-logo.png", sizes: "120x120", type: "image/png" }],
+  },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

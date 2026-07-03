@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Lock,
   SlidersHorizontal,
+  FileText,
   PanelRightOpen,
   Shield,
   Users,
@@ -32,6 +33,7 @@ const baseNav = [
 const securityNav = { href: "/settings/security", labelKey: "nav.security", icon: Lock } as const;
 const brandingNav = { href: "/settings/branding", labelKey: "nav.branding", icon: ImageIcon } as const;
 const runtimeNav = { href: "/settings/runtime", labelKey: "nav.chatRuntime", icon: SlidersHorizontal } as const;
+const legalNav = { href: "/settings/legal", labelKey: "nav.legal", icon: FileText } as const;
 
 /** Main content width — centered; wide enough for data tables without full-bleed layout. */
 export const ADMIN_CONTENT_CLASS = "mx-auto w-full max-w-[1400px]";
@@ -39,11 +41,12 @@ export const ADMIN_CONTENT_CLASS = "mx-auto w-full max-w-[1400px]";
 function Sidebar() {
   const pathname = usePathname();
   const t = useT();
-  const { canManageIpAllowlist, canReadBranding, canReadRuntime } = useAdminMe();
+  const { canManageIpAllowlist, canReadBranding, canReadRuntime, canReadLegal } = useAdminMe();
   const { branding } = useBranding();
   const settingsNav = [
     ...(canReadBranding ? [brandingNav] : []),
     ...(canReadRuntime ? [runtimeNav] : []),
+    ...(canReadLegal ? [legalNav] : []),
     ...(canManageIpAllowlist ? [securityNav] : []),
   ];
   const nav = [...baseNav, ...settingsNav];

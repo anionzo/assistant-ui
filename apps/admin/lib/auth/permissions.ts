@@ -44,6 +44,8 @@ export const P = {
   SETTINGS_BRANDING_READ: 60,
   SETTINGS_RUNTIME:       61,
   SETTINGS_RUNTIME_READ:  62,
+  SETTINGS_LEGAL:         63,
+  SETTINGS_LEGAL_READ:    64,
 } as const;
 
 export const PERMISSION_CODES = {
@@ -52,6 +54,8 @@ export const PERMISSION_CODES = {
   SETTINGS_BRANDING_READ: "settings.branding.read",
   SETTINGS_RUNTIME: "settings.runtime",
   SETTINGS_RUNTIME_READ: "settings.runtime.read",
+  SETTINGS_LEGAL: "settings.legal",
+  SETTINGS_LEGAL_READ: "settings.legal.read",
 } as const;
 
 export function hasPermissionCode(permissions: string[], code: string): boolean {

@@ -211,5 +211,60 @@
       "generateFailed": "Could not generate form: {error}",
       "micFailed": "Could not access microphone: {error}"
     }
+  },
+  "home": {
+    "eyebrow": "AI assistant platform",
+    "description": "An application for AI-assisted chat, data entry, and other interactive features depending on deployment configuration. Sign in to sync data across sessions when that feature is enabled.",
+    "ctaChat": "Start chatting",
+    "ctaRegister": "Create account",
+    "featureChatTitle": "Chat",
+    "featureChatBody": "Interact with an AI assistant in a configured context. Results may vary and are provided for reference only.",
+    "featureVoiceTitle": "Interactive input",
+    "featureVoiceBody": "Supports entering information through the UI and/or voice, depending on the version and configuration in use.",
+    "featureSecureTitle": "Policies & terms",
+    "featureSecureBody": "Please read the Privacy Policy and Terms of Service before continuing. Content may be updated per deployment."
+  },
+  "legal": {
+    "privacyLink": "Privacy Policy",
+    "termsLink": "Terms of Service",
+    "copyright": "© {year} {appName}. All rights reserved.",
+    "privacy": {
+      "title": "Privacy Policy",
+      "updated": "Last updated: July 3, 2026",
+      "intro": "This document describes, in general terms, how the service (\"the app\", \"we\") may collect and process information when you use it. Actual practices may differ by deployer and configuration.",
+      "s1Title": "1. Scope",
+      "s1Body": "Applies to users of the website/application, including features such as chat, forms, registration, and sign-in (email/password or third-party providers such as Google, when enabled).",
+      "s2Title": "2. Information that may be collected",
+      "s2Body": "Depending on how you use the service, we may process:\n• Account information (e.g. email, display name, profile photo).\n• Content you submit (messages, form data, attachments if any).\n• Technical data (session cookies, logs, IP address, etc.) for basic operations and security.\n• Third-party sign-in data within the scope you authorize.",
+      "s3Title": "3. Purposes of use",
+      "s3Body": "Information may be used to:\n• Operate, maintain, and improve the service.\n• Authenticate sessions/accounts and limit abuse.\n• Store data per account (when that feature is enabled).\n• Meet applicable legal requirements (if any).",
+      "s4Title": "4. Third-party sign-in",
+      "s4Body": "If you use third-party sign-in (e.g. Google), authentication is handled by that provider. We do not store that provider's password. You may revoke access in the provider's account settings.",
+      "s5Title": "5. Storage",
+      "s5Body": "Data may be stored on infrastructure managed by the operator/deployer. Retention periods and safeguards may vary by environment. We do not guarantee absolute security.",
+      "s6Title": "6. User rights",
+      "s6Body": "Where supported by the system, you may:\n• Update certain profile fields or passwords (if available).\n• Request account deletion through provided features (if available).\n• Contact the administrators of the deployment you are using.",
+      "s7Title": "7. Contact",
+      "s7Body": "Privacy questions: contact the administrator or deployer of the service instance you are accessing."
+    },
+    "terms": {
+      "title": "Terms of Service",
+      "updated": "Last updated: July 3, 2026",
+      "intro": "By accessing or using the service, you are deemed to have read and accepted these terms. If you do not agree, please stop using the service.",
+      "s1Title": "1. The service",
+      "s1Body": "The application provides AI assistant and related interactive features, depending on each deployment's configuration. AI-generated content is for reference only; users are responsible for verifying outcomes before relying on them for any purpose.",
+      "s2Title": "2. Accounts",
+      "s2Body": "If you use an account, you are responsible for safeguarding credentials and for activities under that account, to the extent permitted by law.",
+      "s3Title": "3. Restricted conduct",
+      "s3Body": "You should not:\n• Use the service in violation of applicable law.\n• Disrupt, interfere with, or abuse the system.\n• Exploit the service for harmful or spam purposes.",
+      "s4Title": "4. Content",
+      "s4Body": "Intellectual property in the interface, branding, and related materials belongs to the respective rights holders. You are responsible for content you submit and grant us permission to process it as needed to operate the service.",
+      "s5Title": "5. Disclaimer",
+      "s5Body": "The service is provided \"as is\" and \"as available\". We make no warranties regarding accuracy, completeness, availability, or fitness for any particular purpose. Decisions based on app output are solely the user's responsibility.",
+      "s6Title": "6. Changes",
+      "s6Body": "We may modify the service or these terms at any time. Updates take effect when posted on this page. Continued use may constitute acceptance of changes.",
+      "s7Title": "7. Contact",
+      "s7Body": "Questions about these terms: contact the administrator or deployer of the service instance you are using."
+    }
   }
 }

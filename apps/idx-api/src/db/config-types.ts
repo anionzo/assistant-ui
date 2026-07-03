@@ -1,9 +1,12 @@
+import { buildDefaultLegalConfig } from "../services/legal-defaults";
+
 export const DEFAULT_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";
 
 export const CONFIG_KEYS = {
   adminIpAllowlist: "admin.ip_allowlist",
   systemBranding: "system.branding",
   systemChatRuntime: "system.chat_runtime",
+  systemLegal: "system.legal",
 } as const;
 
 export type ConfigKey = (typeof CONFIG_KEYS)[keyof typeof CONFIG_KEYS];
@@ -45,10 +48,58 @@ export type ChatRuntimeConfigValue = {
   defaultTopK: number;
 };
 
+export type LegalSectionValue = {
+  id: string;
+  title: string;
+  body: string;
+};
+
+export type LegalDocumentValue = {
+  useCustom: boolean;
+  title: string;
+  updatedLabel: string;
+  intro: string;
+  sections: LegalSectionValue[];
+};
+
+export type LegalHomeFeatureValue = {
+  title: string;
+  body: string;
+};
+
+export type LegalHomeValue = {
+  useCustom: boolean;
+  eyebrow: string;
+  description: string;
+  features: LegalHomeFeatureValue[];
+};
+
+export type LegalLocaleBundle = {
+  privacy: LegalDocumentValue;
+  terms: LegalDocumentValue;
+  home: LegalHomeValue;
+};
+
+export type LegalDisplayConfig = {
+  footerOnPublicPages: boolean;
+  footerOnAuthPages: boolean;
+  showHomeFeatures: boolean;
+  showHomeCtaRegister: boolean;
+};
+
+export type LegalConfigValue = {
+  locales: {
+    vi: LegalLocaleBundle;
+    en: LegalLocaleBundle;
+  };
+  display: LegalDisplayConfig;
+};
+
 export type ConfigValueMap = {
   [CONFIG_KEYS.adminIpAllowlist]: IpAllowlistConfigValue;
   [CONFIG_KEYS.systemBranding]: BrandingConfigValue;
   [CONFIG_KEYS.systemChatRuntime]: ChatRuntimeConfigValue;
+  [CONFIG_KEYS.systemLegal]: LegalConfigValue;
 };
 
 export const CONFIG_DEFAULTS: {
@@ -92,5 +143,10 @@ export const CONFIG_DEFAULTS: {
       defaultVoicePipeline: "huit_voice_multi_query_prod",
       defaultTopK: 5,
     },
+  },
+  [CONFIG_KEYS.systemLegal]: {
+    scope: "system",
+    schemaVersion: 1,
+    value: buildDefaultLegalConfig(),
   },
 };
