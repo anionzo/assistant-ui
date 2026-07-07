@@ -9,6 +9,7 @@ import {
 } from "@/lib/form-module/form-card-metadata";
 import { hydrateFormFromSession } from "@/lib/form-module/activate-form";
 import { useFormModuleStore, useFormModuleStoreApi } from "@/lib/form-module/form-module-store";
+import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
 import { loadSession } from "@/lib/voice-form/sessions";
 import { useAuiState } from "@assistant-ui/react";
 import { FileText, Loader2 } from "lucide-react";
@@ -75,7 +76,7 @@ export function FormCardFromMetadata() {
   const custom = useAuiState(
     (s) => (s.message?.metadata?.custom as unknown) ?? null,
   );
-  if (!isFormCardCustom(custom)) return null;
+  if (!FORM_MODULE_ENABLED || !isFormCardCustom(custom)) return null;
   return <FormCardMessage custom={custom} />;
 }
 

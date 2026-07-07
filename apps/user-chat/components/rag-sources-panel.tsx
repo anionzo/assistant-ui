@@ -5,13 +5,16 @@ import { useAuiState } from "@assistant-ui/react";
 import { useState, type FC } from "react";
 import { ChevronDownIcon, ChevronRightIcon, ExternalLinkIcon } from "lucide-react";
 
+/** Tạm ẩn panel nguồn tham khảo trong chat; bật lại khi cần. */
+const RAG_SOURCES_PANEL_ENABLED = false;
+
 export const RagSourcesPanel: FC = () => {
   const [expanded, setExpanded] = useState(false);
   const contexts = useAuiState(
     (s) => (s.message?.metadata?.custom as Record<string, unknown> | undefined)?.ragContexts as RagSource[] | undefined,
   );
 
-  if (!contexts?.length) return null;
+  if (!RAG_SOURCES_PANEL_ENABLED || !contexts?.length) return null;
 
   return (
     <div className="border-border/60 mt-3 rounded-lg border px-3 py-2 text-sm">

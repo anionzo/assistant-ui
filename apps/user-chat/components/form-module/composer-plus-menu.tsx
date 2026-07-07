@@ -2,6 +2,7 @@
 
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
 import { FormPickerDialog } from "@/components/form-module/composer-form-picker";
+import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
 import { cn } from "@/lib/utils";
 import { useT } from "@idx/i18n";
 import { ComposerPrimitive } from "@assistant-ui/react";
@@ -123,19 +124,21 @@ export const ComposerPlusMenu: FC<{
             <Paperclip className="size-4 shrink-0" />
             Chọn tệp
           </button>
-          <button
-            type="button"
-            role="menuitem"
-            className={menuItemClass}
-            disabled={formPickerDisabled}
-            onClick={() => {
-              setFormPickerOpen(true);
-              setMenuOpen(false);
-            }}
-          >
-            <FileText className="size-4 shrink-0" />
-            Chọn biểu mẫu
-          </button>
+          {FORM_MODULE_ENABLED && (
+            <button
+              type="button"
+              role="menuitem"
+              className={menuItemClass}
+              disabled={formPickerDisabled}
+              onClick={() => {
+                setFormPickerOpen(true);
+                setMenuOpen(false);
+              }}
+            >
+              <FileText className="size-4 shrink-0" />
+              Chọn biểu mẫu
+            </button>
+          )}
         </div>
       )}
 
@@ -146,11 +149,13 @@ export const ComposerPlusMenu: FC<{
         tabIndex={-1}
       />
 
-      <FormPickerDialog
-        open={formPickerOpen}
-        onOpenChange={setFormPickerOpen}
-        disabled={formPickerDisabled}
-      />
+      {FORM_MODULE_ENABLED && (
+        <FormPickerDialog
+          open={formPickerOpen}
+          onOpenChange={setFormPickerOpen}
+          disabled={formPickerDisabled}
+        />
+      )}
     </div>
   );
 };

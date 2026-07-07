@@ -18,13 +18,14 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { useBranding } from "@/hooks/use-branding";
+import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
 import { voiceFormPath } from "@/lib/voice-form/routes";
 import { useT } from "@idx/i18n";
 import { VoiceFormSessionProvider } from "@/lib/voice-form/session-context";
 import { FileText, MessageSquare } from "lucide-react";
 import Link from "next/link";
 import { useParams, usePathname, useRouter } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
 export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
   const { branding } = useBranding();
@@ -39,6 +40,12 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
 
   const t = useT();
 
+  useEffect(() => {
+    if (!FORM_MODULE_ENABLED) {
+      router.replace("/chat");
+    }
+  }, [router]);
+
   const handleSessionIdChange = useCallback(
     (sessionId: string) => {
       const nextPath = voiceFormPath(sessionId || undefined);
@@ -47,6 +54,8 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
     },
     [router],
   );
+
+  if (!FORM_MODULE_ENABLED) return null;
 
   return (
     <VoiceFormSessionProvider

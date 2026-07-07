@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sidebar";
 import { BrandLogo } from "@/components/brand-logo";
 import { useBranding } from "@/hooks/use-branding";
+import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
 import { useT } from "@idx/i18n";
 import Link from "next/link";
 import { FileText } from "lucide-react";
@@ -56,16 +57,18 @@ export function ThreadListSidebar({
       </SidebarHeader>
 
       <SidebarContent className="aui-sidebar-content flex min-h-0 flex-col gap-1 px-2">
-        <SidebarMenu className="shrink-0 pt-1">
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild>
-              <Link href="/voice-form">
-                <FileText className="size-4" />
-                <span>{t("nav.voiceForm")}</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        {FORM_MODULE_ENABLED && (
+          <SidebarMenu className="shrink-0 pt-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/voice-form">
+                  <FileText className="size-4" />
+                  <span>{t("nav.voiceForm")}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
         <div className="aui-sidebar-new-thread shrink-0 pt-1">
           <ThreadListNew className="w-full" />
         </div>

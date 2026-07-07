@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
 import { useFormModuleStore, useFormModuleActions } from "@/lib/form-module/form-module-store";
 import {
   outputDownloadUrl,
@@ -53,7 +54,7 @@ export function FormArtifactPanel() {
   const [docBusy, setDocBusy] = useState(false);
   const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const visible = mode === "form-fill" && binding;
+  const visible = FORM_MODULE_ENABLED && mode === "form-fill" && binding;
 
   const schedulePreview = useCallback(() => {
     if (!binding?.formCode || !binding.formSessionId) {

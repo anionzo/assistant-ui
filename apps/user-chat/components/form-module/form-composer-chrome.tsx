@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
 import { useFormModuleStore, useFormModuleActions } from "@/lib/form-module/form-module-store";
 import { FileText, X } from "lucide-react";
 
@@ -11,7 +12,7 @@ export function FormComposerChrome() {
   const schema = useFormModuleStore((s) => s.schema);
   const { deactivate } = useFormModuleActions();
 
-  if (mode !== "form-fill" || !binding) return null;
+  if (!FORM_MODULE_ENABLED || mode !== "form-fill" || !binding) return null;
 
   let filled = 0;
   let total = 0;

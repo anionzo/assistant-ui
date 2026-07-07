@@ -3,6 +3,7 @@ import { extractLastUserMessage } from "@/lib/modular-rag-adapter";
 import { postFill } from "@/lib/voice-form/api";
 import type { FormModuleStore } from "@/lib/form-module/form-module-store";
 import { extractAssistantText, processFormFillTurn } from "@/lib/form-module/process-form-fill-turn";
+import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
 
 async function* streamRagAdapter(
   ragAdapter: ChatModelAdapter,
@@ -29,6 +30,7 @@ export function createChatComposerAdapter(
       const activeThreadId = getActiveThreadId();
 
       if (
+        FORM_MODULE_ENABLED &&
         snap.mode === "form-fill" &&
         snap.binding &&
         activeThreadId &&
