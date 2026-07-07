@@ -77,8 +77,7 @@ chỉ phân phối cấu hình cho chế độ chạy native.
 ### Bước 2 — Docker stack (khuyên dùng)
 
 ```powershell
-pnpm stack          # local: mongo (stack:db) + app (stack:app)
-pnpm ops:deploy     # production: app only, Mongo qua MONGODB_URI
+pnpm stack          # mongo + idx-api + user-chat + admin
 ```
 
 | URL | Service |
@@ -97,8 +96,8 @@ pnpm test:e2e          # smoke (stack đang chạy)
 ### Bước 3 — Native (tuỳ chọn)
 
 ```powershell
-pnpm stack:db
-pnpm ops:mongo:bootstrap
+docker compose up -d mongo
+pnpm --filter @idx/idx-api db:bootstrap
 pnpm --filter @idx/idx-api dev    # :4000
 pnpm dev                          # user-chat :3001
 pnpm dev:admin                    # admin :3002
