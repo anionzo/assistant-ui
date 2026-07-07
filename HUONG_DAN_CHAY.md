@@ -90,8 +90,8 @@ Docker tự set `MONGODB_URI` và `IDX_API_URL` nội bộ container — không 
 ## Bước 3 — Chạy native (debug từng app)
 
 ```powershell
-docker compose up -d mongo
-pnpm --filter @idx/idx-api db:bootstrap
+pnpm stack:db
+pnpm ops:mongo:bootstrap
 ```
 
 Mở **3 terminal**:

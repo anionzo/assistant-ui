@@ -22,6 +22,9 @@ coverage/
 .env
 .env.local
 
+# Mongo backups from pnpm ops:mongo:backup
+backups/
+
 # Idx-api dev process logs
 tmp_auth_api.out.log
 tmp_auth_api.err.log

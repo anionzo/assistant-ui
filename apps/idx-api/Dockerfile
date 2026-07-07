@@ -27,4 +27,4 @@ RUN pnpm install --frozen-lockfile --filter @idx/idx-api --prod --no-optional --
 
 COPY --from=build /app/apps/idx-api/dist ./apps/idx-api/dist
 EXPOSE 4000
-CMD ["sh", "-c", "node apps/idx-api/dist/db/bootstrap.js && node apps/idx-api/dist/index.js"]
+CMD ["node", "apps/idx-api/dist/index.js"]

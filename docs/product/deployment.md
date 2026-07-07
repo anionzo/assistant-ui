@@ -9,14 +9,14 @@
 | `idx-chat-user` | `apps/user-chat` Dockerfile | 3001 | Yes (auth-gated) |
 | `idx-chat-admin` | `apps/admin` Dockerfile | 3002 | No / VPN |
 | `idx-api` | `apps/idx-api` Dockerfile | 4000 | Internal (BFF + OAuth callback) |
-| `mongo` | mongo:7 | 27017 | Internal |
+| `mongo` (local dev only) | `docker-compose.db.yml` | 27017 | Internal |
 | `gateway` | ModularRAG (existing) | 8030 | Internal |
 
 Replaces `chatbot-ui` on port 3000 in E07. After E09, only `idx-api` holds ModularRAG URL and API keys.
 
 ## Docker Compose (root `docker-compose.yml`)
 
-The repository has one `docker-compose.yml` for `idx-chat-user`, `idx-chat-admin`, `idx-api`, and `mongo`. It reads root `.env`; there is no second production env or Compose file. BFF apps receive only `IDX_API_URL` + `IDX_SERVICE_SECRET`, not the ModularRAG URL or keys.
+`docker-compose.yml` runs `idx-chat-user`, `idx-chat-admin`, and `idx-api` only. MongoDB is external in production (`MONGODB_URI` in root `.env`). Local dev may use `docker-compose.db.yml` (`pnpm stack:db`). See [scripts/ops/MONGO_RUNBOOK.md](../../scripts/ops/MONGO_RUNBOOK.md).
 
 ## Environment Variables
 
