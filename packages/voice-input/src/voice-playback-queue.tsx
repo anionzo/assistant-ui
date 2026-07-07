@@ -30,6 +30,11 @@ export const VoicePlaybackQueue: FC<VoicePlaybackQueueProps> = ({ chunks, onComp
     }
 
     const chunk = queueRef.current[idx];
+    if (!chunk?.data) {
+      indexRef.current++;
+      playNext();
+      return;
+    }
     setPlayingIndex(idx);
 
     if (audioRef.current) {

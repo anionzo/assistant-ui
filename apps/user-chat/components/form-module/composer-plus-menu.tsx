@@ -29,9 +29,10 @@ function resolveMenuPlacement(
   return spaceAbove >= spaceBelow ? "top" : "bottom";
 }
 
-export const ComposerPlusMenu: FC<{ formPickerDisabled?: boolean }> = ({
-  formPickerDisabled = false,
-}) => {
+export const ComposerPlusMenu: FC<{
+  formPickerDisabled?: boolean;
+  variant?: "default" | "capture";
+}> = ({ formPickerDisabled = false, variant = "default" }) => {
   const t = useT();
   const rootRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -85,7 +86,10 @@ export const ComposerPlusMenu: FC<{ formPickerDisabled?: boolean }> = ({
         size="icon"
         type="button"
         className={cn(
-          "aui-composer-add-attachment hover:bg-muted-foreground/15 dark:border-muted-foreground/15 dark:hover:bg-muted-foreground/30 size-7 rounded-full p-1 text-xs font-semibold",
+          "aui-composer-add-attachment rounded-full p-1 text-xs font-semibold",
+          variant === "capture"
+            ? "text-foreground/75 hover:bg-muted/50 size-8"
+            : "hover:bg-muted-foreground/15 dark:border-muted-foreground/15 dark:hover:bg-muted-foreground/30 size-7",
           menuOpen && "bg-muted",
         )}
         aria-label={t("attachment.add")}

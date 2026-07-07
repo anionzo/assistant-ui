@@ -22,13 +22,14 @@ import {
   ToolGroupTrigger,
 } from "@/components/tool-group";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
-import { ComposerPlusMenu } from "@/components/form-module/composer-plus-menu";
 import { FormCardFromMetadata } from "@/components/form-module/form-card-message";
 import { FormComposerChrome } from "@/components/form-module/form-composer-chrome";
 import {
+  ComposerDictationAttachments,
+  ComposerDictationInput,
+  ComposerDropzoneShell,
+  VoiceComposerActionBar,
   VoiceComposerProvider,
-  VoiceComposerSendControls,
-  VoiceMicControl,
 } from "@/components/voice-composer-action";
 import { useFormModuleStore } from "@/lib/form-module/form-module-store";
 import { Button } from "@/components/ui/button";
@@ -138,48 +139,53 @@ const ThreadRoot: FC<{ isEmpty: boolean; initialAuth: boolean }> = ({ isEmpty, i
         data-slot="aui_thread-viewport"
         className="relative flex flex-1 flex-col overflow-x-auto overflow-y-scroll scroll-smooth"
       >
-        <div
-          className={cn(
-            "mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4",
-            isEmpty && "justify-center",
-          )}
-        >
-          <AuiIf condition={isNewChatView}>
-            <Welcome />
-          </AuiIf>
-
+        <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-4 pt-4">
           <div
-            data-slot="aui_message-group"
-            className="relative mb-14 flex min-h-[min(28vh,240px)] flex-col gap-y-6 empty:min-h-0"
-          >
-            <ThreadLoadingOverlay />
-            <div
-              className={cn(
-                "flex flex-col gap-y-6",
-                isHydrating && "pointer-events-none opacity-0",
-                !isHydrating && "animate-in fade-in duration-200",
-              )}
-            >
-              <ThreadPrimitive.Messages>
-                {() => <ThreadMessage />}
-              </ThreadPrimitive.Messages>
-            </div>
-          </div>
-
-          <ThreadPrimitive.ViewportFooter
             className={cn(
-              "aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6",
-              dockComposer &&
-                "sticky bottom-0 mt-auto rounded-t-(--composer-radius)",
+              "flex flex-col",
+              isEmpty ? "flex-1 justify-center" : "min-h-0 flex-1",
             )}
           >
-            <ThreadScrollToBottom />
-            <RuntimeToolbar />
-            <Composer initialAuth={initialAuth} />
-            <AuiIf condition={(s) => isNewChatView(s) && s.composer.isEmpty}>
-              <ThreadSuggestions />
+            <AuiIf condition={isNewChatView}>
+              <Welcome />
             </AuiIf>
-          </ThreadPrimitive.ViewportFooter>
+
+            <div
+              data-slot="aui_message-group"
+              className={cn(
+                "relative flex flex-col gap-y-6",
+                isEmpty ? "mb-0 min-h-0" : "mb-14 min-h-[min(28vh,240px)]",
+              )}
+            >
+              <ThreadLoadingOverlay />
+              <div
+                className={cn(
+                  "flex flex-col gap-y-6",
+                  isHydrating && "pointer-events-none opacity-0",
+                  !isHydrating && "animate-in fade-in duration-200",
+                )}
+              >
+                <ThreadPrimitive.Messages>
+                  {() => <ThreadMessage />}
+                </ThreadPrimitive.Messages>
+              </div>
+            </div>
+
+            <ThreadPrimitive.ViewportFooter
+              className={cn(
+                "aui-thread-viewport-footer bg-background flex flex-col gap-4 overflow-visible pb-4 md:pb-6",
+                dockComposer &&
+                  "sticky bottom-0 mt-auto rounded-t-(--composer-radius)",
+              )}
+            >
+              <ThreadScrollToBottom />
+              <RuntimeToolbar />
+              <Composer initialAuth={initialAuth} />
+              <AuiIf condition={(s) => isNewChatView(s) && s.composer.isEmpty}>
+                <ThreadSuggestions />
+              </AuiIf>
+            </ThreadPrimitive.ViewportFooter>
+          </div>
         </div>
       </ThreadPrimitive.Viewport>
     </ThreadPrimitive.Root>
@@ -205,7 +211,7 @@ const ThreadScrollToBottom: FC = () => {
 
 const ThreadWelcome: FC = () => {
   return (
-    <div className="aui-thread-welcome-root mb-6 flex flex-col items-center px-4 text-center">
+    <div className="aui-thread-welcome-root mb-4 flex flex-col items-center px-4 text-center">
       <h1 className="aui-thread-welcome-message-inner fade-in slide-in-from-bottom-1 animate-in fill-mode-both text-2xl font-semibold duration-200">
         Tôi có thể giúp gì cho bạn?
       </h1>
@@ -241,28 +247,16 @@ const Composer: FC<{ initialAuth: boolean }> = ({ initialAuth }) => {
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
       <FormComposerChrome />
-      <ComposerPrimitive.AttachmentDropzone render={<div data-slot="aui_composer-shell" className="border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] focus-within:shadow-[0_6px_24px_-8px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.05)] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))] dark:shadow-none" />}><ComposerAttachments /><ComposerPrimitive.Input
-                      placeholder={placeholder}
-                      className="aui-composer-input placeholder:text-muted-foreground/80 max-h-32 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base outline-none"
-                      rows={1}
-                      autoFocus
-                      aria-label="Message input"
-                    /><ComposerAction initialAuth={initialAuth} /></ComposerPrimitive.AttachmentDropzone>
+      <VoiceComposerProvider>
+        <ComposerPrimitive.AttachmentDropzone render={<ComposerDropzoneShell />}>
+          <ComposerDictationAttachments>
+            <ComposerAttachments />
+          </ComposerDictationAttachments>
+          <ComposerDictationInput placeholder={placeholder} />
+          <VoiceComposerActionBar initialAuth={initialAuth} />
+        </ComposerPrimitive.AttachmentDropzone>
+      </VoiceComposerProvider>
     </ComposerPrimitive.Root>
-  );
-};
-
-const ComposerAction: FC<{ initialAuth: boolean }> = ({ initialAuth }) => {
-  return (
-    <VoiceComposerProvider>
-      <div className="aui-composer-action-wrapper relative flex items-center justify-between">
-        <ComposerPlusMenu formPickerDisabled={!initialAuth} />
-        <div className="flex items-center gap-1.5">
-          <VoiceMicControl />
-          <VoiceComposerSendControls />
-        </div>
-      </div>
-    </VoiceComposerProvider>
   );
 };
 

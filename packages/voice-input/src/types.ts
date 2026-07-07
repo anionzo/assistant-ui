@@ -1,7 +1,8 @@
 export type VoiceState = "idle" | "recording" | "uploading" | "processing" | "playing" | "error";
 
 export type AudioChunk = {
-  data: string;
+  data?: string;
+  ref?: string;
   format?: string;
 };
 
@@ -38,4 +39,5 @@ export type VoiceSessionOptions = {
   onMetadata?: (meta: VoiceMetadata) => void;
   onError?: (err: Error) => void;
   onDone?: () => void;
+  resolveAudioRef?: (ref: string) => Promise<AudioChunk | null>;
 };

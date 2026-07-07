@@ -28,9 +28,17 @@ function normalizeVoiceEvent({ event, data }: RawSseEvent): VoiceStreamEvent | n
     if (!data) return null;
     try {
       const parsed = JSON.parse(data) as Record<string, unknown>;
+      const format = typeof parsed.format === "string" ? parsed.format : undefined;
       if (typeof parsed.data === "string") {
-        return { type: "audio_chunk", chunk: { data: parsed.data, format: typeof parsed.format === "string" ? parsed.format : undefined } };
+        return { type: "audio_chunk", chunk: { data: parsed.data, format } };
       }
+      const ref =
+        typeof parsed.ref === "string"
+          ? parsed.ref
+          : typeof parsed.audio_ref === "string"
+            ? parsed.audio_ref
+            : undefined;
+      if (ref) return { type: "audio_chunk", chunk: { ref, format } };
     } catch {
       return null;
     }

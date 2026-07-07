@@ -1,4 +1,4 @@
-import type { ChatModelAdapter } from "@assistant-ui/react";
+import type { ChatModelAdapter, ChatModelRunResult } from "@assistant-ui/react";
 import { describe, expect, it, vi } from "vitest";
 import { createChatComposerAdapter } from "@/lib/form-module/composer-run-router";
 import type { FormModuleStore } from "@/lib/form-module/form-module-store";
@@ -27,7 +27,7 @@ function mockStore(mode: "rag" | "form-fill", threadId?: string): FormModuleStor
   };
   return {
     getSnapshot: () => state,
-    subscribe: () => () => undefined,
+    subscribe: () => () => true,
     apply: vi.fn(),
     activate: vi.fn(),
     deactivate: vi.fn(),
@@ -70,7 +70,7 @@ describe("createChatComposerAdapter", () => {
         throw new Error("unused");
       },
       unstable_threadId: "local-internal-id",
-    } as never);
+    } as never) as AsyncGenerator<ChatModelRunResult, void>;
 
     const first = await gen.next();
     expect(first.value).toMatchObject({ content: [{ type: "text", text: "OK" }] });
@@ -106,7 +106,7 @@ describe("createChatComposerAdapter", () => {
         throw new Error("unused");
       },
       unstable_threadId: "thread-a",
-    } as never);
+    } as never) as AsyncGenerator<ChatModelRunResult, void>;
 
     await gen.next();
     expect(fetchMock).not.toHaveBeenCalled();
