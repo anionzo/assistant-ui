@@ -1,17 +1,4 @@
 services:
-  mongo:
-    image: mongo:7
-    restart: unless-stopped
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodata:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   idx-api:
     build:
       context: .
@@ -23,19 +10,26 @@ services:
       NODE_ENV: production
       PORT: 4000
       MONGODB_URI: mongodb://mongo:27017/idx_api
+      VIRTUAL_HOST: idx-api.s2t-ld.eservice.vn
+      VIRTUAL_PORT: "4000"
+      LETSENCRYPT_HOST: idx-api.s2t-ld.eservice.vn
+      LETSENCRYPT_EMAIL: vietanhtranngoc@gmail.com
+    expose:
+      - "4000"
     ports:
       - "4000:4000"
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      mongo:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 10s
       timeout: 5s
       retries: 6
       start_period: 30s
+    networks:
+      - default
+      - idx-internal
+      - nginx-proxy
 
   idx-chat-user:
     build:
@@ -54,6 +48,12 @@ services:
       ALLOW_GUEST_CHAT: ${ALLOW_GUEST_CHAT:-true}
       FRONTEND_URL: ${FRONTEND_URL:?FRONTEND_URL is required in .env}
       SELF_SERVICE_PASSWORD_RESET_ENABLED: ${SELF_SERVICE_PASSWORD_RESET_ENABLED:-false}
+      VIRTUAL_HOST: idx-chat-user.s2t-ld.eservice.vn
+      VIRTUAL_PORT: "3000"
+      LETSENCRYPT_HOST: idx-chat-user.s2t-ld.eservice.vn
+      LETSENCRYPT_EMAIL: vietanhtranngoc@gmail.com
+    expose:
+      - "3000"
     ports:
       - "3003:3000"
     depends_on:
@@ -65,6 +65,9 @@ services:
       timeout: 5s
       retries: 6
       start_period: 60s
+    networks:
+      - default
+      - nginx-proxy
 
   idx-chat-admin:
     build:
@@ -77,6 +80,12 @@ services:
       IDX_API_INTERNAL_URL: http://idx-api:4000
       IDX_SERVICE_SECRET: ${IDX_SERVICE_SECRET:?IDX_SERVICE_SECRET is required in .env}
       FRONTEND_URL: ${ADMIN_FRONTEND_URL:?ADMIN_FRONTEND_URL is required in .env}
+      VIRTUAL_HOST: idx-chat-admin.s2t-ld.eservice.vn
+      VIRTUAL_PORT: "3002"
+      LETSENCRYPT_HOST: idx-chat-admin.s2t-ld.eservice.vn
+      LETSENCRYPT_EMAIL: vietanhtranngoc@gmail.com
+    expose:
+      - "3002"
     ports:
       - "3002:3002"
     depends_on:
@@ -88,6 +97,12 @@ services:
       timeout: 5s
       retries: 6
       start_period: 60s
+    networks:
+      - default
+      - nginx-proxy
 
-volumes:
-  mongodata:
+networks:
+  idx-internal:
+    external: true
+  nginx-proxy:
+    external: true

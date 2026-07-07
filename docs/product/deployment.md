@@ -14,9 +14,9 @@
 
 Replaces `chatbot-ui` on port 3000 in E07. After E09, only `idx-api` holds ModularRAG URL and API keys.
 
-## Docker Compose (root `docker-compose.yml`)
+## Docker Compose
 
-The repository has one `docker-compose.yml` for `idx-chat-user`, `idx-chat-admin`, `idx-api`, and `mongo`. It reads root `.env`; there is no second production env or Compose file. BFF apps receive only `IDX_API_URL` + `IDX_SERVICE_SECRET`, not the ModularRAG URL or keys.
+The repository uses `docker-compose.mongo.yml` for MongoDB and root `docker-compose.yml` for `idx-chat-user`, `idx-chat-admin`, and `idx-api`. MongoDB and `idx-api` share the `idx-internal` Docker network, so app containers keep using `mongodb://mongo:27017/idx_api`. The app compose reads root `.env`. BFF apps receive only `IDX_API_URL` + `IDX_SERVICE_SECRET`, not the ModularRAG URL or keys.
 
 ## Environment Variables
 
@@ -71,8 +71,8 @@ The repository has one `docker-compose.yml` for `idx-chat-user`, `idx-chat-admin
 # Terminal 1 — ModularRAG stack
 cd ModularRAG-platform; ./scripts/run/up_full.sh
 
-# Terminal 2 — idx-api + mongo
-cd assistant-ui; docker compose up -d mongo idx-api
+# Terminal 2 — MongoDB + idx-api
+cd assistant-ui; pnpm mongo:up; docker compose up -d idx-api
 pnpm --filter @idx/idx-api db:bootstrap
 
 # Terminal 3 — user-chat

@@ -154,7 +154,8 @@ Harness installer tạo `docs/` local; đừng xóa cả thư mục nếu đang 
 | File | Mục đích |
 | --- | --- |
 | `.env.example` | Template env stack dev |
-| `docker-compose.yml` | Dev: mongo + idx-api + apps |
+| `docker-compose.yml` | Dev/proxy app stack: idx-api + apps |
+| `docker-compose.mongo.yml` | MongoDB stack with persistent named volume |
 | `harness.db` | Harness durable DB (local, gitignored) |
 | `AGENTS.md` | Shim hướng dẫn agent (local, gitignored) |
 
