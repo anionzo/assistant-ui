@@ -75,6 +75,9 @@ type VoiceFormSessionDoc = {
   _id: string;
   userId: string;
   tenantId: string;
+  threadId?: string | null;
+  anchorMessageId?: string | null;
+  contextSeeded?: boolean;
   title: string;
   formCode: string;
   formName: string;
@@ -120,6 +123,9 @@ function toVoiceFormSessionRecord(doc: VoiceFormSessionDoc): VoiceFormSessionRec
     id: doc._id,
     userId: doc.userId,
     tenantId: doc.tenantId,
+    threadId: doc.threadId ?? null,
+    anchorMessageId: doc.anchorMessageId ?? null,
+    contextSeeded: doc.contextSeeded ?? false,
     title: doc.title ?? "",
     formCode: doc.formCode,
     formName: doc.formName,
@@ -343,9 +349,10 @@ export class MongoAuthStore {
   async listVoiceFormSessionsPage(
     userId: string,
     tenantId: string | undefined,
-    input: { page: number; limit: number },
+    input: { page: number; limit: number; threadId?: string },
   ): Promise<PaginatedResult<VoiceFormSessionRecord>> {
-    const filter = tenantId ? { userId, tenantId } : { userId };
+    const filter: Record<string, unknown> = tenantId ? { userId, tenantId } : { userId };
+    if (input.threadId) filter.threadId = input.threadId;
     const coll = await collection<VoiceFormSessionDoc>(COLLECTIONS.voiceFormSessions);
     const skip = (input.page - 1) * input.limit;
     const [docs, total] = await Promise.all([
@@ -370,6 +377,9 @@ export class MongoAuthStore {
       _id: input.id?.trim() || crypto.randomUUID(),
       userId: input.userId,
       tenantId: input.tenantId,
+      threadId: input.threadId ?? null,
+      anchorMessageId: input.anchorMessageId ?? null,
+      contextSeeded: false,
       title: input.title?.trim() || "",
       formCode: input.formCode?.trim() || "",
       formName: input.formName?.trim() || "",
@@ -395,6 +405,7 @@ export class MongoAuthStore {
     if (input.fieldValues !== undefined) updates.fieldValues = input.fieldValues;
     if (input.history !== undefined) updates.history = input.history.slice(-24);
     if (input.decision !== undefined) updates.decision = input.decision;
+    if (input.contextSeeded !== undefined) updates.contextSeeded = input.contextSeeded;
 
     const result = await (
       await collection<VoiceFormSessionDoc>(COLLECTIONS.voiceFormSessions)

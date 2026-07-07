@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ComposerAddAttachment,
   ComposerAttachments,
   UserMessageAttachments,
 } from "@/components/attachment";
@@ -23,11 +22,15 @@ import {
   ToolGroupTrigger,
 } from "@/components/tool-group";
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
+import { ComposerPlusMenu } from "@/components/form-module/composer-plus-menu";
+import { FormCardFromMetadata } from "@/components/form-module/form-card-message";
+import { FormComposerChrome } from "@/components/form-module/form-composer-chrome";
 import {
   VoiceComposerProvider,
   VoiceComposerSendControls,
   VoiceMicControl,
 } from "@/components/voice-composer-action";
+import { useFormModuleStore } from "@/lib/form-module/form-module-store";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -87,6 +90,7 @@ export type ThreadComponents = {
 
 export type ThreadProps = {
   components?: ThreadComponents | undefined;
+  initialAuth?: boolean;
 };
 
 const EMPTY_COMPONENTS: ThreadComponents = {};
@@ -103,17 +107,17 @@ const isNewChatView = (s: AssistantState) =>
   !s.thread.isLoading &&
   !s.threads.isLoading;
 
-export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS }) => {
+export const Thread: FC<ThreadProps> = ({ components = EMPTY_COMPONENTS, initialAuth = false }) => {
   const isEmpty = useAuiState(isNewChatView);
 
   return (
     <ThreadComponentsContext.Provider value={components}>
-      <ThreadRoot isEmpty={isEmpty} />
+      <ThreadRoot isEmpty={isEmpty} initialAuth={initialAuth} />
     </ThreadComponentsContext.Provider>
   );
 };
 
-const ThreadRoot: FC<{ isEmpty: boolean }> = ({ isEmpty }) => {
+const ThreadRoot: FC<{ isEmpty: boolean; initialAuth: boolean }> = ({ isEmpty, initialAuth }) => {
   const { Welcome = ThreadWelcome } = useContext(ThreadComponentsContext);
   const isHydrating = useAuiState(isThreadHydrating);
   const dockComposer = !isEmpty || isHydrating;
@@ -171,7 +175,7 @@ const ThreadRoot: FC<{ isEmpty: boolean }> = ({ isEmpty }) => {
           >
             <ThreadScrollToBottom />
             <RuntimeToolbar />
-            <Composer />
+            <Composer initialAuth={initialAuth} />
             <AuiIf condition={(s) => isNewChatView(s) && s.composer.isEmpty}>
               <ThreadSuggestions />
             </AuiIf>
@@ -227,25 +231,32 @@ const ThreadSuggestionItem: FC = () => {
   );
 };
 
-const Composer: FC = () => {
+const Composer: FC<{ initialAuth: boolean }> = ({ initialAuth }) => {
+  const mode = useFormModuleStore((s) => s.mode);
+  const placeholder =
+    mode === "form-fill"
+      ? "Nhập thông tin biểu mẫu (họ tên, CCCD, ...)"
+      : "Nhập câu hỏi của bạn...";
+
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">
+      <FormComposerChrome />
       <ComposerPrimitive.AttachmentDropzone render={<div data-slot="aui_composer-shell" className="border-border/60 data-[dragging=true]:border-ring focus-within:border-border dark:border-muted-foreground/15 dark:focus-within:border-muted-foreground/30 flex w-full flex-col gap-2 rounded-(--composer-radius) border bg-(--composer-bg) p-(--composer-padding) shadow-[0_4px_16px_-8px_rgba(0,0,0,0.08),0_1px_2px_rgba(0,0,0,0.04)] transition-[border-color,box-shadow] focus-within:shadow-[0_6px_24px_-8px_rgba(0,0,0,0.12),0_1px_2px_rgba(0,0,0,0.05)] data-[dragging=true]:border-dashed data-[dragging=true]:bg-[color-mix(in_oklab,var(--color-accent)_50%,var(--color-background))] dark:shadow-none" />}><ComposerAttachments /><ComposerPrimitive.Input
-                      placeholder="Nhập câu hỏi của bạn..."
+                      placeholder={placeholder}
                       className="aui-composer-input placeholder:text-muted-foreground/80 max-h-32 min-h-10 w-full resize-none bg-transparent px-2.5 py-1 text-base outline-none"
                       rows={1}
                       autoFocus
                       aria-label="Message input"
-                    /><ComposerAction /></ComposerPrimitive.AttachmentDropzone>
+                    /><ComposerAction initialAuth={initialAuth} /></ComposerPrimitive.AttachmentDropzone>
     </ComposerPrimitive.Root>
   );
 };
 
-const ComposerAction: FC = () => {
+const ComposerAction: FC<{ initialAuth: boolean }> = ({ initialAuth }) => {
   return (
     <VoiceComposerProvider>
       <div className="aui-composer-action-wrapper relative flex items-center justify-between">
-        <ComposerAddAttachment />
+        <ComposerPlusMenu formPickerDisabled={!initialAuth} />
         <div className="flex items-center gap-1.5">
           <VoiceMicControl />
           <VoiceComposerSendControls />
@@ -353,6 +364,7 @@ const AssistantMessage: FC = () => {
           }}
         </MessagePrimitive.GroupedParts>
         <MessageError />
+        <FormCardFromMetadata />
         <RagSourcesPanel />
       </div>
 

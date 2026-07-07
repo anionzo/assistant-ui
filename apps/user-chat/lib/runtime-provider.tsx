@@ -12,6 +12,9 @@ import {
   ActiveThreadContextSync,
   resolveConversationId,
 } from "./active-thread-context";
+import { createChatComposerAdapter } from "./form-module/composer-run-router";
+import { FormModuleProvider, useFormModuleStoreRef } from "./form-module/form-module-store";
+import { FormThreadSync } from "./form-module/form-thread-sync";
 import { createModularRagAdapter } from "./modular-rag-adapter";
 import { ThreadListSessionSync } from "./thread-list-session-sync";
 import { useRemotePersistenceAdapter } from "./thread-persistence";
@@ -39,7 +42,7 @@ function createChatRuntime() {
   };
 }
 
-function ChatRuntime({
+function ChatRuntimeInner({
   initialAuth,
   threadId,
   onThreadIdChange,
@@ -73,9 +76,19 @@ function ChatRuntime({
   );
 
   const getRuntimeOptions = useRuntimeChatOptionsRef();
-  const chatAdapter = useMemo(
+  const ragAdapter = useMemo(
     () => createModularRagAdapter(fallbackConversationId, getConversationId, getRuntimeOptions),
     [fallbackConversationId, getConversationId, getRuntimeOptions],
+  );
+
+  const formStoreRef = useFormModuleStoreRef();
+  const getActiveThreadId = useCallback(
+    () => activeThreadIdRef.current,
+    [activeThreadIdRef],
+  );
+  const chatAdapter = useMemo(
+    () => createChatComposerAdapter(ragAdapter, () => formStoreRef.current, getActiveThreadId),
+    [ragAdapter, formStoreRef, getActiveThreadId],
   );
 
   const t = useT();
@@ -100,11 +113,25 @@ function ChatRuntime({
       <VoicePlaybackProvider>
         <ActiveConversationProvider getConversationId={getActiveConversationId}>
           <ActiveThreadContextSync activeThreadIdRef={activeThreadIdRef} />
+          <FormThreadSync />
           <ThreadListSessionSync initialAuth={initialAuth} />
           {children}
         </ActiveConversationProvider>
       </VoicePlaybackProvider>
     </AssistantRuntimeProvider>
+  );
+}
+
+function ChatRuntime(props: Readonly<{
+  initialAuth: boolean;
+  threadId?: string;
+  onThreadIdChange?: (threadId: string | undefined) => void;
+  children: ReactNode;
+}>) {
+  return (
+    <FormModuleProvider>
+      <ChatRuntimeInner {...props} />
+    </FormModuleProvider>
   );
 }
 

@@ -105,6 +105,9 @@ export type VoiceFormSessionRecord = {
   id: string;
   userId: string;
   tenantId: string;
+  threadId: string | null;
+  anchorMessageId: string | null;
+  contextSeeded: boolean;
   title: string;
   formCode: string;
   formName: string;
@@ -119,6 +122,8 @@ export type CreateVoiceFormSessionInput = {
   id?: string;
   userId: string;
   tenantId: string;
+  threadId?: string | null;
+  anchorMessageId?: string | null;
   title?: string;
   formCode?: string;
   formName?: string;
@@ -131,6 +136,7 @@ export type UpdateVoiceFormSessionInput = {
   fieldValues?: Record<string, unknown>;
   history?: VoiceFormHistoryTurn[];
   decision?: string;
+  contextSeeded?: boolean;
 };
 
 /**

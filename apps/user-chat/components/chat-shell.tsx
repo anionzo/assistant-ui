@@ -6,6 +6,7 @@ import { ThreadRouteGuard } from "@/components/thread-route-guard";
 import { ThreadListSidebar } from "@/components/threadlist-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { chatPath } from "@/lib/chat-routes";
+import { FormArtifactPanel } from "@/components/form-module/form-artifact-panel";
 import { RuntimeProvider } from "@/lib/runtime-provider";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback } from "react";
@@ -39,8 +40,11 @@ export function ChatShell({ initialAuth }: { initialAuth: boolean }) {
           <ThreadListSidebar initialAuth={initialAuth} />
           <SidebarInset className="min-w-0">
             <ChatMainHeader />
-            <div className="min-h-0 flex-1">
-              <Thread />
+            <div className="flex min-h-0 flex-1">
+              <div className="min-w-0 flex-1">
+                <Thread initialAuth={initialAuth} />
+              </div>
+              <FormArtifactPanel />
             </div>
           </SidebarInset>
         </div>

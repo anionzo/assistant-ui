@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { verifySessionToken } from "../services/jwt";
-import { type AuthStore, getAuthStore } from "../db/store";
+import { type AuthStore, type StoredThreadMessage, getAuthStore } from "../db/store";
 import { buildPaginationMeta, parsePaginationQuery } from "../utils/pagination";
 import {
   badRequest,
@@ -14,12 +14,15 @@ import {
 type SessionPayload = {
   tenantId?: unknown;
   id?: unknown;
+  threadId?: unknown;
+  anchorMessageId?: unknown;
   title?: unknown;
   formCode?: unknown;
   formName?: unknown;
   fieldValues?: unknown;
   history?: unknown;
   decision?: unknown;
+  contextSeeded?: unknown;
 };
 
 function getBearerToken(authorization: string | undefined) {
@@ -44,6 +47,9 @@ function countFilledFields(fieldValues: Record<string, unknown>) {
 function toSessionSummary(session: {
   id: string;
   tenantId: string;
+  threadId: string | null;
+  anchorMessageId: string | null;
+  contextSeeded: boolean;
   title: string;
   formCode: string;
   formName: string;
@@ -54,6 +60,9 @@ function toSessionSummary(session: {
   return {
     id: session.id,
     tenantId: session.tenantId,
+    threadId: session.threadId,
+    anchorMessageId: session.anchorMessageId,
+    contextSeeded: session.contextSeeded,
     title: session.title,
     formCode: session.formCode,
     formName: session.formName,
@@ -66,6 +75,9 @@ function toSessionSummary(session: {
 function toSessionResponse(session: {
   id: string;
   tenantId: string;
+  threadId: string | null;
+  anchorMessageId: string | null;
+  contextSeeded: boolean;
   title: string;
   formCode: string;
   formName: string;
@@ -93,6 +105,10 @@ function parseHistory(value: unknown) {
   return history;
 }
 
+function threadHasMessage(messages: StoredThreadMessage[], messageId: string) {
+  return messages.some((m) => m.id === messageId);
+}
+
 export function createVoiceFormSessionRoutes(store: AuthStore = getAuthStore()) {
   const routes = new Hono();
 
@@ -100,11 +116,16 @@ export function createVoiceFormSessionRoutes(store: AuthStore = getAuthStore()) 
     const user = await requireUser(c.req.raw);
     if (!user) return invalidToken(c);
     const tenantId = c.req.query("tenantId");
+    const threadId = c.req.query("threadId");
     const { page, limit } = parsePaginationQuery({
       page: c.req.query("page"),
       limit: c.req.query("limit"),
     });
-    const result = await store.listVoiceFormSessionsPage(user.id, tenantId, { page, limit });
+    const result = await store.listVoiceFormSessionsPage(user.id, tenantId, {
+      page,
+      limit,
+      ...(threadId ? { threadId } : {}),
+    });
     return ok(c, {
       sessions: result.items.map(toSessionSummary),
       pagination: buildPaginationMeta(result.total, result.page, result.limit),
@@ -119,10 +140,32 @@ export function createVoiceFormSessionRoutes(store: AuthStore = getAuthStore()) 
       return badRequest(c, "tenantId is required");
     }
 
+    const threadId =
+      typeof body.threadId === "string" && body.threadId.trim() ? body.threadId.trim() : null;
+    const anchorMessageId =
+      typeof body.anchorMessageId === "string" && body.anchorMessageId.trim()
+        ? body.anchorMessageId.trim()
+        : null;
+
+    if (threadId) {
+      const thread = await store.findThreadById(user.id, threadId);
+      if (!thread) return notFound(c, "Thread not found");
+      if (anchorMessageId) {
+        const messages = await store.listThreadMessages(user.id, threadId);
+        if (!threadHasMessage(messages, anchorMessageId)) {
+          return badRequest(c, "anchorMessageId not found in thread messages");
+        }
+      }
+    } else if (anchorMessageId) {
+      return badRequest(c, "threadId is required when anchorMessageId is provided");
+    }
+
     const session = await store.createVoiceFormSession({
       id: typeof body.id === "string" && body.id.trim() ? body.id.trim() : undefined,
       userId: user.id,
       tenantId: body.tenantId.trim(),
+      threadId,
+      anchorMessageId,
       formCode: typeof body.formCode === "string" ? body.formCode : "",
       formName: typeof body.formName === "string" ? body.formName : "",
     });
@@ -166,6 +209,7 @@ export function createVoiceFormSessionRoutes(store: AuthStore = getAuthStore()) 
       fieldValues: fieldValues ?? undefined,
       history: history ?? undefined,
       decision: typeof body.decision === "string" ? body.decision : undefined,
+      contextSeeded: typeof body.contextSeeded === "boolean" ? body.contextSeeded : undefined,
     });
 
     if (!updated) return notFound(c, "Session not found");

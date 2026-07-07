@@ -8,6 +8,9 @@ export type VoiceFormSessionRecord = ConversationStub & {
 type SessionApiShape = {
   id: string;
   title?: string;
+  threadId?: string | null;
+  anchorMessageId?: string | null;
+  contextSeeded?: boolean;
   formCode: string;
   formName: string;
   fieldCount: number;
@@ -81,6 +84,28 @@ export async function createSession(): Promise<VoiceFormSessionRecord> {
   const data = await sessionJson<{ session: SessionApiShape }>(
     "/api/voice-form/sessions",
     { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) },
+  );
+  return toSessionRecord(data.session);
+}
+
+export async function createThreadFormSession(input: {
+  threadId: string;
+  anchorMessageId: string | null;
+  formCode: string;
+  formName: string;
+}): Promise<VoiceFormSessionRecord> {
+  const data = await sessionJson<{ session: SessionApiShape }>(
+    "/api/voice-form/sessions",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        threadId: input.threadId,
+        anchorMessageId: input.anchorMessageId,
+        formCode: input.formCode,
+        formName: input.formName,
+      }),
+    },
   );
   return toSessionRecord(data.session);
 }

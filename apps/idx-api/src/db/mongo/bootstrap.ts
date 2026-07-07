@@ -64,6 +64,7 @@ export async function ensureMongoBootstrap(): Promise<void> {
     db.collection(COLLECTIONS.chatThreads).createIndex({ userId: 1, updatedAt: -1 }),
     db.collection(COLLECTIONS.chatThreads).createIndex({ userId: 1, conversationId: 1 }, { unique: true }),
     db.collection(COLLECTIONS.voiceFormSessions).createIndex({ userId: 1, tenantId: 1, updatedAt: -1 }),
+    db.collection(COLLECTIONS.voiceFormSessions).createIndex({ userId: 1, threadId: 1, updatedAt: -1 }),
     db.collection(COLLECTIONS.roles).createIndex({ name: 1 }, { unique: true }),
     db.collection(COLLECTIONS.permissions).createIndex({ code: 1 }, { unique: true }),
     db.collection(COLLECTIONS.rolePermissions).createIndex({ roleId: 1, permissionId: 1 }, { unique: true }),

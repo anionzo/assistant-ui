@@ -81,7 +81,7 @@ export interface AuthStore {
   listVoiceFormSessionsPage(
     userId: string,
     tenantId: string | undefined,
-    input: { page: number; limit: number },
+    input: { page: number; limit: number; threadId?: string },
   ): Promise<PaginatedResult<VoiceFormSessionRecord>>;
   findVoiceFormSessionById(userId: string, sessionId: string): Promise<VoiceFormSessionRecord | null>;
   createVoiceFormSession(input: CreateVoiceFormSessionInput): Promise<VoiceFormSessionRecord>;

@@ -167,10 +167,15 @@ class MemoryAuthStore implements AuthStore {
   async listVoiceFormSessionsPage(
     userId: string,
     tenantId: string | undefined,
-    input: { page: number; limit: number },
+    input: { page: number; limit: number; threadId?: string },
   ) {
     const all = [...this.voiceFormSessions.values()]
-      .filter((session) => session.userId === userId && (!tenantId || session.tenantId === tenantId))
+      .filter(
+        (session) =>
+          session.userId === userId &&
+          (!tenantId || session.tenantId === tenantId) &&
+          (!input.threadId || session.threadId === input.threadId),
+      )
       .sort((a, b) => b.updatedAt.valueOf() - a.updatedAt.valueOf());
     const skip = (input.page - 1) * input.limit;
     const items = all.slice(skip, skip + input.limit);
@@ -198,6 +203,9 @@ class MemoryAuthStore implements AuthStore {
       id: input.id?.trim() || crypto.randomUUID(),
       userId: input.userId,
       tenantId: input.tenantId,
+      threadId: input.threadId ?? null,
+      anchorMessageId: input.anchorMessageId ?? null,
+      contextSeeded: false,
       title: input.title?.trim() || "",
       formCode: input.formCode?.trim() || "",
       formName: input.formName?.trim() || "",
@@ -226,6 +234,7 @@ class MemoryAuthStore implements AuthStore {
       fieldValues: input.fieldValues ?? session.fieldValues,
       history: input.history ? input.history.slice(-24) : session.history,
       decision: input.decision ?? session.decision,
+      contextSeeded: input.contextSeeded ?? session.contextSeeded,
       updatedAt: new Date(),
     };
     this.voiceFormSessions.set(sessionId, updated);

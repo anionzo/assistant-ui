@@ -2,8 +2,12 @@
 
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
 import { useActiveConversationId } from "@/lib/active-conversation-context";
+import { extractAssistantText, processFormFillTurn } from "@/lib/form-module/process-form-fill-turn";
+import { useFormModuleStore, useFormModuleStoreApi } from "@/lib/form-module/form-module-store";
 import { buildAssistantMetadata, extractVoiceAnswer } from "@/lib/voice-turn";
 import { useVoicePlaybackEnqueueRef } from "@/lib/voice-playback-provider";
+import { postFill } from "@/lib/voice-form/api";
+import { VoiceFormRecorder } from "@/lib/voice-form/recorder";
 import { useAui, AuiIf, ComposerPrimitive } from "@assistant-ui/react";
 import { useT } from "@idx/i18n";
 import {
@@ -18,6 +22,7 @@ import {
   useCallback,
   useContext,
   useRef,
+  useState,
   type ReactNode,
 } from "react";
 
@@ -57,6 +62,13 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
   const getConversationId = useActiveConversationId();
   const enqueueRef = useVoicePlaybackEnqueueRef();
   const transcriptRef = useRef("");
+  const formRecorderRef = useRef(new VoiceFormRecorder());
+
+  const store = useFormModuleStoreApi();
+  const mode = useFormModuleStore((s) => s.mode);
+  const binding = useFormModuleStore((s) => s.binding);
+  const fieldValues = useFormModuleStore((s) => s.fieldValues);
+  const [formMicState, setFormMicState] = useState<VoiceState>("idle");
 
   const handleTranscript = useCallback(
     (text: string) => {
@@ -88,7 +100,7 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
     [aui],
   );
 
-  const { state, startRecording, stopRecording } = useVoiceSession({
+  const { state: ragState, startRecording: ragStart, stopRecording: ragStop } = useVoiceSession({
     api: "/api/voice/stream",
     conversationId: getConversationId(),
     onTranscript: handleTranscript,
@@ -96,11 +108,72 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
     onMetadata: handleMetadata,
   });
 
+  const startRecording = useCallback(async () => {
+    if (mode === "form-fill" && binding) {
+      try {
+        await formRecorderRef.current.start();
+        setFormMicState("recording");
+      } catch {
+        setFormMicState("idle");
+      }
+      return;
+    }
+    ragStart();
+  }, [mode, binding, ragStart]);
+
+  const stopRecording = useCallback(async () => {
+    if (mode === "form-fill" && binding) {
+      if (formMicState !== "recording") return;
+      setFormMicState("processing");
+      store.setBusy(true);
+      try {
+        const blob = await formRecorderRef.current.stop();
+        if (!blob) {
+          setFormMicState("idle");
+          store.setBusy(false);
+          return;
+        }
+        const response = await postFill(binding.formSessionId, {
+          audio: blob,
+          form_code: binding.formCode,
+          field_values: JSON.stringify(fieldValues),
+          history: JSON.stringify([]),
+        });
+        const transcript = (response.transcript || "").trim();
+        if (transcript) {
+          aui.thread().append({
+            role: "user",
+            content: [{ type: "text", text: transcript }],
+            startRun: false,
+          });
+        }
+        await processFormFillTurn({ store, binding, response });
+        const assistantText = extractAssistantText(response);
+        if (assistantText) {
+          aui.thread().append({
+            role: "assistant",
+            content: [{ type: "text", text: assistantText }],
+            startRun: false,
+          });
+        }
+      } catch {
+        /* ignore */
+      } finally {
+        store.setBusy(false);
+        setFormMicState("idle");
+      }
+      return;
+    }
+    ragStop();
+  }, [mode, binding, fieldValues, formMicState, store, aui, ragStop]);
+
+  const state: VoiceState = mode === "form-fill" && formMicState !== "idle" ? formMicState : ragState;
+
   const value: VoiceComposerContextValue = {
     state,
     isVoiceBusy: VOICE_BUSY_STATES.includes(state),
-    startRecording,
-    stopRecording,
+    startRecording: () => void startRecording(),
+    stopRecording: () => void stopRecording(),
   };
 
   return (

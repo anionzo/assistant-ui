@@ -23,7 +23,9 @@ export async function GET(request: Request) {
   const tenantId = url.searchParams.get("tenantId") ?? resolved.tenantId;
   const page = url.searchParams.get("page") ?? "1";
   const limit = url.searchParams.get("limit") ?? "50";
+  const threadId = url.searchParams.get("threadId");
   const upstream = new URLSearchParams({ tenantId, page, limit });
+  if (threadId) upstream.set("threadId", threadId);
 
   const result = await authVoiceFormSessionFetch<{ sessions: unknown[]; pagination?: unknown }>(
     `/voice-form/sessions?${upstream.toString()}`,
@@ -64,6 +66,16 @@ export async function POST(request: Request) {
       typeof (body as Record<string, unknown>).formName === "string"
         ? (body as Record<string, unknown>).formName
         : undefined,
+    threadId:
+      typeof (body as Record<string, unknown>).threadId === "string"
+        ? (body as Record<string, unknown>).threadId
+        : undefined,
+    anchorMessageId:
+      typeof (body as Record<string, unknown>).anchorMessageId === "string"
+        ? (body as Record<string, unknown>).anchorMessageId
+        : (body as Record<string, unknown>).anchorMessageId === null
+          ? null
+          : undefined,
   };
 
   const result = await authVoiceFormSessionFetch<{ session: unknown }>(
