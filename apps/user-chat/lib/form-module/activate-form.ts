@@ -30,7 +30,7 @@ export async function activateFormFromSelection(input: {
     status: "active",
   });
 
-  const intro = `Đã mở biểu mẫu **${input.form.form_name}**. Nhập thông tin qua ô chat bên dưới.`;
+  const intro = `Đã mở biểu mẫu **${input.form.form_name}**.`;
   const cardMessageId = input.appendFormCard(card, intro);
 
   input.store.activate({

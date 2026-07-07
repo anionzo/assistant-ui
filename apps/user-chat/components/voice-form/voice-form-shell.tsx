@@ -18,7 +18,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 import { useBranding } from "@/hooks/use-branding";
-import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
+import { VOICE_FORM_PAGE_ENABLED } from "@/lib/feature-flags";
 import { voiceFormPath } from "@/lib/voice-form/routes";
 import { useT } from "@idx/i18n";
 import { VoiceFormSessionProvider } from "@/lib/voice-form/session-context";
@@ -41,7 +41,7 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
   const t = useT();
 
   useEffect(() => {
-    if (!FORM_MODULE_ENABLED) {
+    if (!VOICE_FORM_PAGE_ENABLED) {
       router.replace("/chat");
     }
   }, [router]);
@@ -55,7 +55,7 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
     [router],
   );
 
-  if (!FORM_MODULE_ENABLED) return null;
+  if (!VOICE_FORM_PAGE_ENABLED) return null;
 
   return (
     <VoiceFormSessionProvider

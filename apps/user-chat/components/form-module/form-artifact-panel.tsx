@@ -1,8 +1,9 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
-import { useFormModuleStore, useFormModuleActions } from "@/lib/form-module/form-module-store";
+import { useFormModuleStore, useFormModuleActions, useFormModuleStoreApi } from "@/lib/form-module/form-module-store";
 import {
   outputDownloadUrl,
   renderDocx,
@@ -13,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { useT } from "@idx/i18n";
 import { Check, CloudOff, FileDown, Loader2, RefreshCw, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { persistFormSessionSnapshot } from "@/lib/form-module/persist-form-session";
 
 const BOOL_TYPES = new Set(["bool", "boolean", "checkbox", "yesno"]);
 const PREVIEW_DEBOUNCE_MS = 2500;
@@ -38,7 +40,8 @@ function basename(path: string): string {
 
 export function FormArtifactPanel() {
   const t = useT();
-  const { deactivate } = useFormModuleActions();
+  const { deactivate, apply: storeApply } = useFormModuleActions();
+  const formStore = useFormModuleStoreApi();
   const mode = useFormModuleStore((s) => s.mode);
   const binding = useFormModuleStore((s) => s.binding);
   const schema = useFormModuleStore((s) => s.schema);
@@ -138,6 +141,7 @@ export function FormArtifactPanel() {
             const rawVal = fieldValues[f.key];
             const isInvalid = Object.hasOwn(invalidFields, f.key);
             const isNext = nextField === f.key;
+            const isBool = BOOL_TYPES.has(String(f.field_type || "").toLowerCase());
             return (
               <div
                 key={f.key}
@@ -151,7 +155,52 @@ export function FormArtifactPanel() {
                   {f.label || f.key}
                   {f.required && <span className="text-destructive"> *</span>}
                 </p>
-                <p className="mt-1">{displayValue(f, rawVal, t)}</p>
+                {isBool ? (
+                  <input
+                    type="checkbox"
+                    className="mt-1"
+                    checked={!!rawVal}
+                    onChange={(e) => {
+                      const v = e.target.checked;
+                      const nextVals = { ...fieldValues };
+                      nextVals[f.key] = v;
+                      storeApply({ fieldValues: nextVals });
+                      const nextInv = { ...invalidFields };
+                      if (nextInv[f.key]) {
+                        delete nextInv[f.key];
+                        storeApply({ invalidFields: nextInv });
+                      }
+                      const snap = formStore.getSnapshot();
+                      void persistFormSessionSnapshot(formStore, snap);
+                    }}
+                  />
+                ) : (
+                  <Input
+                    type="text"
+                    className="mt-1 h-8"
+                    value={rawVal != null ? String(rawVal) : ""}
+                    placeholder={f.hint || (isNext ? t("voiceForm.fieldPlaceholder") || "" : "")}
+                    onChange={(e) => {
+                      const raw = e.target.value;
+                      const nextVals = { ...fieldValues };
+                      // Giữ nguyên dấu cách hoàn toàn (leading, trailing, nhiều dấu cách).
+                      // Chỉ xóa nếu raw rỗng hoàn toàn (không có ký tự nào).
+                      if (raw === '') {
+                        delete nextVals[f.key];
+                      } else {
+                        nextVals[f.key] = raw;
+                      }
+                      storeApply({ fieldValues: nextVals });
+                      const nextInv = { ...invalidFields };
+                      if (nextInv[f.key]) {
+                        delete nextInv[f.key];
+                        storeApply({ invalidFields: nextInv });
+                      }
+                      const snap = formStore.getSnapshot();
+                      void persistFormSessionSnapshot(formStore, snap);
+                    }}
+                  />
+                )}
                 {isInvalid && (
                   <p className="text-destructive mt-1 text-xs">{invalidFields[f.key]}</p>
                 )}
@@ -178,7 +227,7 @@ export function FormArtifactPanel() {
           type="button"
           className="w-full"
           variant="outline"
-          disabled={docBusy || busy || !["ready", "confirm"].includes(decision)}
+          disabled={docBusy || busy}
           onClick={() => void handleDownload()}
         >
           {docBusy ? <Loader2 className="size-4 animate-spin" /> : <FileDown className="size-4" />}

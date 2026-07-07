@@ -25,7 +25,6 @@ export function FormPickerDialog({ open, onOpenChange, disabled }: FormPickerDia
   const messages = useAuiState((s) => s.thread.messages);
   const isRunning = useAuiState((s) => s.thread.isRunning);
   const store = useFormModuleStoreApi();
-  const mode = useFormModuleStore((s) => s.mode);
   const busy = useFormModuleStore((s) => s.busy);
 
   const [forms, setForms] = useState<FormSummary[]>([]);
@@ -56,13 +55,22 @@ export function FormPickerDialog({ open, onOpenChange, disabled }: FormPickerDia
 
   const pickForm = useCallback(
     async (form: FormSummary) => {
-      if (!remoteId || activating) return;
+      if (activating) return;
       setActivating(true);
       try {
+        let tid = remoteId;
+        if (!tid) {
+          // For new chats without remoteId yet, initialize/create the thread first
+          const init = await aui.threadListItem().initialize();
+          tid = init.remoteId;
+        }
+        if (!tid) {
+          throw new Error("Không thể tạo thread để chọn biểu mẫu");
+        }
         const anchorMessageId = getThreadHeadMessageId(messages);
         await activateFormFromSelection({
           store,
-          threadId: remoteId,
+          threadId: tid,
           anchorMessageId,
           form,
           appendFormCard,
@@ -72,11 +80,11 @@ export function FormPickerDialog({ open, onOpenChange, disabled }: FormPickerDia
         setActivating(false);
       }
     },
-    [remoteId, activating, messages, store, appendFormCard, onOpenChange],
+    [remoteId, activating, messages, store, appendFormCard, onOpenChange, aui],
   );
 
   const blocked =
-    disabled || isRunning || busy || mode === "form-fill" || !remoteId;
+    disabled || isRunning || busy;
 
   if (!open) return null;
 

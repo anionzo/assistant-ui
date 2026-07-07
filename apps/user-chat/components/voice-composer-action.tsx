@@ -6,6 +6,7 @@ import { TooltipIconButton } from "@/components/tooltip-icon-button";
 import { useActiveConversationId } from "@/lib/active-conversation-context";
 import { extractAssistantText, processFormFillTurn } from "@/lib/form-module/process-form-fill-turn";
 import { useFormModuleStore, useFormModuleStoreApi } from "@/lib/form-module/form-module-store";
+import { FORM_MODULE_ENABLED, FORM_FILL_VIA_CHAT_ENABLED } from "@/lib/feature-flags";
 import {
   createIdleWaveformLevels,
   DictationWaveformScroller,
@@ -168,7 +169,10 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
   const openDictationCapture = useCallback(async () => {
     if (dictationOpen || dictationState === "processing") return;
 
-    if (mode === "form-fill" && binding) {
+    // Tách: mic dictation luôn normal (dùng dictationRef), không special form audio start.
+    // Giữ formRecorder code cho reference.
+    /*
+    if (FORM_MODULE_ENABLED && FORM_FILL_VIA_CHAT_ENABLED && mode === "form-fill" && binding) {
       setDictationOpen(true);
       setDictationState("recording");
       try {
@@ -178,6 +182,7 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
       }
       return;
     }
+    */
 
     setDictationOpen(true);
     setDictationState("recording");
@@ -190,17 +195,21 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
       dictationRef.current.cancel();
       closeDictation();
     }
-  }, [dictationOpen, dictationState, mode, binding, closeDictation]);
+  }, [dictationOpen, dictationState, closeDictation]);
 
   const cancelDictation = useCallback(() => {
-    if (mode === "form-fill" && binding) {
+    // Luôn normal cancel.
+    /*
+    if (FORM_MODULE_ENABLED && FORM_FILL_VIA_CHAT_ENABLED && mode === "form-fill" && binding) {
       void formRecorderRef.current.stop();
       setFormMicState("idle");
     } else {
       dictationRef.current.cancel();
     }
+    */
+    dictationRef.current.cancel();
     closeDictation();
-  }, [mode, binding, closeDictation]);
+  }, [closeDictation]);
 
   const applyDictationText = useCallback(
     (text: string) => {
@@ -218,7 +227,12 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
     setDictationState("processing");
 
     try {
-      if (mode === "form-fill" && binding) {
+      // Tách voice dictation: luôn chỉ transcribe và nhẩy text vào input box (như normal dictation/đàm thoại).
+      // Không auto postFill hay fill form từ mic confirm, ngay cả khi form open.
+      // User bấm gửi thủ công sau sẽ trigger form-fill (nếu mode active) qua router.
+      // Giữ code form audio branch bên dưới cho reference/future (khi cần direct voice fill).
+      /*
+      if (FORM_MODULE_ENABLED && FORM_FILL_VIA_CHAT_ENABLED && mode === "form-fill" && binding) {
         setFormMicState("processing");
         store.setBusy(true);
         const blob = await formRecorderRef.current.stop();
@@ -242,6 +256,7 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
         }
         return;
       }
+      */
 
       const blob = await dictationRef.current.stop();
       if (!blob) return;
@@ -256,10 +271,6 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
     }
   }, [
     dictationState,
-    mode,
-    binding,
-    fieldValues,
-    store,
     aui,
     applyDictationText,
     getConversationId,
@@ -278,7 +289,7 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
   }, [dictationState, dictationPaused]);
 
   const startLiveVoice = useCallback(() => {
-    if (mode === "form-fill") return;
+    if (FORM_MODULE_ENABLED && FORM_FILL_VIA_CHAT_ENABLED && mode === "form-fill") return;
     liveStart();
   }, [mode, liveStart]);
 
@@ -306,9 +317,9 @@ export function VoiceComposerProvider({ children }: { children: ReactNode }) {
     dictationState,
     dictationLevels,
     dictationPaused,
-    liveVoiceState: mode === "form-fill" && formMicState !== "idle" ? formMicState : liveVoiceState,
+    liveVoiceState: (FORM_MODULE_ENABLED && FORM_FILL_VIA_CHAT_ENABLED && mode === "form-fill" && formMicState !== "idle") ? formMicState : liveVoiceState,
     isLiveVoiceBusy: VOICE_BUSY_STATES.includes(
-      mode === "form-fill" && formMicState !== "idle" ? formMicState : liveVoiceState,
+      (FORM_MODULE_ENABLED && FORM_FILL_VIA_CHAT_ENABLED && mode === "form-fill" && formMicState !== "idle") ? formMicState : liveVoiceState,
     ),
     openDictationCapture,
     confirmDictation,
@@ -350,7 +361,7 @@ function VoiceLiveConversationButton() {
   const { startLiveVoice, stopLiveVoice, liveVoiceState } = useVoiceComposerContext();
   const mode = useFormModuleStore((s) => s.mode);
 
-  if (!LIVE_CONVERSATION_ENABLED || mode === "form-fill") return null;
+  if (!LIVE_CONVERSATION_ENABLED || (FORM_MODULE_ENABLED && FORM_FILL_VIA_CHAT_ENABLED && mode === "form-fill")) return null;
 
   const isActive =
     liveVoiceState === "recording" ||
@@ -548,7 +559,7 @@ export function VoiceComposerActionBar({ initialAuth }: { initialAuth: boolean }
 
   return (
     <div className="aui-composer-action-wrapper relative flex w-full items-center justify-between">
-      <ComposerPlusMenu formPickerDisabled={!initialAuth} />
+      <ComposerPlusMenu formPickerDisabled={false} />
       <div className="flex items-center gap-1.5">
         <VoiceMicControl />
         <VoiceComposerTrailingAction />

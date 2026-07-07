@@ -31,7 +31,7 @@ import {
   VoiceComposerActionBar,
   VoiceComposerProvider,
 } from "@/components/voice-composer-action";
-import { useFormModuleStore } from "@/lib/form-module/form-module-store";
+
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
@@ -238,11 +238,7 @@ const ThreadSuggestionItem: FC = () => {
 };
 
 const Composer: FC<{ initialAuth: boolean }> = ({ initialAuth }) => {
-  const mode = useFormModuleStore((s) => s.mode);
-  const placeholder =
-    mode === "form-fill"
-      ? "Nhập thông tin biểu mẫu (họ tên, CCCD, ...)"
-      : "Nhập câu hỏi của bạn...";
+  const placeholder = "Nhập câu hỏi của bạn...";
 
   return (
     <ComposerPrimitive.Root className="aui-composer-root relative flex w-full flex-col">

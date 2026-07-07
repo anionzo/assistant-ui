@@ -106,7 +106,7 @@ export const VoiceCaptureBar: FC<VoiceCaptureBarProps> = ({
         "shadow-[0_2px_14px_-6px_rgba(0,0,0,0.12),0_1px_3px_rgba(0,0,0,0.06)]",
       )}
     >
-      <ComposerPlusMenu formPickerDisabled={!initialAuth} variant="capture" />
+      <ComposerPlusMenu formPickerDisabled={false} variant="capture" />
       <VoiceWaveform levels={waveformLevels} paused={paused} />
       <div className="flex shrink-0 items-center gap-0.5 ps-0.5">
         <CaptureIconButton

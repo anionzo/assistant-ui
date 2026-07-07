@@ -3,7 +3,7 @@ import { extractLastUserMessage } from "@/lib/modular-rag-adapter";
 import { postFill } from "@/lib/voice-form/api";
 import type { FormModuleStore } from "@/lib/form-module/form-module-store";
 import { extractAssistantText, processFormFillTurn } from "@/lib/form-module/process-form-fill-turn";
-import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
+import { FORM_MODULE_ENABLED, FORM_FILL_VIA_CHAT_ENABLED } from "@/lib/feature-flags";
 
 async function* streamRagAdapter(
   ragAdapter: ChatModelAdapter,
@@ -29,8 +29,12 @@ export function createChatComposerAdapter(
       const snap = store.getSnapshot();
       const activeThreadId = getActiveThreadId();
 
+      // Tách luồng form-fill (gửi để điền form) và normal chat (RAG).
+      // Code form-fill đầy đủ được giữ lại, chỉ active khi cả 2 flags + mode match.
+      // Mặc định FORM_FILL_VIA_CHAT_ENABLED = false → chat luôn normal.
       if (
         FORM_MODULE_ENABLED &&
+        FORM_FILL_VIA_CHAT_ENABLED &&
         snap.mode === "form-fill" &&
         snap.binding &&
         activeThreadId &&
@@ -66,6 +70,7 @@ export function createChatComposerAdapter(
         return;
       }
 
+      // Luồng normal chat
       yield* streamRagAdapter(ragAdapter, options);
     },
   };
