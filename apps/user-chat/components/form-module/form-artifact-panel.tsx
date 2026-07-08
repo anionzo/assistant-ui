@@ -38,7 +38,7 @@ function basename(path: string): string {
   return (path.split(/[\\/]/).pop() || "").split("?")[0];
 }
 
-export function FormArtifactPanel() {
+export function FormArtifactPanel({ className }: { className?: string } = {}) {
   const t = useT();
   const { deactivate, apply: storeApply } = useFormModuleActions();
   const formStore = useFormModuleStoreApi();
@@ -116,7 +116,17 @@ export function FormArtifactPanel() {
   }
 
   return (
-    <aside className="border-border/60 flex w-full min-w-[300px] max-w-md shrink-0 flex-col border-l bg-background lg:w-96">
+    <aside
+      className={cn(
+        "border-border/60 flex h-full w-full min-w-0 flex-col border-l bg-background",
+        // When used inside the resizable split (w-full passed), let the grid control the size.
+        // When standalone, apply sensible fixed sizes.
+        !className?.includes("w-full") && "min-w-[300px] max-w-md lg:w-96",
+        // Always ensure a reasonable minimum for the form panel
+        "min-w-[280px]",
+        className
+      )}
+    >
       <header className="flex items-center justify-between gap-2 border-b px-3 py-2">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{binding.formName || binding.formCode}</p>
