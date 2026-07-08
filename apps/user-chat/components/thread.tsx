@@ -99,6 +99,7 @@ export type ThreadProps = {
 };
 
 const EMPTY_COMPONENTS: ThreadComponents = {};
+const CHAT_WATERMARK_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";
 
 const DEFAULT_SUGGESTIONS = [
   {
@@ -170,7 +171,19 @@ const ThreadRoot: FC<{ isEmpty: boolean; initialAuth: boolean }> = ({
         data-slot="aui_thread-viewport"
         className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-scroll scroll-smooth"
       >
-        <div className="mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-3 pt-3 sm:px-4 sm:pt-4">
+        <div
+          aria-hidden="true"
+          className={cn(
+            "pointer-events-none absolute inset-0 z-0 bg-no-repeat",
+            isEmpty ? "opacity-[0.16]" : "opacity-10",
+          )}
+          style={{
+            backgroundImage: `url(${CHAT_WATERMARK_LOGO_URL})`,
+            backgroundPosition: "center 44%",
+            backgroundSize: "clamp(16rem, 58vw, 34rem)",
+          }}
+        />
+        <div className="relative z-10 mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-3 pt-3 sm:px-4 sm:pt-4">
           <div
             className={cn(
               "flex flex-col",

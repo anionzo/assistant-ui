@@ -8,13 +8,14 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
+const HUIT_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";
 
 export const metadata: Metadata = {
   title: "Idx Chat",
   description: "Nền tảng trợ lý AI",
   icons: {
-    icon: [{ url: "/app-logo.png", sizes: "120x120", type: "image/png" }],
-    apple: [{ url: "/app-logo.png", sizes: "120x120", type: "image/png" }],
+    icon: [{ url: HUIT_LOGO_URL, type: "image/svg+xml" }],
+    apple: [{ url: HUIT_LOGO_URL, type: "image/svg+xml" }],
   },
 };
 
