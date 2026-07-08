@@ -22,7 +22,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
   const locale = await getRequestLocale();
 
   return (
-    <html lang={locale} className={cn("font-sans", geist.variable)}>
+    <html lang={locale} className={cn("font-sans", geist.variable)} suppressHydrationWarning>
       <body>
         <AppI18nProvider locale={locale}>
           <TooltipProvider>{children}</TooltipProvider>

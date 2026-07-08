@@ -12,7 +12,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const locale = await getRequestLocale();
 
   return (
-    <html lang={locale}>
+    <html lang={locale} suppressHydrationWarning>
       <body>
         <AppI18nProvider locale={locale}>{children}</AppI18nProvider>
       </body>
