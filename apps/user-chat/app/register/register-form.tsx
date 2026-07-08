@@ -3,6 +3,8 @@
 import type { FormEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LockKeyhole, Mail, UserRound } from "lucide-react";
+import { AuthTextField } from "@/components/auth/auth-text-field";
 import { Button } from "@/components/ui/button";
 import { useT } from "@idx/i18n";
 
@@ -56,27 +58,51 @@ export function RegisterForm() {
 
   return (
     <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-      <label className="flex flex-col gap-2 text-sm">
-        <span>
-          {t("auth.displayName")}{" "}
-          <span className="text-muted-foreground">{t("common.optional")}</span>
-        </span>
-        <input className="rounded-md border border-border px-3 py-2" type="text" name="displayName" />
-      </label>
-      <label className="flex flex-col gap-2 text-sm">
-        <span>{t("common.email")}</span>
-        <input className="rounded-md border border-border px-3 py-2" type="email" name="email" required />
-      </label>
-      <label className="flex flex-col gap-2 text-sm">
-        <span>{t("common.password")}</span>
-        <input className="rounded-md border border-border px-3 py-2" type="password" name="password" minLength={8} required />
-      </label>
-      <label className="flex flex-col gap-2 text-sm">
-        <span>{t("auth.confirmPassword")}</span>
-        <input className="rounded-md border border-border px-3 py-2" type="password" name="confirmPassword" required />
-      </label>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
-      <Button type="submit" size="lg" disabled={pending}>
+      <AuthTextField
+        icon={<UserRound className="size-4" />}
+        label={
+          <>
+            {t("auth.displayName")} <span className="font-normal text-slate-400">{t("common.optional")}</span>
+          </>
+        }
+        type="text"
+        name="displayName"
+        autoComplete="name"
+      />
+      <AuthTextField
+        icon={<Mail className="size-4" />}
+        label={t("common.email")}
+        type="email"
+        name="email"
+        autoComplete="email"
+        required
+      />
+      <AuthTextField
+        icon={<LockKeyhole className="size-4" />}
+        label={t("common.password")}
+        type="password"
+        name="password"
+        autoComplete="new-password"
+        minLength={8}
+        required
+      />
+      <AuthTextField
+        icon={<LockKeyhole className="size-4" />}
+        label={t("auth.confirmPassword")}
+        type="password"
+        name="confirmPassword"
+        autoComplete="new-password"
+        required
+      />
+      {error ? (
+        <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>
+      ) : null}
+      <Button
+        type="submit"
+        size="lg"
+        disabled={pending}
+        className="h-11 bg-slate-950 text-white shadow-sm shadow-slate-900/10 hover:bg-slate-800"
+      >
         {pending ? t("auth.creatingAccount") : t("auth.createAccount")}
       </Button>
     </form>

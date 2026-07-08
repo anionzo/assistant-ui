@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { APP_CONFIG_FALLBACKS } from "@/lib/app-config-fallbacks";
 
-type BrandingState = {
+export type BrandingState = {
   logoUrl: string;
   appName: string;
   tagline: string;
@@ -15,8 +15,8 @@ const FALLBACK: BrandingState = {
   tagline: APP_CONFIG_FALLBACKS.branding.user.tagline,
 };
 
-export function useBranding() {
-  const [branding, setBranding] = useState<BrandingState>(FALLBACK);
+export function useBranding(initialBranding?: BrandingState) {
+  const [branding, setBranding] = useState<BrandingState>(initialBranding ?? FALLBACK);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
