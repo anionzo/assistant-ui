@@ -24,6 +24,7 @@ import {
 import { TooltipIconButton } from "@/components/tooltip-icon-button";
 import { FormCardFromMetadata } from "@/components/form-module/form-card-message";
 import { FormComposerChrome } from "@/components/form-module/form-composer-chrome";
+import { FormQuickSelector } from "@/components/form-module/form-quick-selector";
 import {
   ComposerDictationAttachments,
   ComposerDictationInput,
@@ -180,6 +181,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; initialAuth: boolean }> = ({ isEmpty, i
             >
               <ThreadScrollToBottom />
               <RuntimeToolbar />
+              <FormQuickSelector />
               <Composer initialAuth={initialAuth} />
               <AuiIf condition={(s) => isNewChatView(s) && s.composer.isEmpty}>
                 <ThreadSuggestions />
