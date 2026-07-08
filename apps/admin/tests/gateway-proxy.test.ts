@@ -99,4 +99,30 @@ describe("admin BFF", () => {
     expect(response.status).toBe(500);
     await expect(response.json()).resolves.toMatchObject({ code: "configuration_error" });
   });
+
+  it("proxies document upload pipeline and returns gateway response with queued status", async () => {
+    const queuedResponse = { id: "doc-123", file_id: "f1", status: "queued", progress: 0 };
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify(queuedResponse), { status: 200 }),
+    );
+
+    const formData = new FormData();
+    formData.append("file", new Blob(["dummy content"]), "test.pdf");
+
+    const response = await documentsGet(
+      new Request("http://localhost:3002/api/documents/collections/c1/documents/pipeline", {
+        method: "POST",
+        body: formData,
+      }),
+      { params: Promise.resolve({ slug: ["collections", "c1", "documents", "pipeline"] }) },
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ status: "queued" });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:4000/rag/admin/documents/collections/c1/documents/pipeline",
+      expect.objectContaining({ method: "POST" }),
+    );
+  });
 });

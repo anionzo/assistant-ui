@@ -187,7 +187,7 @@ describe("E09-S1 gateway transport", () => {
 
     const response = await responsePromise;
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ ok: true });
+    await expect(response.json()).resolves.toMatchObject({ ok: true, status: "queued" });
     expect(fixture.state.multipartTotalBytes).toBeGreaterThan(payload.length);
     expect(fixture.state.apiKeysUsed).toEqual([ADMIN_KEY]);
     expect(Date.now() - uploadStartedAt).toBeGreaterThan(40);

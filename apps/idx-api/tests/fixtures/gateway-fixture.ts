@@ -75,7 +75,8 @@ export function createGatewayFixture() {
       req.on("end", () => {
         state.multipartTotalBytes = bytes;
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: true, bytes }));
+        // Return queued status for document/file uploads to satisfy "upload returns queued" validation
+        res.end(JSON.stringify({ ok: true, bytes, status: "queued", progress: 0 }));
       });
 
       req.on("aborted", () => {
