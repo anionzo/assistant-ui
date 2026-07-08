@@ -41,6 +41,18 @@
     "show": "Hiện thanh bên",
     "hide": "Ẩn thanh bên"
   },
+  "chatHome": {
+    "title": "Bạn muốn tìm hiểu điều gì?",
+    "subtitle": "Hỏi về thông tin, tài liệu hoặc nhờ trợ lý hỗ trợ các bước cần làm. Chọn một gợi ý bên dưới hoặc nhập câu hỏi của bạn.",
+    "promptSummary": "Tóm tắt giúp tôi nội dung chính của tài liệu này.",
+    "promptSummaryDescription": "Phù hợp khi bạn cần nắm nhanh ý chính.",
+    "promptStart": "Tôi nên bắt đầu từ đâu nếu muốn tìm hiểu thông tin này?",
+    "promptStartDescription": "Gợi ý hướng đi và các mục cần xem trước.",
+    "promptExplain": "Giải thích ngắn gọn chủ đề này theo cách dễ hiểu.",
+    "promptExplainDescription": "Biến nội dung phức tạp thành giải thích đơn giản.",
+    "promptSteps": "Liệt kê các bước cần làm cho trường hợp này.",
+    "promptStepsDescription": "Tạo checklist hành động rõ ràng."
+  },
   "loading": {
     "default": "Đang tải...",
     "openingChat": "Đang mở trò chuyện...",

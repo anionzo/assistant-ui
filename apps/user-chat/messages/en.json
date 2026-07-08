@@ -41,6 +41,18 @@
     "show": "Show sidebar",
     "hide": "Hide sidebar"
   },
+  "chatHome": {
+    "title": "What would you like to explore?",
+    "subtitle": "Ask about information, documents, or next steps. Pick a suggestion below or type your own question.",
+    "promptSummary": "Summarize the main points of this document.",
+    "promptSummaryDescription": "Useful when you need the key ideas quickly.",
+    "promptStart": "Where should I start if I want to understand this topic?",
+    "promptStartDescription": "Get a direction and the first items to review.",
+    "promptExplain": "Explain this topic briefly in simple language.",
+    "promptExplainDescription": "Turn complex content into a clear explanation.",
+    "promptSteps": "List the steps I need to follow for this case.",
+    "promptStepsDescription": "Create a clear action checklist."
+  },
   "loading": {
     "default": "Loading...",
     "openingChat": "Opening chat...",
