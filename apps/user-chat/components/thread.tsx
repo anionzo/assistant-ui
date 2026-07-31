@@ -34,6 +34,7 @@ import {
 } from "@/components/voice-composer-action";
 
 import { Button } from "@/components/ui/button";
+import { useBranding } from "@/hooks/use-branding";
 import { cn } from "@/lib/utils";
 import {
   ActionBarMorePrimitive,
@@ -99,7 +100,6 @@ export type ThreadProps = {
 };
 
 const EMPTY_COMPONENTS: ThreadComponents = {};
-const CHAT_WATERMARK_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";
 
 const DEFAULT_SUGGESTIONS = [
   {
@@ -152,6 +152,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; initialAuth: boolean }> = ({
   initialAuth,
 }) => {
   const { Welcome = ThreadWelcome } = useContext(ThreadComponentsContext);
+  const { branding } = useBranding();
   const isHydrating = useAuiState(isThreadHydrating);
   const dockComposer = !isEmpty || isHydrating;
 
@@ -178,7 +179,9 @@ const ThreadRoot: FC<{ isEmpty: boolean; initialAuth: boolean }> = ({
             isEmpty ? "opacity-[0.16]" : "opacity-10",
           )}
           style={{
-            backgroundImage: `url(${CHAT_WATERMARK_LOGO_URL})`,
+            backgroundImage: branding.logoUrl
+              ? `url(${branding.logoUrl})`
+              : undefined,
             backgroundPosition: "center 44%",
             backgroundSize: "clamp(16rem, 58vw, 34rem)",
           }}
