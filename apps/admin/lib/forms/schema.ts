@@ -17,6 +17,9 @@ export type FormDetailMeta = {
   formCode: string;
   formName?: string;
   description?: string;
+  schemaVersion?: string;
+  templatePath?: string;
+  keywords?: string[];
 };
 
 function asObject(value: unknown): Record<string, unknown> | null {
@@ -116,10 +119,31 @@ export function extractFormDetailMeta(detail: unknown, fallbackCode = ""): FormD
         ? d.description
         : undefined;
 
+  const schemaVersion = String(
+    schema?.schema_version ?? d.schema_version ?? "",
+  ).trim();
+
+  const templatePath = String(
+    schema?.template_path ?? schema?.render_template_path ?? d.template_path ?? "",
+  ).trim();
+
+  const rawKeywords = schema?.keywords ?? d.keywords;
+  const keywords = Array.isArray(rawKeywords)
+    ? rawKeywords.map((item) => String(item).trim()).filter(Boolean)
+    : typeof rawKeywords === "string"
+      ? rawKeywords
+          .split(",")
+          .map((item) => item.trim())
+          .filter(Boolean)
+      : undefined;
+
   return {
     formCode,
     formName: formName || undefined,
     description,
+    schemaVersion: schemaVersion || undefined,
+    templatePath: templatePath || undefined,
+    keywords: keywords?.length ? keywords : undefined,
   };
 }
 

@@ -31,10 +31,12 @@ export function FormPickerDialog({ open, onOpenChange, disabled }: FormPickerDia
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
   const [activating, setActivating] = useState(false);
+  const [pickError, setPickError] = useState("");
 
   useEffect(() => {
     if (!open) return;
     setLoading(true);
+    setPickError("");
     void loadFormList()
       .then(setForms)
       .finally(() => setLoading(false));
@@ -57,6 +59,7 @@ export function FormPickerDialog({ open, onOpenChange, disabled }: FormPickerDia
     async (form: FormSummary) => {
       if (activating) return;
       setActivating(true);
+      setPickError("");
       try {
         let tid = remoteId;
         if (!tid) {
@@ -67,6 +70,8 @@ export function FormPickerDialog({ open, onOpenChange, disabled }: FormPickerDia
         if (!tid) {
           throw new Error("Không thể tạo thread để chọn biểu mẫu");
         }
+        // Only anchor to a message that already exists in this thread.
+        // Sending a stale/local anchor causes 400 from idx-api.
         const anchorMessageId = getThreadHeadMessageId(messages);
         await activateFormFromSelection({
           store,
@@ -76,6 +81,8 @@ export function FormPickerDialog({ open, onOpenChange, disabled }: FormPickerDia
           appendFormCard,
         });
         onOpenChange(false);
+      } catch (e) {
+        setPickError(e instanceof Error ? e.message : "Không mở được biểu mẫu");
       } finally {
         setActivating(false);
       }
@@ -115,6 +122,12 @@ export function FormPickerDialog({ open, onOpenChange, disabled }: FormPickerDia
             void loadFormList(q.trim() || undefined).then(setForms);
           }}
         />
+        {pickError ? (
+          <p className="mt-2 rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+            {pickError}
+          </p>
+        ) : null}
+
         <div className="mt-3 max-h-64 overflow-y-auto">
           {loading && (
             <p className="text-muted-foreground flex items-center gap-2 py-4 text-sm">

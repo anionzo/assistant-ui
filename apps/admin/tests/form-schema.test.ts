@@ -68,4 +68,27 @@ describe("extractFormSchema", () => {
     expect(meta.formCode).toBe("MAU_SO_10_DE_NGHI_HUONG_TRO_CAP_THAT_NGHIEP_1201141238");
     expect(extractFormSchema(detail)?.fields).toHaveLength(1);
   });
+
+  it("extracts keywords and schema version from form_schema", () => {
+    const detail = {
+      form_code: "X",
+      form_schema: {
+        form_name: "Demo",
+        description: "Desc",
+        schema_version: "v2",
+        template_path: "/data/forms/templates/x.docx",
+        keywords: ["a", "b"],
+        need_to_fill: [{ key: "k", label: "K", field_type: "text" }],
+      },
+    };
+    const meta = extractFormDetailMeta(detail);
+    expect(meta).toMatchObject({
+      formCode: "X",
+      formName: "Demo",
+      description: "Desc",
+      schemaVersion: "v2",
+      templatePath: "/data/forms/templates/x.docx",
+      keywords: ["a", "b"],
+    });
+  });
 });

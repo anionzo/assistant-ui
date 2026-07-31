@@ -1,5 +1,6 @@
 import { getAdminConfig } from "@/lib/server/config";
 import { errorResponse } from "@/lib/server/errors";
+import { parseUpstreamErrorMessage } from "@/lib/server/parse-upstream-error";
 
 const FORWARDED_HEADERS = ["content-type", "accept", "accept-language"];
 export const IDX_SERVICE_AUTH_HEADER = "x-idx-service-token";
@@ -36,21 +37,11 @@ async function readBody(req: Request): Promise<BodyInit | undefined> {
   if (req.method === "GET" || req.method === "HEAD") return undefined;
   const contentType = req.headers.get("content-type") ?? "";
   if (contentType.includes("multipart/form-data")) {
+    // Stream multipart as-is (keep boundary in content-type).
     return req.body ?? undefined;
   }
   const text = await req.text();
   return text.length > 0 ? text : undefined;
-}
-
-function parseIdxRagError(payload: string, status: number): string {
-  try {
-    const parsed = JSON.parse(payload) as { error?: string | { message?: string } };
-    if (typeof parsed.error === "string") return parsed.error;
-    if (parsed.error?.message) return parsed.error.message;
-  } catch {
-    if (payload) return payload.slice(0, 500);
-  }
-  return `Gateway error (${status})`;
 }
 
 export async function proxyGatewayRequest(
@@ -105,7 +96,7 @@ export async function proxyGatewayRequest(
 
   if (!upstream.ok) {
     return errorResponse(
-      parseIdxRagError(payload, upstream.status),
+      parseUpstreamErrorMessage(payload, upstream.status),
       "gateway_error",
       upstream.status,
       requestId,

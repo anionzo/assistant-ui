@@ -20,6 +20,13 @@ describe("upload-feedback", () => {
 
   it("reads upload feedback from search params", () => {
     const params = new URLSearchParams({ [FORM_UPLOADED_QUERY]: "1", [FORM_UPLOADED_FILE_QUERY]: "a.docx" });
-    expect(readUploadFeedback(params)).toEqual({ uploaded: true, fileName: "a.docx" });
+    expect(readUploadFeedback(params)).toEqual({
+      uploaded: true,
+      processing: false,
+      fileName: "a.docx",
+      jobId: undefined,
+      status: undefined,
+      schemaVersion: undefined,
+    });
   });
 });

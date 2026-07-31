@@ -2,82 +2,96 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Upload } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, Upload } from "lucide-react";
 import { useT } from "@idx/i18n";
 import { AdminShell } from "@/components/admin-shell";
-import { StatusBanner } from "@/components/status-banner";
+import { ApiErrorBanner } from "@/components/api-error-banner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { bffJson } from "@/lib/api/bff";
-import { formDetailHref, formsListHref } from "@/lib/forms/upload-feedback";
-
-type UploadSuccess = {
-  code: string;
-  fileName: string;
-  formName?: string;
-};
+import { BffRequestError, bffJson } from "@/lib/api/bff";
+import {
+  formFileAcceptAttribute,
+  isAllowedFormFileName,
+  parseFormIngestResponse,
+} from "@/lib/forms/ingest";
+import { formDetailHref, saveFormIngestReceipt } from "@/lib/forms/upload-feedback";
 
 export default function NewFormPage() {
   const t = useT();
+  const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState<UploadSuccess | null>(null);
+  const [error, setError] = useState<unknown>(null);
 
   async function handleUpload(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const fileInput = form.elements.namedItem("file") as HTMLInputElement | null;
-    const codeInput = form.elements.namedItem("form_code") as HTMLInputElement | null;
+    const nameInput = form.elements.namedItem("form_name") as HTMLInputElement | null;
+    const keywordsInput = form.elements.namedItem("keywords") as HTMLInputElement | null;
     const file = fileInput?.files?.[0];
+
     if (!file) {
-      setError(t("forms.chooseFile"));
+      setError(new Error(t("forms.chooseFile")));
+      return;
+    }
+    if (!isAllowedFormFileName(file.name)) {
+      setError(new Error(t("forms.unsupportedFileType")));
       return;
     }
 
     setUploading(true);
-    setError("");
-    setSuccess(null);
+    setError(null);
     try {
+      // Gateway POST /forms/ingest fields (via BFF /api/forms → /rag/admin/forms).
       const body = new FormData();
       body.append("file", file);
-      if (codeInput?.value.trim()) {
-        body.append("form_code", codeInput.value.trim());
-      }
-      const result = await bffJson<{
-        form_code?: string;
-        code?: string;
-        form_name?: string;
-        title?: string;
-        name?: string;
-      }>("/api/forms", {
+      if (nameInput?.value.trim()) body.append("form_name", nameInput.value.trim());
+      if (keywordsInput?.value.trim()) body.append("keywords", keywordsInput.value.trim());
+      body.append("extract_schema", "true");
+
+      const payload = await bffJson<unknown>("/api/forms", {
         method: "POST",
         body,
       });
 
-      const code = String(result.form_code ?? result.code ?? codeInput?.value.trim() ?? "").trim();
-      if (!code) {
-        setError(t("forms.uploadNoCode"));
+      // Gateway FormIngestResponse:
+      // { form_code, status: "queued", job_id, schema_version?, template_path? }
+      const ingest = parseFormIngestResponse(payload);
+      if (!ingest) {
+        setError(
+          new BffRequestError(t("forms.uploadNoCode"), 200, {
+            code: "missing_form_code",
+          }),
+        );
         return;
       }
 
-      setSuccess({
-        code,
+      // Keep full receipt (incl. template_path) for detail banner — too long for URL.
+      saveFormIngestReceipt({
+        ...ingest,
         fileName: file.name,
-        formName: result.form_name ?? result.title ?? result.name,
+        savedAt: Date.now(),
       });
-      form.reset();
+
+      // status "queued" = stream job enqueued after Temporal pipeline returned.
+      // Schema is not in this response — detail page polls GET /forms/{code}.
+      router.push(
+        formDetailHref(ingest.formCode, {
+          processing: true,
+          uploaded: true,
+          fileName: file.name,
+          jobId: ingest.jobId,
+          status: ingest.status,
+          schemaVersion: ingest.schemaVersion,
+        }),
+      );
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
+      setError(e);
     } finally {
       setUploading(false);
     }
-  }
-
-  function handleUploadAnother() {
-    setSuccess(null);
-    setError("");
-    formRef.current?.reset();
   }
 
   return (
@@ -86,74 +100,50 @@ export default function NewFormPage() {
         {t("common.backToForms")}
       </Link>
 
-      {success ? (
-        <div className="max-w-xl space-y-4">
-          <StatusBanner tone="success">
-            <div className="flex items-start gap-2">
-              <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
-              <div className="space-y-1">
-                <p className="font-medium">{t("forms.uploadSuccess")}</p>
-                <p>
-                  <span className="font-mono">{success.code}</span>
-                  {success.formName ? (
-                    <>
-                      {" "}
-                      — <span>{success.formName}</span>
-                    </>
-                  ) : null}
-                </p>
-                <p className="text-emerald-900/80">
-                  {t("forms.uploadFile")} {success.fileName}
-                </p>
-              </div>
-            </div>
-          </StatusBanner>
-
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href={formDetailHref(success.code, { uploaded: true, fileName: success.fileName })}
-              className="inline-flex h-8 items-center rounded-lg bg-primary px-3 text-xs font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              {t("forms.viewSchema")}
-            </Link>
-            <Button type="button" variant="outline" size="sm" onClick={handleUploadAnother}>
-              {t("forms.uploadAnother")}
-            </Button>
-            <Link
-              href={formsListHref(true)}
-              className="inline-flex h-8 items-center rounded-lg border border-border px-3 text-xs font-medium hover:bg-muted"
-            >
-              {t("forms.backToList")}
-            </Link>
-          </div>
+      <form
+        ref={formRef}
+        onSubmit={(e) => void handleUpload(e)}
+        className="max-w-xl space-y-4 rounded-xl border border-border bg-card p-6"
+      >
+        <div>
+          <label className="mb-1 block text-sm font-medium">{t("forms.formFile")}</label>
+          <Input
+            name="file"
+            type="file"
+            required
+            disabled={uploading}
+            accept={formFileAcceptAttribute()}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">{t("forms.uploadFileHint")}</p>
         </div>
-      ) : (
-        <form
-          ref={formRef}
-          onSubmit={(e) => void handleUpload(e)}
-          className="max-w-xl space-y-4 rounded-xl border border-border bg-card p-6"
-        >
-          <div>
-            <label className="mb-1 block text-sm font-medium">{t("forms.formCodeOptional")}</label>
-            <Input name="form_code" placeholder="admission_form_v1" disabled={uploading} />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">{t("forms.formFile")}</label>
-            <Input name="file" type="file" required disabled={uploading} />
-          </div>
-          <Button type="submit" disabled={uploading}>
-            <Upload className="size-4" />
-            {uploading ? t("common.uploading") : t("common.upload")}
-          </Button>
-          {uploading ? (
-            <p className="text-xs text-muted-foreground">{t("forms.uploadWait")}</p>
-          ) : null}
-        </form>
-      )}
+        <div>
+          <label className="mb-1 block text-sm font-medium">{t("forms.formNameOptional")}</label>
+          <Input
+            name="form_name"
+            placeholder={t("forms.formNamePlaceholder")}
+            disabled={uploading}
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">{t("forms.keywordsOptional")}</label>
+          <Input
+            name="keywords"
+            placeholder={t("forms.keywordsPlaceholder")}
+            disabled={uploading}
+          />
+        </div>
+        <Button type="submit" disabled={uploading}>
+          {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+          {uploading ? t("forms.uploadingIngest") : t("forms.uploadAndIngest")}
+        </Button>
+        {uploading ? (
+          <p className="text-xs text-muted-foreground">{t("forms.uploadWait")}</p>
+        ) : null}
+      </form>
 
       {error ? (
         <div className="mt-4 max-w-xl">
-          <StatusBanner tone="error">{error}</StatusBanner>
+          <ApiErrorBanner error={error} fallback={t("forms.uploadFailed")} />
         </div>
       ) : null}
     </AdminShell>

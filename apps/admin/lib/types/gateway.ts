@@ -68,5 +68,19 @@ export type FormSummary = {
   form_name?: string;
   title?: string;
   name?: string;
+  schema_version?: string;
+  description?: string;
+  status?: string;
+  [key: string]: unknown;
+};
+
+/** Gateway FormIngestResponse after POST /forms/ingest (via BFF). */
+export type FormIngestResponse = {
+  form_code?: string;
+  code?: string;
+  status?: string;
+  job_id?: string;
+  schema_version?: string;
+  template_path?: string;
   [key: string]: unknown;
 };

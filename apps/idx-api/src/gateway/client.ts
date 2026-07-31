@@ -56,6 +56,63 @@ function gatewayErrorResponse(
   );
 }
 
+/** Pull a human message out of FastAPI / gateway / ErrorResponse-shaped bodies. */
+export function extractGatewayErrorMessage(payload: string, status: number): string {
+  const fallback = `Gateway error (${status})`;
+  if (!payload?.trim()) return fallback;
+
+  try {
+    const parsed = JSON.parse(payload) as unknown;
+    const message = readErrorNode(parsed);
+    if (message) return message;
+  } catch {
+    return payload.slice(0, 500);
+  }
+  return fallback;
+}
+
+function readErrorNode(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    return trimmed || null;
+  }
+  if (typeof value !== "object") return null;
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => readErrorNode(item))
+      .filter((part): part is string => Boolean(part));
+    return parts.length > 0 ? parts.join("; ") : null;
+  }
+
+  const obj = value as Record<string, unknown>;
+
+  // Leaf ErrorResponse / FastAPI validation item on this node.
+  if (typeof obj.detail === "string" && obj.detail.trim()) {
+    const code = typeof obj.code === "string" ? obj.code.trim() : "";
+    return code ? `${code}: ${obj.detail.trim()}` : obj.detail.trim();
+  }
+  if (typeof obj.message === "string" && obj.message.trim()) {
+    return obj.message.trim();
+  }
+  if (typeof obj.msg === "string" && obj.msg.trim()) {
+    const loc = Array.isArray(obj.loc) ? obj.loc.map(String).join(".") : "";
+    return loc ? `${loc}: ${obj.msg.trim()}` : obj.msg.trim();
+  }
+
+  // Containers: idx-api { error }, FastAPI { detail: object|array }
+  if ("error" in obj) {
+    const nested = readErrorNode(obj.error);
+    if (nested) return nested;
+  }
+  if ("detail" in obj && typeof obj.detail === "object") {
+    const nested = readErrorNode(obj.detail);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 export async function proxyToGateway(input: ProxyGatewayInput): Promise<Response> {
   let config;
   try {
@@ -125,14 +182,7 @@ export async function proxyToGateway(input: ProxyGatewayInput): Promise<Response
 
   const payload = await upstream.text();
   if (!upstream.ok) {
-    let message = `Gateway error (${upstream.status})`;
-    try {
-      const parsed = JSON.parse(payload) as Record<string, unknown>;
-      const raw = parsed.error ?? parsed.message ?? parsed.detail;
-      message = typeof raw === "string" ? raw : message;
-    } catch {
-      if (payload) message = payload.slice(0, 500);
-    }
+    const message = extractGatewayErrorMessage(payload, upstream.status);
     return gatewayErrorResponse(
       redactGatewayMessage(message, config),
       upstream.status,

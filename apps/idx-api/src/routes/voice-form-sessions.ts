@@ -147,15 +147,19 @@ export function createVoiceFormSessionRoutes(store: AuthStore = getAuthStore()) 
         ? body.anchorMessageId.trim()
         : null;
 
+    // threadId is optional binding. New chats often call this right after
+    // client initialize() — the Mongo thread row may not exist yet (or create
+    // failed and FE fell back to a local id). Do not 404 the whole form open.
     if (threadId) {
       const thread = await store.findThreadById(user.id, threadId);
-      if (!thread) return notFound(c, "Thread not found");
-      if (anchorMessageId) {
+      if (thread && anchorMessageId) {
         const messages = await store.listThreadMessages(user.id, threadId);
         if (!threadHasMessage(messages, anchorMessageId)) {
           return badRequest(c, "anchorMessageId not found in thread messages");
         }
       }
+      // Missing thread: still create the session with the provided threadId so
+      // the form module can bind; messages/persist can catch up later.
     } else if (anchorMessageId) {
       return badRequest(c, "threadId is required when anchorMessageId is provided");
     }

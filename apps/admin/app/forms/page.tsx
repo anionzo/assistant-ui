@@ -157,7 +157,13 @@ export default function FormsListPage() {
       ) : null}
 
       <Table
-        headers={[t("common.colIndex"), t("forms.colCode"), t("forms.colTitle"), t("common.colActions")]}
+        headers={[
+          t("common.colIndex"),
+          t("forms.colCode"),
+          t("forms.colTitle"),
+          t("forms.colSchemaVersion"),
+          t("common.colActions"),
+        ]}
         footer={
           !tableLoading && displayed.length > 0 ? (
             <PaginationBar meta={meta} pageSize={pageSize} onPageChange={setPage} onPageSizeChange={setPageSize} />
@@ -165,9 +171,9 @@ export default function FormsListPage() {
         }
       >
         {tableLoading ? (
-          <TableLoading colSpan={4} message={searching ? t("common.searching") : t("forms.loading")} />
+          <TableLoading colSpan={5} message={searching ? t("common.searching") : t("forms.loading")} />
         ) : displayed.length === 0 ? (
-          <TableEmpty colSpan={4} message={isSearchActive ? t("forms.emptySearch") : t("forms.emptyGateway")} />
+          <TableEmpty colSpan={5} message={isSearchActive ? t("forms.emptySearch") : t("forms.emptyGateway")} />
         ) : (
           pageItems.map((form, index) => {
             const code = String(form.form_code ?? form.code ?? index);
@@ -176,6 +182,9 @@ export default function FormsListPage() {
                 <TableCell className="w-12 text-muted-foreground">{rowOffset + index + 1}</TableCell>
                 <TableCell className="font-mono text-xs">{code}</TableCell>
                 <TableCell>{String(form.form_name ?? form.title ?? form.name ?? "—")}</TableCell>
+                <TableCell className="font-mono text-xs text-muted-foreground">
+                  {String(form.schema_version ?? "v1")}
+                </TableCell>
                 <TableCell>
                   <Link href={`/forms/${encodeURIComponent(code)}`} className="text-primary hover:underline">
                     {t("common.view")}

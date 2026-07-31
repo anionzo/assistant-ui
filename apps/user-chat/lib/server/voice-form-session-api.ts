@@ -38,13 +38,19 @@ export async function authVoiceFormSessionFetch<T>(path: string, init: RequestIn
   const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
 
   if (!response.ok || payload.success === false) {
+    const nested =
+      payload.error && typeof payload.error === "object"
+        ? (payload.error as { message?: unknown }).message
+        : undefined;
+    const message =
+      (typeof nested === "string" && nested.trim()) ||
+      (typeof payload.error === "string" ? payload.error : null) ||
+      (typeof payload.message === "string" ? payload.message : null) ||
+      `Voice form session request failed (${response.status})`;
     return {
       ok: false as const,
       status: response.status,
-      error:
-        (payload.error as { message?: string } | undefined)?.message ??
-        (typeof payload.error === "string" ? payload.error : null) ??
-        "Voice form session request failed",
+      error: message,
     };
   }
 

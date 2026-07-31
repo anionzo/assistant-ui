@@ -45,4 +45,35 @@ describe("gateway client", () => {
     expect(serialized).not.toContain(USER_KEY);
     expect(payload.error.message).toContain("[gateway]");
   });
+
+  it("extracts FastAPI structured detail from gateway errors", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            detail: {
+              code: "http_error",
+              service: "orchestrator",
+              detail: "orchestrator form ingest failed",
+              retryable: false,
+            },
+          }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+
+    const response = await proxyToGateway({
+      upstreamPath: "/forms/ingest",
+      method: "POST",
+      incomingHeaders: new Headers(),
+      credential: "admin",
+      requestId: "req-detail",
+    });
+
+    expect(response.status).toBe(500);
+    const payload = await response.json();
+    expect(payload.error.message).toContain("orchestrator form ingest failed");
+  });
 });
