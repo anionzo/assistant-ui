@@ -85,4 +85,25 @@ describe("POST /api/voice-form/fill", () => {
     );
     expect(response.status).toBe(400);
   });
+
+  it("returns a string error body when gateway responds 502", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: "GATEWAY_ERROR", message: "orchestrator unavailable" },
+          }),
+          { status: 502 },
+        ),
+      ),
+    );
+
+    const response = await fillPost(textFillRequest("điền họ tên"));
+    expect(response.status).toBe(502);
+    const body = await response.json();
+    expect(body.error).toBe("orchestrator unavailable");
+    expect(typeof body.error).toBe("string");
+  });
 });

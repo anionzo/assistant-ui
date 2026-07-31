@@ -1,3 +1,4 @@
+import { messageFromErrorPayload } from "@/lib/api-error";
 import type { FillResponse, FormSchema, FormSummary } from "./types";
 
 export const VOICE_FORM_SESSION_HEADER = "x-voice-form-session";
@@ -16,9 +17,7 @@ async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
     data = null;
   }
   if (!res.ok) {
-    const err = data as { error?: string; message?: string } | null;
-    const msg = err?.error || err?.message || `HTTP ${res.status}`;
-    throw new Error(typeof msg === "string" ? msg : JSON.stringify(msg));
+    throw new Error(messageFromErrorPayload(data, `HTTP ${res.status}`));
   }
   return data as T;
 }
@@ -70,8 +69,7 @@ export async function postFill(
     data = null;
   }
   if (!res.ok || !data) {
-    const err = data as { error?: string } | null;
-    throw new Error(err?.error || `HTTP ${res.status}`);
+    throw new Error(messageFromErrorPayload(data, `HTTP ${res.status}`));
   }
   return data;
 }

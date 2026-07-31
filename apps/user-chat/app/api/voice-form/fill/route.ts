@@ -1,5 +1,5 @@
 import { errorResponse } from "@/lib/server/errors";
-import { fetchIdxRag } from "@/lib/server/idx-api-rag";
+import { fetchIdxRag, readIdxRagErrorMessage } from "@/lib/server/idx-api-rag";
 import {
   passthroughJsonResponse,
   pickString,
@@ -70,9 +70,23 @@ export async function POST(request: Request) {
       requestId,
     });
 
+    if (!upstream.ok) {
+      // Clone not needed: we only read body when erroring (don't passthrough).
+      const message =
+        (await readIdxRagErrorMessage(upstream)) ??
+        `Voice form fill failed (gateway HTTP ${upstream.status})`;
+      return errorResponse(message, "gateway_error", upstream.status, requestId);
+    }
+
     return passthroughJsonResponse(upstream, requestId, sessionId);
   } catch (error) {
     if (request.signal.aborted) return new Response(null, { status: 499 });
-    return errorResponse("Voice form gateway is unavailable", "gateway_error", 502, requestId);
+    const detail = error instanceof Error ? error.message : "unknown error";
+    return errorResponse(
+      `Voice form gateway is unavailable: ${detail}`,
+      "gateway_error",
+      502,
+      requestId,
+    );
   }
 }

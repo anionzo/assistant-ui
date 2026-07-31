@@ -1,4 +1,5 @@
 import type { ChatModelAdapter, ChatModelRunResult, ThreadMessage } from "@assistant-ui/react";
+import { errorMessageFromUnknown } from "@/lib/api-error";
 import { extractLastUserMessage } from "@/lib/modular-rag-adapter";
 import { postFill } from "@/lib/voice-form/api";
 import type { FormModuleStore } from "@/lib/form-module/form-module-store";
@@ -65,7 +66,20 @@ export function createChatComposerAdapter(
           };
         } catch (err) {
           store.setBusy(false);
-          throw err;
+          const message = errorMessageFromUnknown(
+            err,
+            "Không điền được biểu mẫu (voice-form/fill).",
+          );
+          // Yield as assistant text so UI shows a real message instead of
+          // Uncaught Error: [object Object] in the console-only path.
+          yield {
+            content: [
+              {
+                type: "text" as const,
+                text: `⚠️ ${message}`,
+              },
+            ],
+          };
         }
         return;
       }

@@ -1,3 +1,4 @@
+import { messageFromErrorPayload } from "@/lib/api-error";
 import type { ConversationStub } from "./types";
 
 export type VoiceFormSessionRecord = ConversationStub & {
@@ -30,8 +31,7 @@ async function sessionJson<T>(url: string, init?: RequestInit): Promise<T> {
     data = null;
   }
   if (!res.ok) {
-    const err = data as { error?: string } | null;
-    throw new Error(err?.error || `HTTP ${res.status}`);
+    throw new Error(messageFromErrorPayload(data, `HTTP ${res.status}`));
   }
   return data as T;
 }

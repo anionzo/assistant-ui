@@ -65,11 +65,34 @@ export async function fetchIdxRag(options: FetchIdxRagOptionsWithRuntime) {
 
 export async function readIdxRagErrorMessage(response: Response): Promise<string | undefined> {
   const payload = (await response.json().catch(() => null)) as {
-    error?: string | { message?: string };
+    error?: string | { message?: string; detail?: string; code?: string };
+    message?: string;
+    detail?: string | { detail?: string; message?: string; code?: string };
   } | null;
-  if (!payload?.error) return undefined;
-  if (typeof payload.error === "string") return payload.error;
-  return payload.error.message;
+  if (!payload) return undefined;
+
+  if (typeof payload.error === "string" && payload.error.trim()) return payload.error.trim();
+  if (payload.error && typeof payload.error === "object") {
+    if (typeof payload.error.message === "string" && payload.error.message.trim()) {
+      return payload.error.message.trim();
+    }
+    if (typeof payload.error.detail === "string" && payload.error.detail.trim()) {
+      const code = typeof payload.error.code === "string" ? payload.error.code.trim() : "";
+      return code ? `${code}: ${payload.error.detail.trim()}` : payload.error.detail.trim();
+    }
+  }
+  if (typeof payload.message === "string" && payload.message.trim()) return payload.message.trim();
+  if (typeof payload.detail === "string" && payload.detail.trim()) return payload.detail.trim();
+  if (payload.detail && typeof payload.detail === "object") {
+    if (typeof payload.detail.detail === "string" && payload.detail.detail.trim()) {
+      const code = typeof payload.detail.code === "string" ? payload.detail.code.trim() : "";
+      return code ? `${code}: ${payload.detail.detail.trim()}` : payload.detail.detail.trim();
+    }
+    if (typeof payload.detail.message === "string" && payload.detail.message.trim()) {
+      return payload.detail.message.trim();
+    }
+  }
+  return undefined;
 }
 
 export function passthroughSseResponse(upstream: Response, requestId: string): Response {
