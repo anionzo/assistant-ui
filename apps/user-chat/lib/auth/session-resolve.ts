@@ -68,9 +68,29 @@ export async function resolveSession(): Promise<ResolvedSession | null> {
   return pending;
 }
 
+/**
+ * Lightweight session probe for Server Components (layouts).
+ * Verifies access JWT when present. If expired/missing but idx_refresh exists,
+ * returns a stub user so UI can treat the visitor as authenticated without
+ * calling /auth/refresh (cookie writes are not allowed in RSC render — rotating
+ * server-side while the browser keeps the old RT would lock the user out).
+ * Route handlers should use resolveSession() to actually rotate tokens.
+ */
 export async function checkSession(): Promise<SessionUser | null> {
   const config = getServerConfig();
   const accessToken = await getSessionCookie();
-  if (!accessToken) return null;
-  return tryVerifySessionToken(accessToken, config.jwtSecret);
+  if (accessToken) {
+    const user = await tryVerifySessionToken(accessToken, config.jwtSecret);
+    if (user) return user;
+  }
+
+  const refreshToken = await getRefreshCookie();
+  if (!refreshToken) return null;
+
+  return {
+    id: "refresh-pending",
+    email: "",
+    displayName: null,
+    avatarUrl: null,
+  };
 }

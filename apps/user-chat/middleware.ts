@@ -2,7 +2,6 @@ import { jwtVerify } from "jose";
 import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE_NAME = "idx_session";
-const REFRESH_COOKIE_NAME = "idx_refresh";
 
 function jwtSecretKey() {
   const secret = process.env.JWT_SECRET;
@@ -10,6 +9,13 @@ function jwtSecretKey() {
   return new TextEncoder().encode(secret);
 }
 
+/**
+ * Soft gate for chat/settings pages.
+ * - Valid access token → continue.
+ * - Missing/expired access token → continue without clearing cookies.
+ *   Server routes use resolveSession() which can rotate via idx_refresh.
+ * Clearing refresh here used to force a hard logout when the access JWT expired.
+ */
 export async function middleware(request: NextRequest) {
   const token = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   const secret = jwtSecretKey();
@@ -19,13 +25,11 @@ export async function middleware(request: NextRequest) {
 
   try {
     await jwtVerify(token, secret);
-    return NextResponse.next();
   } catch {
-    const response = NextResponse.next();
-    response.cookies.set(SESSION_COOKIE_NAME, "", { path: "/", maxAge: 0 });
-    response.cookies.set(REFRESH_COOKIE_NAME, "", { path: "/", maxAge: 0 });
-    return response;
+    // Expired/invalid access JWT — leave cookies intact for BFF refresh.
   }
+
+  return NextResponse.next();
 }
 
 export const config = {

@@ -35,7 +35,6 @@ export async function POST(request: Request) {
     }
 
     const { accessToken, refreshToken, user, roles, permissions } = result.data;
-    await setAuthCookies(accessToken, refreshToken);
 
     if (roles.length === 0) {
       return NextResponse.json({
@@ -43,6 +42,7 @@ export async function POST(request: Request) {
       }, { status: 403 });
     }
 
+    await setAuthCookies(accessToken, refreshToken);
     return NextResponse.json({ user, roles, permissions });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Login failed";

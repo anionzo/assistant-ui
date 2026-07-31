@@ -15,7 +15,12 @@ export type SessionUser = {
 };
 
 type MeResponse = {
-  user: SessionUser;
+  user: {
+    id: string;
+    email: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
   roles: Array<{ id: number; name: string }>;
   permissions: string[];
   permission_ids: number[];
@@ -25,7 +30,14 @@ type RefreshResponse = {
   accessToken: string;
   refreshToken: string;
   expiresIn: number;
-  user: SessionUser;
+  user: {
+    id: string;
+    email: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  };
+  roles?: Array<{ id: number; name: string }>;
+  permissions?: string[];
   permission_ids?: number[];
 };
 
@@ -35,16 +47,36 @@ export type ResolvedSession = {
   refreshed: boolean;
 };
 
-async function verifyViaAuthApi(accessToken: string) {
+function toSessionUser(
+  user: {
+    id: string;
+    email: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+  },
+  roles: Array<{ id: number; name: string }> | undefined,
+  permissionIds: number[] | undefined,
+): SessionUser {
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+    roleIds: roles?.map((r) => r.id) ?? [],
+    permissionIds: permissionIds ?? [],
+  };
+}
+
+async function verifyViaAuthApi(accessToken: string): Promise<SessionUser | null> {
   const result = await authApiFetch<MeResponse>("/auth/me", {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!result.ok) return null;
-  return {
-    ...result.data.user,
-    roleIds: result.data.roles.map((r) => r.id),
-    permissionIds: result.data.permission_ids ?? [],
-  };
+  return toSessionUser(
+    result.data.user,
+    result.data.roles,
+    result.data.permission_ids,
+  );
 }
 
 const refreshInFlight = new Map<string, Promise<ResolvedSession | null>>();
@@ -62,7 +94,11 @@ async function doRefresh(refreshToken: string): Promise<ResolvedSession | null> 
 
   await setAuthCookies(result.data.accessToken, result.data.refreshToken);
   return {
-    user: result.data.user,
+    user: toSessionUser(
+      result.data.user,
+      result.data.roles,
+      result.data.permission_ids,
+    ),
     accessToken: result.data.accessToken,
     refreshed: true,
   };
@@ -101,6 +137,8 @@ export async function resolveSession(): Promise<ResolvedSession | null> {
 export async function resolveAdminSession(): Promise<ResolvedSession | null> {
   const session = await resolveSession();
   if (!session) return null;
-  if (session.user.roleIds.length === 0) return null;
+  if (!Array.isArray(session.user.roleIds) || session.user.roleIds.length === 0) {
+    return null;
+  }
   return session;
 }
