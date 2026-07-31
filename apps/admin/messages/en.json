@@ -57,7 +57,28 @@
     "chatRuntime": "Chat Runtime",
     "quickBrand": "Brand",
     "quickRuntime": "Runtime",
-    "quickIp": "IP"
+    "quickIp": "IP",
+    "opsLogs": "API Logs"
+  },
+  "opsLogs": {
+    "title": "API / Gateway logs",
+    "description": "Recent idx-api events (in-process ring buffer — cleared on restart). Use to track 4xx/5xx, gateway proxy, forms/voice.",
+    "hint": "Auto-refreshes every 4s when enabled. Keeps ~300 events (errors + important paths: /rag, /forms, /voice-form, /auth, slow requests).",
+    "filterLevel": "Level",
+    "filterQuery": "Filter",
+    "queryPlaceholder": "path, message, requestId…",
+    "levelAll": "All",
+    "levelError": "Error",
+    "levelWarn": "Warn",
+    "levelInfo": "Info",
+    "autoOn": "Auto: on",
+    "autoOff": "Auto: off",
+    "clear": "Clear buffer",
+    "clearConfirm": "Clear all in-memory idx-api logs?",
+    "clearFailed": "Could not clear logs",
+    "loadFailed": "Could not load logs",
+    "empty": "No logs yet — trigger a failing action (form upload, fill, gateway) then refresh.",
+    "bufferMeta": "{total} matches · buffer {capacity}"
   },
   "pagination": {
     "perPage": "Show",

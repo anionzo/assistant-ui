@@ -9,6 +9,7 @@ import {
 import { getBrandingSettings, updateBrandingSettings } from "../services/branding-config";
 import { getLegalSettings, updateLegalSettings } from "../services/legal-config";
 import { getChatRuntimeSettings, updateChatRuntimeSettings } from "../services/chat-runtime-config";
+import { clearOpsLogs, listOpsLogs, type OpsLogLevel } from "../services/ops-log";
 import { PERMISSIONS } from "../services/permissions";
 import { hashPassword } from "../services/password";
 import { ErrorCode } from "../utils/errors";
@@ -389,6 +390,24 @@ export function createAdminRoutes(store: AuthStore = getAuthStore()) {
       userCount,
       roleCount: roleList.length,
     });
+  });
+
+  // GET /admin/ops/logs — recent in-memory request/gateway events (any authenticated admin)
+  adminRoutes.get("/ops/logs", async (c) => {
+    const limit = Number(c.req.query("limit") ?? 100);
+    const levelRaw = (c.req.query("level") ?? "all").toLowerCase();
+    const level =
+      levelRaw === "info" || levelRaw === "warn" || levelRaw === "error" || levelRaw === "all"
+        ? (levelRaw as OpsLogLevel | "all")
+        : "all";
+    const q = c.req.query("q") ?? undefined;
+    return ok(c, listOpsLogs({ limit: Number.isFinite(limit) ? limit : 100, level, q }));
+  });
+
+  // DELETE /admin/ops/logs — clear ring buffer
+  adminRoutes.delete("/ops/logs", async (c) => {
+    clearOpsLogs();
+    return okPlain(c);
   });
 
   return adminRoutes;

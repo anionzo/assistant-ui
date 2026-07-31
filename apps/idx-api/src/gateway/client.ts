@@ -1,3 +1,4 @@
+import { logGatewayEvent } from "../services/ops-log";
 import { getGatewayConfig, pickForwardHeaders } from "./config";
 import { redactGatewayMessage } from "./redact";
 
@@ -118,11 +119,16 @@ export async function proxyToGateway(input: ProxyGatewayInput): Promise<Response
   try {
     config = getGatewayConfig();
   } catch (error) {
-    return gatewayErrorResponse(
-      error instanceof Error ? error.message : "Gateway configuration invalid",
-      500,
-      input.requestId,
-    );
+    const message = error instanceof Error ? error.message : "Gateway configuration invalid";
+    logGatewayEvent({
+      level: "error",
+      upstreamPath: input.upstreamPath,
+      method: input.method,
+      status: 500,
+      requestId: input.requestId,
+      message: `Gateway config error: ${message}`,
+    });
+    return gatewayErrorResponse(message, 500, input.requestId);
   }
 
   const apiKey = input.credential === "user" ? config.userApiKey : config.adminApiKey;
@@ -148,11 +154,17 @@ export async function proxyToGateway(input: ProxyGatewayInput): Promise<Response
     if (input.signal?.aborted) {
       return new Response(null, { status: 499, headers: { "X-Request-ID": input.requestId } });
     }
-    return gatewayErrorResponse(
-      error instanceof Error ? error.message : "Gateway unreachable",
-      502,
-      input.requestId,
-    );
+    const message = error instanceof Error ? error.message : "Gateway unreachable";
+    logGatewayEvent({
+      level: "error",
+      upstreamPath: input.upstreamPath,
+      method: input.method,
+      status: 502,
+      requestId: input.requestId,
+      message: `Gateway unreachable: ${message}`,
+      detail: url,
+    });
+    return gatewayErrorResponse(message, 502, input.requestId);
   }
 
   const contentType = upstream.headers.get("content-type") ?? "";
@@ -183,11 +195,17 @@ export async function proxyToGateway(input: ProxyGatewayInput): Promise<Response
   const payload = await upstream.text();
   if (!upstream.ok) {
     const message = extractGatewayErrorMessage(payload, upstream.status);
-    return gatewayErrorResponse(
-      redactGatewayMessage(message, config),
-      upstream.status,
-      input.requestId,
-    );
+    const redacted = redactGatewayMessage(message, config);
+    logGatewayEvent({
+      level: upstream.status >= 500 ? "error" : "warn",
+      upstreamPath: input.upstreamPath,
+      method: input.method,
+      status: upstream.status,
+      requestId: input.requestId,
+      message: `Gateway ${upstream.status}: ${redacted}`,
+      detail: payload.slice(0, 400),
+    });
+    return gatewayErrorResponse(redacted, upstream.status, input.requestId);
   }
 
   const responseHeaders = new Headers();

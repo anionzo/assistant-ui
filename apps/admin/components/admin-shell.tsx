@@ -8,6 +8,7 @@ import {
   ImageIcon,
   LayoutDashboard,
   Lock,
+  ScrollText,
   SlidersHorizontal,
   FileText,
   PanelRightOpen,
@@ -28,6 +29,7 @@ const baseNav = [
   { href: "/forms", labelKey: "nav.forms", icon: FileStack },
   { href: "/users", labelKey: "nav.users", icon: Users },
   { href: "/roles", labelKey: "nav.roles", icon: Shield },
+  { href: "/settings/logs", labelKey: "nav.opsLogs", icon: ScrollText },
 ] as const;
 
 const securityNav = { href: "/settings/security", labelKey: "nav.security", icon: Lock } as const;

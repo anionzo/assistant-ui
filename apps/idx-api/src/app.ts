@@ -10,6 +10,7 @@ import { createVoiceFormSessionRoutes } from "./routes/voice-form-sessions";
 import { ensureMongoBootstrap } from "./db/mongo/bootstrap";
 import { type AuthStore, getAuthStore } from "./db/store";
 import { ensureAdminSeed } from "./services/rbac";
+import { logHttpRequest, pushOpsLog } from "./services/ops-log";
 import { ErrorCode } from "./utils/errors";
 import { ok, type AppVariables } from "./utils/response";
 
@@ -19,18 +20,41 @@ export function createApp(store: AuthStore = getAuthStore()) {
   app.use(
     "*",
     createMiddleware(async (c, next) => {
+      const started = Date.now();
       c.set("requestId", c.req.header("x-request-id") ?? crypto.randomUUID());
       c.res.headers.set("x-request-id", c.get("requestId"));
       await next();
+      try {
+        logHttpRequest({
+          method: c.req.method,
+          path: c.req.path,
+          status: c.res.status,
+          durationMs: Date.now() - started,
+          requestId: c.get("requestId"),
+        });
+      } catch {
+        // never break the response for logging
+      }
     }),
   );
 
   app.onError((error, c) => {
     console.error("[idx-api]", error);
+    const requestId = c.get("requestId") ?? crypto.randomUUID();
+    pushOpsLog({
+      level: "error",
+      source: "app",
+      message: error instanceof Error ? error.message : "Internal Server Error",
+      requestId,
+      method: c.req.method,
+      path: c.req.path,
+      status: 500,
+      detail: error instanceof Error ? error.stack?.slice(0, 800) : undefined,
+    });
     return c.json(
       {
         success: false,
-        requestId: c.get("requestId") ?? crypto.randomUUID(),
+        requestId,
         error: {
           code: ErrorCode.INTERNAL_ERROR,
           message:

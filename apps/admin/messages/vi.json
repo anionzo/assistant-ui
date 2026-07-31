@@ -57,7 +57,28 @@
     "chatRuntime": "Chat Runtime",
     "quickBrand": "Brand",
     "quickRuntime": "Runtime",
-    "quickIp": "IP"
+    "quickIp": "IP",
+    "opsLogs": "API Logs"
+  },
+  "opsLogs": {
+    "title": "API / Gateway logs",
+    "description": "Log gần đây từ idx-api (bộ nhớ process — mất khi restart). Dùng để theo dõi 4xx/5xx, proxy gateway, forms/voice.",
+    "hint": "Tự làm mới mỗi 4s khi bật Auto. Chỉ lưu ~300 event (lỗi + request quan trọng: /rag, /forms, /voice-form, /auth, request chậm).",
+    "filterLevel": "Mức",
+    "filterQuery": "Lọc",
+    "queryPlaceholder": "path, message, requestId…",
+    "levelAll": "Tất cả",
+    "levelError": "Error",
+    "levelWarn": "Warn",
+    "levelInfo": "Info",
+    "autoOn": "Auto: bật",
+    "autoOff": "Auto: tắt",
+    "clear": "Xóa buffer",
+    "clearConfirm": "Xóa toàn bộ log trong bộ nhớ idx-api?",
+    "clearFailed": "Không xóa được log",
+    "loadFailed": "Không tải được log",
+    "empty": "Chưa có log — thử thao tác lỗi (upload form, fill, gateway) rồi refresh.",
+    "bufferMeta": "{total} khớp · buffer {capacity}"
   },
   "pagination": {
     "perPage": "Hiển thị",
