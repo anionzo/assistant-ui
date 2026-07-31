@@ -84,7 +84,18 @@ export function createModularRagAdapter(
       let text = "";
       let metadata: StreamMetadata | null = null;
 
+      const finish = function* (finalText: string) {
+        const custom = buildRagMessageCustom(metadata);
+        const body = finalText.trim();
+        yield {
+          content: [{ type: "text" as const, text: body }],
+          ...(custom ? { metadata: { custom } } : {}),
+        };
+      };
+
       try {
+        let completed = false;
+
         for await (const event of parseModularRagSse(response.body)) {
           if (event.type === "token") {
             text += event.token;
@@ -94,16 +105,50 @@ export function createModularRagAdapter(
           } else if (event.type === "error") {
             throw new Error(event.message);
           } else if (event.type === "done") {
-            const custom = buildRagMessageCustom(metadata);
-            if (custom) {
-              yield {
-                content: [{ type: "text", text }],
-                metadata: { custom },
-              };
+            if (!text.trim() && metadata?.answer?.trim()) {
+              text = metadata.answer.trim();
             }
+            if (!text.trim()) {
+              throw new Error(
+                "Gateway trả về stream rỗng (không có token/answer). Thử gửi lại tin nhắn.",
+              );
+            }
+            yield* finish(text);
+            completed = true;
             break;
           }
         }
+
+        // Stream closed without a done event — still surface whatever we got.
+        if (!completed) {
+          if (!text.trim() && metadata?.answer?.trim()) {
+            text = metadata.answer.trim();
+          }
+          if (text.trim()) {
+            yield* finish(text);
+          } else {
+            throw new Error(
+              "Gateway đóng stream mà không có nội dung. Thử gửi lại tin nhắn.",
+            );
+          }
+        }
+      } catch (error) {
+        // Keep any partial tokens if the stream is aborted mid-flight (thread switch / stop).
+        const aborted =
+          (error instanceof Error && error.name === "AbortError") ||
+          (typeof error === "object" &&
+            error !== null &&
+            "name" in error &&
+            (error as { name?: string }).name === "AbortError");
+
+        if (aborted) {
+          if (text.trim()) {
+            yield* finish(text);
+            return;
+          }
+          throw error;
+        }
+        throw error;
       } finally {
         if (activeAbortController === ourController) {
           activeAbortController = null;

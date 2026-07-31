@@ -12,6 +12,49 @@ function asAsyncGenerator(
 }
 
 describe("createModularRagAdapter", () => {
+  it("falls back to metadata.answer when the stream has no tokens", async () => {
+    const sse = [
+      'event: metadata\ndata: {"answer":"Xin chào từ metadata","contexts":[]}\n\n',
+      "event: done\ndata: [DONE]\n\n",
+    ].join("");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(sse, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        }),
+      ),
+    );
+
+    const adapter = createModularRagAdapter("conv-meta");
+    const gen = asAsyncGenerator(
+      adapter.run({
+        messages: [
+          {
+            id: "1",
+            role: "user",
+            content: [{ type: "text", text: "hi" }],
+            createdAt: new Date(),
+          },
+        ],
+        abortSignal: undefined,
+        unstable_threadId: "thread-meta",
+      } as never),
+    );
+
+    const chunks: ChatModelRunResult[] = [];
+    for await (const chunk of gen) chunks.push(chunk);
+
+    const last = chunks.at(-1);
+    expect(last?.content).toEqual([
+      { type: "text", text: "Xin chào từ metadata" },
+    ]);
+
+    vi.unstubAllGlobals();
+  });
+
   it("aborts the previous thread stream when switching threads", async () => {
     const fetchMock = vi.fn(async (_input: RequestInfo, init?: RequestInit) => {
       await new Promise<void>((_resolve, reject) => {
