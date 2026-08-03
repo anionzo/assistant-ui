@@ -62,4 +62,27 @@ describe("parseModularRagSse", () => {
       { type: "token", token: "B" },
     ]);
   });
+
+  it("treats blank data lines as newline tokens (markdown structure)", async () => {
+    // Upstream often sends `data:` empty between `**heading**` and `* list item`.
+    await expect(
+      collect([
+        "event: token\ndata: **heading**\n\n",
+        "event: token\ndata: \n\n",
+        "event: token\ndata: *\n\n",
+        "event: token\ndata:   item\n\n",
+      ]),
+    ).resolves.toEqual([
+      { type: "token", token: "**heading**" },
+      { type: "token", token: "\n" },
+      { type: "token", token: "*" },
+      { type: "token", token: "  item" },
+    ]);
+  });
+
+  it("joins multi-line empty data as a single newline", async () => {
+    await expect(
+      collect(["event: token\ndata: \ndata: \n\n"]),
+    ).resolves.toEqual([{ type: "token", token: "\n" }]);
+  });
 });

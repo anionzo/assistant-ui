@@ -88,6 +88,13 @@ export function createModularRagAdapter(
       let text = "";
       let metadata: StreamMetadata | null = null;
 
+      /** Prefer metadata.answer when present — it is the canonical formatted reply. */
+      const resolveFinalText = () => {
+        const fromMeta = metadata?.answer?.trim();
+        if (fromMeta) return fromMeta;
+        return text.trim();
+      };
+
       const finish = function* (finalText: string) {
         const custom = buildRagMessageCustom(metadata);
         const body = finalText.trim();
@@ -109,15 +116,13 @@ export function createModularRagAdapter(
           } else if (event.type === "error") {
             throw new Error(event.message);
           } else if (event.type === "done") {
-            if (!text.trim() && metadata?.answer?.trim()) {
-              text = metadata.answer.trim();
-            }
-            if (!text.trim()) {
+            const finalText = resolveFinalText();
+            if (!finalText) {
               throw new Error(
                 "Gateway trả về stream rỗng (không có token/answer). Thử gửi lại tin nhắn.",
               );
             }
-            yield* finish(text);
+            yield* finish(finalText);
             completed = true;
             break;
           }
@@ -125,11 +130,9 @@ export function createModularRagAdapter(
 
         // Stream closed without a done event — still surface whatever we got.
         if (!completed) {
-          if (!text.trim() && metadata?.answer?.trim()) {
-            text = metadata.answer.trim();
-          }
-          if (text.trim()) {
-            yield* finish(text);
+          const finalText = resolveFinalText();
+          if (finalText) {
+            yield* finish(finalText);
           } else {
             throw new Error(
               "Gateway đóng stream mà không có nội dung. Thử gửi lại tin nhắn.",

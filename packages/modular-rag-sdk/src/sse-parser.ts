@@ -13,7 +13,13 @@ function normalizeEvent({ event, data }: RawSseEvent): ParsedStreamEvent | null 
   if (type === "done" || data === "[DONE]") return { type: "done" };
 
   if (type === "token" || type === "message") {
-    if (!data) return null;
+    // Gateways encode a newline as `event: token` + blank `data:`.
+    // Dropping it collapses markdown (lists/headings stick together).
+    // Only apply when the event is explicitly `token` — empty SSE frames default
+    // to `message` with empty data and must stay ignored.
+    if (data === "") {
+      return type === "token" ? { type: "token", token: "\n" } : null;
+    }
     try {
       const value = JSON.parse(data) as unknown;
       if (typeof value === "string") return { type: "token", token: value };

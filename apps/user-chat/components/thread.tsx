@@ -158,7 +158,7 @@ const ThreadRoot: FC<{ isEmpty: boolean; initialAuth: boolean }> = ({
 
   return (
     <ThreadPrimitive.Root
-      className="aui-root aui-thread-root bg-background @container flex h-full flex-col"
+      className="aui-root aui-thread-root bg-background @container relative flex h-full flex-col"
       style={{
         ["--thread-max-width" as string]: "44rem",
         ["--composer-bg" as string]:
@@ -167,26 +167,27 @@ const ThreadRoot: FC<{ isEmpty: boolean; initialAuth: boolean }> = ({
         ["--composer-padding" as string]: "8px",
       }}
     >
+      {/* Watermark stays fixed to the chat panel — not inside the scroll viewport. */}
+      <div
+        aria-hidden="true"
+        className={cn(
+          "pointer-events-none absolute inset-0 z-0 bg-no-repeat",
+          isEmpty ? "opacity-[0.16]" : "opacity-10",
+        )}
+        style={{
+          backgroundImage: branding.logoUrl
+            ? `url(${branding.logoUrl})`
+            : undefined,
+          backgroundPosition: "center center",
+          backgroundSize: "clamp(16rem, 58vw, 34rem)",
+        }}
+      />
       <ThreadPrimitive.Viewport
         turnAnchor="top"
         data-slot="aui_thread-viewport"
-        className="relative flex flex-1 flex-col overflow-x-hidden overflow-y-scroll scroll-smooth"
+        className="relative z-10 flex flex-1 flex-col overflow-x-hidden overflow-y-scroll scroll-smooth"
       >
-        <div
-          aria-hidden="true"
-          className={cn(
-            "pointer-events-none absolute inset-0 z-0 bg-no-repeat",
-            isEmpty ? "opacity-[0.16]" : "opacity-10",
-          )}
-          style={{
-            backgroundImage: branding.logoUrl
-              ? `url(${branding.logoUrl})`
-              : undefined,
-            backgroundPosition: "center 44%",
-            backgroundSize: "clamp(16rem, 58vw, 34rem)",
-          }}
-        />
-        <div className="relative z-10 mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-3 pt-3 sm:px-4 sm:pt-4">
+        <div className="relative mx-auto flex w-full max-w-(--thread-max-width) flex-1 flex-col px-3 pt-3 sm:px-4 sm:pt-4">
           <div
             className={cn(
               "flex flex-col",
