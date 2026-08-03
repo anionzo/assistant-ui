@@ -37,17 +37,26 @@ export function ThreadListSidebar({
                 <Link href="/chat">
                   <BrandLogo
                     src={branding.logoUrl}
-                    alt={branding.appName}
+                    alt={branding.appName || "App"}
                     size={32}
                     className="aui-sidebar-header-icon-wrapper rounded-lg"
                   />
                   <div className="min-w-0 text-left">
-                    <span className="aui-sidebar-header-title block truncate font-semibold tracking-wide">
-                      {branding.appName}
-                    </span>
-                    <span className="block truncate text-xs font-normal text-muted-foreground">
-                      {branding.tagline}
-                    </span>
+                    {branding.appName ? (
+                      <span className="aui-sidebar-header-title block truncate font-semibold tracking-wide">
+                        {branding.appName}
+                      </span>
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="bg-muted block h-4 w-24 animate-pulse rounded"
+                      />
+                    )}
+                    {branding.tagline ? (
+                      <span className="block truncate text-xs font-normal text-muted-foreground">
+                        {branding.tagline}
+                      </span>
+                    ) : null}
                   </div>
                 </Link>
               </SidebarMenuButton>

@@ -30,6 +30,8 @@
     "new": "New conversation",
     "loadingList": "Loading conversations",
     "options": "Options",
+    "rename": "Rename",
+    "renameThread": "Rename conversation",
     "archive": "Archive",
     "delete": "Delete",
     "newChat": "New conversation",
@@ -42,16 +44,16 @@
     "hide": "Hide sidebar"
   },
   "chatHome": {
-    "title": "What would you like to explore?",
-    "subtitle": "Ask about information, documents, or next steps. Pick a suggestion below or type your own question.",
-    "promptSummary": "Summarize the main points of this document.",
-    "promptSummaryDescription": "Useful when you need the key ideas quickly.",
-    "promptStart": "Where should I start if I want to understand this topic?",
-    "promptStartDescription": "Get a direction and the first items to review.",
-    "promptExplain": "Explain this topic briefly in simple language.",
-    "promptExplainDescription": "Turn complex content into a clear explanation.",
-    "promptSteps": "List the steps I need to follow for this case.",
-    "promptStepsDescription": "Create a clear action checklist."
+    "title": "Do you have a question?",
+    "subtitle": "Ask about scholarships, transcripts, course registration, or academic admin procedures. Pick a suggestion below or type your own question.",
+    "promptSummary": "How do I apply for a scholarship? What are the requirements and documents?",
+    "promptSummaryDescription": "Eligibility, timelines, and papers to prepare.",
+    "promptStart": "How do I request a transcript / student verification letter?",
+    "promptStartDescription": "Where to submit and how long it takes.",
+    "promptExplain": "How does course registration work?",
+    "promptExplainDescription": "Steps, tips, and registration windows.",
+    "promptSteps": "What academic admin procedures do students usually need?",
+    "promptStepsDescription": "A checklist of common semester tasks."
   },
   "loading": {
     "default": "Loading...",

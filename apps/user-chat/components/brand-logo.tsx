@@ -13,10 +13,23 @@ export function BrandLogo({
   className?: string;
   size?: number;
 }) {
+  if (!src.trim()) {
+    return (
+      <span
+        aria-hidden="true"
+        className={cn(
+          "bg-muted shrink-0 rounded-md",
+          className,
+        )}
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
   return (
     <img
       src={src}
-      alt={alt}
+      alt={alt || ""}
       width={size}
       height={size}
       className={cn("shrink-0 object-contain", className)}

@@ -1,1 +1,2 @@
-export const DEFAULT_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";
+/** Neutral empty logo until public branding config is loaded. */
+export const DEFAULT_LOGO_URL = "";

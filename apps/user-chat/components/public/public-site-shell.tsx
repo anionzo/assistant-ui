@@ -32,12 +32,21 @@ export function PublicSiteShell({
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/86 backdrop-blur-xl">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link href="/" className="flex min-w-0 items-center gap-3 transition-opacity hover:opacity-90">
-            <BrandLogo src={branding.logoUrl} alt={branding.appName} size={38} className="rounded-lg" />
+            <BrandLogo src={branding.logoUrl} alt={branding.appName || "App"} size={38} className="rounded-lg" />
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold tracking-tight text-slate-950 sm:text-base">
-                {branding.appName}
-              </p>
-              <p className="hidden truncate text-xs text-slate-500 sm:block">{branding.tagline}</p>
+              {branding.appName ? (
+                <p className="truncate text-sm font-semibold tracking-tight text-slate-950 sm:text-base">
+                  {branding.appName}
+                </p>
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="bg-muted block h-4 w-28 animate-pulse rounded"
+                />
+              )}
+              {branding.tagline ? (
+                <p className="hidden truncate text-xs text-slate-500 sm:block">{branding.tagline}</p>
+              ) : null}
             </div>
           </Link>
           <nav className="flex shrink-0 items-center gap-2">

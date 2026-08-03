@@ -74,15 +74,26 @@ export function VoiceFormShell({ initialAuth }: { initialAuth: boolean }) {
                       <Link href="/chat">
                         <BrandLogo
                           src={branding.logoUrl}
-                          alt={branding.appName}
+                          alt={branding.appName || "App"}
                           size={32}
                           className="rounded-lg"
                         />
                         <div className="min-w-0 text-left">
-                          <span className="block truncate font-semibold tracking-wide">{branding.appName}</span>
-                          <span className="block truncate text-xs font-normal text-muted-foreground">
-                            {branding.tagline}
-                          </span>
+                          {branding.appName ? (
+                            <span className="block truncate font-semibold tracking-wide">
+                              {branding.appName}
+                            </span>
+                          ) : (
+                            <span
+                              aria-hidden="true"
+                              className="bg-muted block h-4 w-24 animate-pulse rounded"
+                            />
+                          )}
+                          {branding.tagline ? (
+                            <span className="block truncate text-xs font-normal text-muted-foreground">
+                              {branding.tagline}
+                            </span>
+                          ) : null}
                         </div>
                       </Link>
                     </SidebarMenuButton>

@@ -30,6 +30,8 @@
     "new": "Cuộc trò chuyện mới",
     "loadingList": "Đang tải cuộc trò chuyện",
     "options": "Tùy chọn",
+    "rename": "Đổi tên",
+    "renameThread": "Đổi tên cuộc trò chuyện",
     "archive": "Lưu trữ",
     "delete": "Xóa",
     "newChat": "Cuộc trò chuyện mới",
@@ -42,16 +44,16 @@
     "hide": "Ẩn thanh bên"
   },
   "chatHome": {
-    "title": "Bạn muốn tìm hiểu điều gì?",
-    "subtitle": "Hỏi về thông tin, tài liệu hoặc nhờ trợ lý hỗ trợ các bước cần làm. Chọn một gợi ý bên dưới hoặc nhập câu hỏi của bạn.",
-    "promptSummary": "Tóm tắt giúp tôi nội dung chính của tài liệu này.",
-    "promptSummaryDescription": "Phù hợp khi bạn cần nắm nhanh ý chính.",
-    "promptStart": "Tôi nên bắt đầu từ đâu nếu muốn tìm hiểu thông tin này?",
-    "promptStartDescription": "Gợi ý hướng đi và các mục cần xem trước.",
-    "promptExplain": "Giải thích ngắn gọn chủ đề này theo cách dễ hiểu.",
-    "promptExplainDescription": "Biến nội dung phức tạp thành giải thích đơn giản.",
-    "promptSteps": "Liệt kê các bước cần làm cho trường hợp này.",
-    "promptStepsDescription": "Tạo checklist hành động rõ ràng."
+    "title": "Bạn có câu hỏi nào?",
+    "subtitle": "Hỏi về học bổng, bảng điểm, đăng ký môn hoặc thủ tục hành chính – đào tạo. Chọn một gợi ý bên dưới hoặc nhập câu hỏi của bạn.",
+    "promptSummary": "Làm sao để xét học bổng? Cần điều kiện và hồ sơ gì?",
+    "promptSummaryDescription": "Điều kiện, mốc thời gian và giấy tờ cần chuẩn bị.",
+    "promptStart": "Làm sao xin bảng điểm / giấy xác nhận sinh viên?",
+    "promptStartDescription": "Hướng dẫn nơi nộp và thời gian nhận.",
+    "promptExplain": "Đăng ký môn học được thực hiện như thế nào?",
+    "promptExplainDescription": "Các bước, lưu ý và thời điểm đăng ký.",
+    "promptSteps": "Các thủ tục hành chính – đào tạo sinh viên thường cần làm?",
+    "promptStepsDescription": "Checklist các việc phổ biến trong học kỳ."
   },
   "loading": {
     "default": "Đang tải...",

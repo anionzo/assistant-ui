@@ -11,25 +11,26 @@ import { FormArtifactPanel } from "@/components/form-module/form-artifact-panel"
 import { useFormModuleStore } from "@/lib/form-module/form-module-store";
 import { FORM_MODULE_ENABLED } from "@/lib/feature-flags";
 import { RuntimeProvider } from "@/lib/runtime-provider";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useCallback } from "react";
 
 export function ChatShell({ initialAuth }: { initialAuth: boolean }) {
   const params = useParams();
-  const router = useRouter();
   const threadId =
     typeof params?.threadId === "string" && params.threadId.length > 0
       ? params.threadId
       : undefined;
 
-  const handleThreadIdChange = useCallback(
-    (remoteId: string | undefined) => {
-      const nextPath = chatPath(remoteId);
-      if (window.location.pathname === nextPath) return;
-      router.replace(nextPath);
-    },
-    [router],
-  );
+  const handleThreadIdChange = useCallback((remoteId: string | undefined) => {
+    const nextPath = chatPath(remoteId);
+    if (typeof window === "undefined") return;
+    if (window.location.pathname === nextPath) return;
+    // Use history.replaceState — NOT router.replace.
+    // router.replace updates useParams() → useRemoteThreadListRuntime runs
+    // switchToThread(remoteId) mid-stream and aborts the in-flight chat run,
+    // leaving an empty assistant bubble on the first message of a new thread.
+    window.history.replaceState(window.history.state, "", nextPath);
+  }, []);
 
   return (
     <RuntimeProvider

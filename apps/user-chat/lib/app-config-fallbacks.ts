@@ -1,9 +1,13 @@
-/** Emergency fallbacks when idx-api is unreachable — keep aligned with idx-api CONFIG_DEFAULTS. */
+/**
+ * Fallbacks when idx-api is unreachable or before branding loads.
+ * Branding stays empty/neutral so the UI does not flash product-specific names/logos.
+ * chatRuntime keeps operational defaults so chat can still function offline.
+ */
 export const APP_CONFIG_FALLBACKS = {
   branding: {
-    logoUrl: "https://idx.huit.edu.vn/images/logo/logo.svg",
-    admin: { appName: "Idx Admin", tagline: "Operator console" },
-    user: { appName: "Idx Chat", tagline: "Trợ lý tuyển sinh HUIT" },
+    logoUrl: "",
+    admin: { appName: "", tagline: "" },
+    user: { appName: "", tagline: "" },
   },
   chatRuntime: {
     tenantId: "huit_admission_chatbot",

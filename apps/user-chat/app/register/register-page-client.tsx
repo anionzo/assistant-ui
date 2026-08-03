@@ -17,10 +17,18 @@ export function RegisterPageClient({ initialBranding }: { initialBranding: Brand
     <main className="flex min-h-dvh items-center justify-center bg-[linear-gradient(180deg,#ffffff_0%,#f7fafb_100%)] px-4 py-10 sm:px-6">
       <div className="w-full max-w-[500px] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/8 sm:p-8">
         <div className="mb-7 flex items-center gap-3">
-          <BrandLogo src={branding.logoUrl} alt={branding.appName} size={46} className="rounded-xl" />
+          <BrandLogo src={branding.logoUrl} alt={branding.appName || "App"} size={46} className="rounded-xl" />
           <div className="min-w-0">
-            <h1 className="truncate text-2xl font-semibold tracking-normal text-slate-950">{branding.appName}</h1>
-            <p className="truncate text-sm text-slate-500">{branding.tagline}</p>
+            {branding.appName ? (
+              <h1 className="truncate text-2xl font-semibold tracking-normal text-slate-950">
+                {branding.appName}
+              </h1>
+            ) : (
+              <span aria-hidden="true" className="bg-muted block h-7 w-36 animate-pulse rounded" />
+            )}
+            {branding.tagline ? (
+              <p className="truncate text-sm text-slate-500">{branding.tagline}</p>
+            ) : null}
           </div>
         </div>
         <p className="text-sm leading-6 text-slate-600">{t("auth.registerSubtitle")}</p>

@@ -377,9 +377,44 @@ const MessageError: FC = () => {
   return (
     <MessagePrimitive.Error>
       <ErrorPrimitive.Root className="aui-message-error-root border-destructive bg-destructive/10 text-destructive dark:bg-destructive/5 mt-2 rounded-md border p-3 text-sm dark:text-red-200">
-        <ErrorPrimitive.Message className="aui-message-error-message line-clamp-2" />
+        <ErrorPrimitive.Message className="aui-message-error-message whitespace-pre-wrap break-words" />
       </ErrorPrimitive.Root>
     </MessagePrimitive.Error>
+  );
+};
+
+/** When content is empty (gateway error / cancelled), still show something readable. */
+const EmptyAssistantMessage: FC = () => {
+  const status = useAuiState((s) => s.message.status);
+  const errorText =
+    status &&
+    typeof status === "object" &&
+    "reason" in status &&
+    status.reason === "error" &&
+    "error" in status
+      ? String((status as { error?: unknown }).error ?? "")
+      : "";
+
+  if (errorText.trim()) {
+    return (
+      <div className="border-destructive/40 bg-destructive/10 text-destructive mt-1 rounded-md border px-3 py-2 text-sm">
+        ⚠️ {errorText}
+      </div>
+    );
+  }
+
+  if (status?.type === "incomplete" && status.reason === "cancelled") {
+    return (
+      <p className="text-muted-foreground mt-1 text-sm">
+        Phản hồi bị dừng. Vui lòng gửi lại tin nhắn.
+      </p>
+    );
+  }
+
+  return (
+    <p className="text-muted-foreground mt-1 text-sm">
+      Không có nội dung phản hồi. Thử gửi lại tin nhắn.
+    </p>
   );
 };
 
@@ -469,6 +504,10 @@ const AssistantMessage: FC = () => {
             }
           }}
         </MessagePrimitive.GroupedParts>
+        {/* Empty content (error/cancelled with no parts) — GroupedParts renders nothing */}
+        <AuiIf condition={(s) => s.message.role === "assistant" && s.message.content.length === 0 && s.message.status.type !== "running"}>
+          <EmptyAssistantMessage />
+        </AuiIf>
         <MessageError />
         <FormCardFromMetadata />
         <RagSourcesPanel />

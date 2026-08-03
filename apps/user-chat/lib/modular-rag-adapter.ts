@@ -1,5 +1,6 @@
 import { parseModularRagSse, type StreamMetadata } from "@idx/modular-rag-sdk";
 import type { ChatModelAdapter, ThreadMessage } from "@assistant-ui/react";
+import { messageFromErrorPayload } from "@/lib/api-error";
 import { buildRagMessageCustom } from "@/lib/rag-metadata";
 import type { RuntimeChatOptions } from "@/lib/runtime-chat-options";
 
@@ -28,8 +29,11 @@ function resolveConversationId(
 
 async function readError(response: Response): Promise<string> {
   try {
-    const payload = (await response.json()) as { error?: string };
-    return payload.error ?? `Yêu cầu thất bại (${response.status})`;
+    const payload: unknown = await response.json();
+    return messageFromErrorPayload(
+      payload,
+      `Yêu cầu thất bại (${response.status})`,
+    );
   } catch {
     return `Yêu cầu thất bại (${response.status})`;
   }
@@ -146,9 +150,36 @@ export function createModularRagAdapter(
             yield* finish(text);
             return;
           }
-          throw error;
+          // LocalRuntime marks cancelled + empty content as a blank bubble with no error UI.
+          // Always leave visible text so the user is not staring at empty space.
+          yield {
+            content: [
+              {
+                type: "text" as const,
+                text: "Phản hồi bị dừng trước khi có nội dung. Vui lòng gửi lại tin nhắn.",
+              },
+            ],
+          };
+          return;
         }
-        throw error;
+
+        // Same for real errors: yield text so the bubble is never content:[].
+        if (text.trim()) {
+          yield* finish(text);
+          return;
+        }
+        const message =
+          error instanceof Error && error.message
+            ? error.message
+            : "Không nhận được phản hồi từ server. Thử gửi lại.";
+        yield {
+          content: [
+            {
+              type: "text" as const,
+              text: `⚠️ ${message}`,
+            },
+          ],
+        };
       } finally {
         if (activeAbortController === ourController) {
           activeAbortController = null;

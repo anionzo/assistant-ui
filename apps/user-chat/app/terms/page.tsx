@@ -5,7 +5,7 @@ import { resolvePublicLegal } from "@/lib/server/resolve-public-legal";
 export async function generateMetadata(): Promise<Metadata> {
   const legal = await resolvePublicLegal();
   return {
-    title: `${legal.terms.title} — Idx Chat`,
+    title: legal.terms.title,
     description: legal.terms.intro.slice(0, 160),
     robots: { index: true, follow: true },
   };

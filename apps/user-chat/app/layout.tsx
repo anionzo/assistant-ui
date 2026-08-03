@@ -8,15 +8,10 @@ import { Geist } from "next/font/google";
 import { cn } from "@/lib/utils";
 
 const geist = Geist({ subsets: ["latin"], variable: "--font-sans" });
-const HUIT_LOGO_URL = "https://idx.huit.edu.vn/images/logo/logo.svg";
 
 export const metadata: Metadata = {
-  title: "Idx Chat",
+  title: "Chat",
   description: "Nền tảng trợ lý AI",
-  icons: {
-    icon: [{ url: HUIT_LOGO_URL, type: "image/svg+xml" }],
-    apple: [{ url: HUIT_LOGO_URL, type: "image/svg+xml" }],
-  },
 };
 
 export default async function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

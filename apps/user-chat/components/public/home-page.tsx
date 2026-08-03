@@ -41,10 +41,19 @@ export function HomePage({
               <span>{home.eyebrow}</span>
             </div>
 
-            <h1 className="mt-5 text-4xl font-semibold leading-[1.04] tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
-              {branding.appName}
-            </h1>
-            <p className="mt-5 max-w-xl text-lg leading-8 text-slate-700 sm:text-xl">{branding.tagline}</p>
+            {branding.appName ? (
+              <h1 className="mt-5 text-4xl font-semibold leading-[1.04] tracking-normal text-slate-950 sm:text-5xl lg:text-6xl">
+                {branding.appName}
+              </h1>
+            ) : (
+              <span
+                aria-hidden="true"
+                className="bg-muted mt-5 block h-12 w-64 max-w-full animate-pulse rounded-lg sm:h-14"
+              />
+            )}
+            {branding.tagline ? (
+              <p className="mt-5 max-w-xl text-lg leading-8 text-slate-700 sm:text-xl">{branding.tagline}</p>
+            ) : null}
             <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600">{home.description}</p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
