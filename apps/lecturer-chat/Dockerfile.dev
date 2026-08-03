@@ -1,0 +1,21 @@
+FROM node:22-bookworm-slim
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN corepack enable
+WORKDIR /app
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
+COPY apps/lecturer-chat/package.json ./apps/lecturer-chat/
+COPY packages/modular-rag-sdk/package.json ./packages/modular-rag-sdk/
+COPY packages/voice-input/package.json ./packages/voice-input/
+COPY packages/i18n/package.json ./packages/i18n/
+RUN pnpm install --frozen-lockfile --filter @idx/lecturer-chat...
+
+COPY apps/lecturer-chat ./apps/lecturer-chat
+COPY packages/modular-rag-sdk ./packages/modular-rag-sdk
+COPY packages/voice-input ./packages/voice-input
+COPY packages/i18n ./packages/i18n
+
+EXPOSE 3000
+CMD ["pnpm", "--filter", "@idx/lecturer-chat", "dev"]

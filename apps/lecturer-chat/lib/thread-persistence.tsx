@@ -1,0 +1,318 @@
+"use client";
+
+import {
+  RuntimeAdapterProvider,
+  useAui,
+  type ExportedMessageRepository,
+  type ExportedMessageRepositoryItem,
+  type RemoteThreadListAdapter,
+  type ThreadHistoryAdapter,
+  type ThreadMessage,
+} from "@assistant-ui/react";
+import { useMemo, type PropsWithChildren } from "react";
+import {
+  fetchThreadList,
+  fetchThreadMetadata,
+  getCachedThreadMessages,
+  loadThreadMessages,
+  mutateThreadApi,
+  persistThreadMessages,
+  updateCachedThreadMessages,
+  type ThreadDto,
+} from "./thread-api-client";
+
+function firstUserMessageTitle(
+  messages: readonly ThreadMessage[],
+  defaultTitle: string,
+) {
+  const firstUser = messages.find((message) => message.role === "user");
+  if (!firstUser) return defaultTitle;
+
+  const text = firstUser.content
+    .filter((part): part is Extract<(typeof firstUser.content)[number], { type: "text" }> => part.type === "text")
+    .map((part) => part.text)
+    .join(" ")
+    .trim();
+
+  return text ? text.slice(0, 40) : defaultTitle;
+}
+
+function toMetadata(thread: ThreadDto) {
+  const lastMessageAt = new Date(thread.updatedAt);
+  return {
+    remoteId: thread.id,
+    externalId: thread.conversationId,
+    title: thread.title,
+    status: thread.archived ? ("archived" as const) : ("regular" as const),
+    lastMessageAt,
+    custom: {
+      conversationId: thread.conversationId,
+      tenantId: thread.tenantId,
+    },
+  };
+}
+
+const PERSIST_DEBOUNCE_MS = 800;
+
+class RemoteHistoryAdapter implements ThreadHistoryAdapter {
+  private repository: ExportedMessageRepository = { messages: [] };
+  private repositoryRemoteId: string | null = null;
+  private repositoryLoaded = false;
+  private persistTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor(private readonly aui: ReturnType<typeof useAui>) {}
+
+  /**
+   * Serializes all read-modify-write operations so concurrent appends/deletes
+   * do not overwrite each other. Each operation waits for the previous one.
+   */
+  private writeChain: Promise<void> = Promise.resolve();
+
+  private enqueueWrite(operation: () => Promise<void>) {
+    const next = this.writeChain.then(operation).catch((error) => {
+      // Guest/local threads intentionally not persisted to server — don't spam console
+      const msg = error instanceof Error ? error.message : String(error);
+      if (!msg.includes("401") && !msg.includes("404") && !msg.includes("Not found") && !msg.includes("Login required")) {
+        console.error("[thread-persistence] write failed", error);
+      }
+    });
+    this.writeChain = next;
+    return next;
+  }
+
+  private async getRemoteThreadId() {
+    const remoteId = this.aui.threadListItem().getState().remoteId;
+    if (remoteId) return remoteId;
+    return (await this.aui.threadListItem().initialize()).remoteId;
+  }
+
+  private async ensureRepositoryLoaded(remoteId: string) {
+    if (this.repositoryLoaded && this.repositoryRemoteId === remoteId) return;
+
+    const cached = getCachedThreadMessages(remoteId);
+    if (cached) {
+      this.repository = cached;
+    } else {
+      this.repository = await loadThreadMessages(remoteId);
+    }
+
+    this.repositoryRemoteId = remoteId;
+    this.repositoryLoaded = true;
+  }
+
+  private applyItem(item: ExportedMessageRepositoryItem) {
+    const nextMessages = [...this.repository.messages];
+    const existingIndex = nextMessages.findIndex(
+      (message) => message.message.id === item.message.id,
+    );
+
+    if (existingIndex >= 0) nextMessages[existingIndex] = item;
+    else nextMessages.push(item);
+
+    this.repository = {
+      headId: item.message.id,
+      messages: nextMessages,
+    };
+  }
+
+  private shouldFlushImmediately(item: ExportedMessageRepositoryItem) {
+    return item.message.role === "assistant";
+  }
+
+  private clearPersistTimer() {
+    if (this.persistTimer) {
+      clearTimeout(this.persistTimer);
+      this.persistTimer = null;
+    }
+  }
+
+  private async flushPersist() {
+    this.clearPersistTimer();
+    const remoteId = await this.getRemoteThreadId();
+    await persistThreadMessages(remoteId, this.repository);
+  }
+
+  private schedulePersist(immediate: boolean) {
+    this.clearPersistTimer();
+    if (immediate) {
+      return this.flushPersist();
+    }
+
+    return new Promise<void>((resolve, reject) => {
+      this.persistTimer = setTimeout(() => {
+        this.persistTimer = null;
+        void this.flushPersist().then(resolve).catch(reject);
+      }, PERSIST_DEBOUNCE_MS);
+    });
+  }
+
+  async load(): Promise<ExportedMessageRepository> {
+    const remoteId = this.aui.threadListItem().getState().remoteId;
+    if (!remoteId) return { messages: [] };
+
+    await this.ensureRepositoryLoaded(remoteId);
+    return this.repository;
+  }
+
+  async append(item: ExportedMessageRepositoryItem) {
+    await this.enqueueWrite(async () => {
+      const remoteId = await this.getRemoteThreadId();
+      await this.ensureRepositoryLoaded(remoteId);
+      this.applyItem(item);
+      updateCachedThreadMessages(remoteId, this.repository);
+      await this.schedulePersist(this.shouldFlushImmediately(item));
+    });
+  }
+
+  async delete(items: ExportedMessageRepositoryItem[]) {
+    await this.enqueueWrite(async () => {
+      const remoteId = await this.getRemoteThreadId();
+      await this.ensureRepositoryLoaded(remoteId);
+
+      const deletedIds = new Set(items.map((item) => item.message.id));
+      const messages = this.repository.messages.filter(
+        (item) => !deletedIds.has(item.message.id),
+      );
+      const headId =
+        this.repository.headId && deletedIds.has(this.repository.headId)
+          ? messages.at(-1)?.message.id ?? null
+          : this.repository.headId;
+
+      this.repository = { headId, messages };
+      updateCachedThreadMessages(remoteId, this.repository);
+      await this.schedulePersist(true);
+    });
+  }
+}
+
+function ThreadHistoryProvider({ children }: PropsWithChildren) {
+  const aui = useAui();
+  const history = useMemo(() => new RemoteHistoryAdapter(aui), [aui]);
+
+  const adapters = useMemo(
+    () => ({
+      history,
+    }),
+    [history],
+  );
+
+  return (
+    <RuntimeAdapterProvider adapters={adapters}>
+      {children}
+    </RuntimeAdapterProvider>
+  );
+}
+
+export function useRemotePersistenceAdapter(
+  onConversationId: (threadId: string, conversationId: string) => void,
+  serverThreads: boolean = true,
+  defaultThreadTitle: string = "New conversation",
+) {
+  const allowServer = serverThreads;
+
+  return useMemo<RemoteThreadListAdapter>(() => ({
+    async list() {
+      if (!allowServer) {
+        return { threads: [] };
+      }
+      try {
+        const result = await fetchThreadList();
+        result.threads.forEach((thread) => {
+          onConversationId(thread.id, thread.conversationId);
+        });
+        return { threads: result.threads.map(toMetadata) };
+      } catch {
+        return { threads: [] };
+      }
+    },
+    async rename(remoteId, newTitle) {
+      if (!allowServer) return;
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title: newTitle }),
+      });
+    },
+    async archive(remoteId) {
+      if (!allowServer) return;
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ archived: true }),
+      });
+    },
+    async unarchive(remoteId) {
+      if (!allowServer) return;
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ archived: false }),
+      });
+    },
+    async delete(remoteId) {
+      if (!allowServer) return;
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
+        method: "DELETE",
+      });
+    },
+    async initialize(threadId: string) {
+      if (!allowServer) {
+        // Guest: create purely local thread (no server record, not persisted across reloads)
+        return {
+          remoteId: threadId,
+          externalId: undefined,
+        };
+      }
+      try {
+        const result = await mutateThreadApi<{ thread: ThreadDto }>("/api/threads", {
+          method: "POST",
+          body: JSON.stringify({}),
+        });
+        onConversationId(result.thread.id, result.thread.conversationId);
+        return {
+          remoteId: result.thread.id,
+          externalId: result.thread.conversationId,
+        };
+      } catch (err) {
+        // Fallback for transient issues
+        return {
+          remoteId: threadId,
+          externalId: undefined,
+        };
+      }
+    },
+    async generateTitle(remoteId, messages) {
+      if (!allowServer) {
+        return new ReadableStream<never>({ start(c) { c.close(); } });
+      }
+      const title = firstUserMessageTitle(messages, defaultThreadTitle);
+      await mutateThreadApi(`/api/threads/${remoteId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ title }),
+      });
+      return new ReadableStream<never>({
+        start(controller) {
+          controller.close();
+        },
+      });
+    },
+    async fetch(threadId) {
+      if (!allowServer) {
+        return {
+          remoteId: threadId,
+          externalId: undefined,
+          status: "regular" as const,
+        };
+      }
+      const thread = await fetchThreadMetadata(threadId);
+      if (!thread) {
+        return {
+          remoteId: threadId,
+          externalId: undefined,
+          status: "regular" as const,
+        };
+      }
+
+      onConversationId(thread.id, thread.conversationId);
+      return toMetadata(thread);
+    },
+    unstable_Provider: ThreadHistoryProvider,
+  }), [onConversationId, allowServer, defaultThreadTitle]);
+}

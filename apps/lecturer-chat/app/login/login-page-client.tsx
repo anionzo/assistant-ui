@@ -1,0 +1,60 @@
+"use client";
+
+import Link from "next/link";
+import { BrandLogo } from "@/components/brand-logo";
+import { type BrandingState, useBranding } from "@/hooks/use-branding";
+import { useT } from "@idx/i18n";
+import { PublicLegalFooter } from "@/components/public/public-site-shell";
+import { useLegalDisplay } from "@/hooks/use-legal-display";
+import { LoginForm } from "./login-form";
+
+export function LoginPageClient({
+  initialBranding,
+  showForgotPassword,
+}: {
+  initialBranding: BrandingState;
+  showForgotPassword: boolean;
+}) {
+  const { branding } = useBranding(initialBranding);
+  const legalDisplay = useLegalDisplay();
+  const t = useT();
+
+  return (
+    <main className="flex min-h-dvh items-center justify-center bg-[linear-gradient(180deg,#ffffff_0%,#f7fafb_100%)] px-4 py-10 sm:px-6">
+      <div className="w-full max-w-[460px] rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl shadow-slate-950/8 sm:p-8">
+        <div className="mb-7 flex items-center gap-3">
+          <BrandLogo src={branding.logoUrl} alt={branding.appName || "App"} size={46} className="rounded-xl" />
+          <div className="min-w-0">
+            {branding.appName ? (
+              <h1 className="truncate text-2xl font-semibold tracking-normal text-slate-950">
+                {branding.appName}
+              </h1>
+            ) : (
+              <span aria-hidden="true" className="bg-muted block h-7 w-36 animate-pulse rounded" />
+            )}
+            {branding.tagline ? (
+              <p className="truncate text-sm text-slate-500">{branding.tagline}</p>
+            ) : null}
+          </div>
+        </div>
+        <p className="text-sm leading-6 text-slate-600">{t("auth.loginTitle")}</p>
+        <div className="mt-5 flex flex-wrap gap-2 text-xs font-medium text-slate-500">
+          <span className="rounded-full bg-slate-100 px-2.5 py-1">{t("home.signalSync")}</span>
+          <span className="rounded-full bg-teal-50 px-2.5 py-1 text-teal-700">{t("home.signalSources")}</span>
+        </div>
+        <div className="mt-7">
+          <LoginForm showForgotPassword={showForgotPassword} />
+        </div>
+        <p className="mt-5 text-center text-sm text-slate-600">
+          {t("auth.noAccount")}{" "}
+          <Link href="/register" className="font-medium text-teal-700 underline-offset-4 hover:underline">
+            {t("auth.register")}
+          </Link>
+        </p>
+        <div className="mt-6">
+          <PublicLegalFooter enabled={legalDisplay.footerOnAuthPages} />
+        </div>
+      </div>
+    </main>
+  );
+}

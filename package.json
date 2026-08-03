@@ -6,6 +6,7 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "dev": "pnpm --filter @idx/user-chat dev",
+    "dev:lecturer": "pnpm --filter @idx/lecturer-chat dev",
     "setup:env": "node scripts/dev/setup-env.mjs",
     "setup:env:check": "node scripts/dev/setup-env.mjs --check",
     "mongo:up": "docker compose -f docker-compose.mongo.yml up -d --wait",

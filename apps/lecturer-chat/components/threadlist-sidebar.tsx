@@ -1,0 +1,102 @@
+"use client";
+
+import { SidebarUserFooter } from "@/components/sidebar-user-footer";
+import { ThreadListItems, ThreadListNew } from "@/components/thread-list";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarRail,
+} from "@/components/ui/sidebar";
+import { BrandLogo } from "@/components/brand-logo";
+import { useBranding } from "@/hooks/use-branding";
+import { FORM_MODULE_ENABLED, VOICE_FORM_PAGE_ENABLED } from "@/lib/feature-flags";
+import { useT } from "@idx/i18n";
+import Link from "next/link";
+import { FileText } from "lucide-react";
+import type { ComponentProps } from "react";
+
+export function ThreadListSidebar({
+  initialAuth = true,
+  ...props
+}: ComponentProps<typeof Sidebar> & { initialAuth?: boolean }) {
+  const { branding } = useBranding();
+  const t = useT();
+
+  return (
+    <Sidebar {...props}>
+      <SidebarHeader className="aui-sidebar-header border-sidebar-border mb-2 border-b">
+        <div className="aui-sidebar-header-content px-1">
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton size="lg" asChild>
+                <Link href="/chat">
+                  <BrandLogo
+                    src={branding.logoUrl}
+                    alt={branding.appName || "App"}
+                    size={32}
+                    className="aui-sidebar-header-icon-wrapper rounded-lg"
+                  />
+                  <div className="min-w-0 text-left">
+                    {branding.appName ? (
+                      <span className="aui-sidebar-header-title block truncate font-semibold tracking-wide">
+                        {branding.appName}
+                      </span>
+                    ) : (
+                      <span
+                        aria-hidden="true"
+                        className="bg-muted block h-4 w-24 animate-pulse rounded"
+                      />
+                    )}
+                    {branding.tagline ? (
+                      <span className="block truncate text-xs font-normal text-muted-foreground">
+                        {branding.tagline}
+                      </span>
+                    ) : null}
+                  </div>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </div>
+      </SidebarHeader>
+
+      <SidebarContent className="aui-sidebar-content flex min-h-0 flex-col gap-1 px-2">
+        {VOICE_FORM_PAGE_ENABLED && (
+          <SidebarMenu className="shrink-0 pt-1">
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild>
+                <Link href="/voice-form">
+                  <FileText className="size-4" />
+                  <span>{t("nav.voiceForm")}</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        )}
+        <div className="aui-sidebar-new-thread shrink-0 pt-1">
+          <ThreadListNew className="w-full" />
+        </div>
+        {!initialAuth && (
+          <div className="text-muted-foreground px-2 py-1 text-[10px]">
+            {t("nav.guestChat")}{" "}
+            <Link href="/login" className="underline">{t("nav.login")}</Link> {t("nav.guestLogin")}
+          </div>
+        )}
+        <div className="aui-sidebar-thread-list min-h-0 flex-1 overflow-auto">
+          <ThreadListItems />
+        </div>
+      </SidebarContent>
+
+      <SidebarRail />
+
+      <SidebarFooter className="aui-sidebar-footer border-sidebar-border border-t px-1 py-2">
+        <SidebarUserFooter />
+      </SidebarFooter>
+    </Sidebar>
+  );
+}
