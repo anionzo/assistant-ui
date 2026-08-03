@@ -223,7 +223,7 @@ export function FormArtifactPanel({ className }: { className?: string } = {}) {
           <span className="text-muted-foreground text-xs">Xem trước</span>
           {previewLoading && <RefreshCw className="size-3.5 animate-spin" />}
         </div>
-        <div className="prose prose-sm dark:prose-invert mt-2 max-h-48 overflow-y-auto text-sm">
+        <div className="prose prose-sm dark:prose-invert mt-2 min-h-56 max-h-80 overflow-y-auto rounded-md border border-border/50 bg-muted/20 p-3 text-sm">
           {previewHtml ? (
             <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
           ) : (
